@@ -12,6 +12,7 @@ import (
 	"path"
 )
 
+// Sync TODO jb install
 func Sync(ctx context.Context, configDir, dataDir string) error {
 	vendorDir := path.Join(configDir, "vendor")
 	mainFile := path.Join(configDir, "main.jsonnet")
@@ -75,11 +76,11 @@ func Sync(ctx context.Context, configDir, dataDir string) error {
 	if err != nil {
 		return err
 	}
+	tf.SetStdout(os.Stderr)
 	err = tf.Init(ctx, tfexec.Upgrade(true))
 	if err != nil {
 		return err
 	}
-	tf.SetStdout(os.Stderr)
 	err = tf.Apply(ctx)
 	if err != nil {
 		return err

@@ -34,6 +34,10 @@ func Init(ctx context.Context, configDir string) error {
 		if err != nil && !os.IsNotExist(err) {
 			return err
 		}
+		err = os.MkdirAll(path.Dir(target), 0755)
+		if err != nil {
+			return err
+		}
 		targetFile, err := os.Create(target)
 		if err != nil {
 			return err

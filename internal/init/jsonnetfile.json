@@ -9,6 +9,33 @@
         }
       },
       "version": "versource"
+    },
+    {
+      "source": {
+        "git": {
+          "remote": "https://github.com/marcbran/jsonnet.git",
+          "subdir": "terraform"
+        }
+      },
+      "version": "terraform"
+    },
+    {
+      "source": {
+        "git": {
+          "remote": "https://github.com/marcbran/jsonnet.git",
+          "subdir": "terraform-provider-jsonnet"
+        }
+      },
+      "version": "terraform-provider/registry.terraform.io/marcbran/jsonnet"
+    },
+    {
+      "source": {
+        "git": {
+          "remote": "https://github.com/marcbran/jsonnet.git",
+          "subdir": "terraform-provider-dolt"
+        }
+      },
+      "version": "terraform-provider/registry.terraform.io/marcbran/dolt"
     }
   ],
   "legacyImports": true

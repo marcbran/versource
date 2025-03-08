@@ -20,6 +20,19 @@ var syncCmd = &cobra.Command{
 		if dataDir == "" {
 			dataDir = path.Join(os.Getenv("XDG_DATA_HOME"), "versource")
 		}
-		return internal.Sync(cmd.Context(), configDir, dataDir)
+		include, err := cmd.Flags().GetStringArray("include")
+		if err != nil {
+			return err
+		}
+		exclude, err := cmd.Flags().GetStringArray("exclude")
+		if err != nil {
+			return err
+		}
+		return internal.Sync(cmd.Context(), include, exclude, configDir, dataDir)
 	},
+}
+
+func init() {
+	syncCmd.Flags().StringArrayP("include", "i", []string{}, "explicitly includes a group of resources into the sync")
+	syncCmd.Flags().StringArrayP("exclude", "e", []string{}, "explicitly excludes a group of resources from the sync")
 }

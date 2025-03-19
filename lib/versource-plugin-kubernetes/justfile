@@ -3,5 +3,8 @@ set fallback := true
 default:
     @just --list
 
-release:
-    @just jsonnet-release versource-plugin/kubernetes versource-plugin-kubernetes
+release: test
+    @jsonnet-kit release -r https://github.com/marcbran/jsonnet.git -b versource-plugin/kubernetes -p versource-plugin-kubernetes
+
+test:
+    @jsonnet-kit test

@@ -3,5 +3,8 @@ set fallback := true
 default:
     @just --list
 
-release:
-    @just jsonnet-release versource
+release: test
+    @jsonnet-kit release -r https://github.com/marcbran/jsonnet.git
+
+test:
+    @jsonnet-kit test

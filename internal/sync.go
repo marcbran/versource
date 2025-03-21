@@ -3,20 +3,33 @@ package internal
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/google/go-jsonnet"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hc-install/product"
 	"github.com/hashicorp/hc-install/releases"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"os"
+	"os/exec"
 	"path"
 	"strings"
 )
 
+type SyncOptions struct {
+	Include []string
+	Exclude []string
+
+	ConfigDir string
+	DataDir   string
+
+	ForceDownload   bool
+	DownloadVersion string
+}
+
 // Sync TODO jb install
-func Sync(ctx context.Context, include, exclude []string, configDir, dataDir string) error {
-	vendorDir := path.Join(configDir, "vendor")
-	mainFile := path.Join(configDir, "main.jsonnet")
+func Sync(ctx context.Context, options SyncOptions) error {
+	vendorDir := path.Join(options.ConfigDir, "vendor")
+	mainFile := path.Join(options.ConfigDir, "main.jsonnet")
 
 	vm := jsonnet.MakeVM()
 	vm.Importer(&jsonnet.FileImporter{
@@ -27,7 +40,7 @@ func Sync(ctx context.Context, include, exclude []string, configDir, dataDir str
 		return err
 	}
 	for file, jsonContent := range files {
-		target := path.Join(dataDir, file)
+		target := path.Join(options.DataDir, file)
 
 		targetDir := path.Dir(target)
 		err := os.MkdirAll(targetDir, 0755)
@@ -54,49 +67,42 @@ func Sync(ctx context.Context, include, exclude []string, configDir, dataDir str
 			return err
 		}
 	}
-	err = os.Setenv("JSONNET_PATH", strings.Join([]string{vendorDir, configDir}, string(os.PathListSeparator)))
+	err = os.Setenv("JSONNET_PATH", strings.Join([]string{vendorDir, options.ConfigDir}, string(os.PathListSeparator)))
 	if err != nil {
 		return err
 	}
 
-	installer := &releases.ExactVersion{
-		Product: product.Terraform,
-		Version: version.Must(version.NewVersion("1.8.0")),
-	}
-	execPath, err := installer.Install(ctx)
-	if err != nil {
-		return err
-	}
-	dbDir := path.Join(dataDir, "db")
+	dbDir := path.Join(options.DataDir, "db")
 	err = os.MkdirAll(dbDir, 0755)
 	if err != nil {
 		return err
 	}
 
 	excludeSet := make(map[string]struct{})
-	for _, e := range exclude {
+	for _, e := range options.Exclude {
 		excludeSet[e] = struct{}{}
 	}
-	include = append([]string{"ddl"}, include...)
+	options.Include = append([]string{"ddl"}, options.Include...)
 	var paths []string
-	for _, i := range include {
+	for _, i := range options.Include {
 		if _, ok := excludeSet[i]; ok {
 			continue
 		}
 		paths = append(paths, i)
 	}
 
+	execPath, err := fetchTerraformPath(ctx, options)
 	for _, p := range paths {
-		syncDir := path.Join(dataDir, "sync", p)
+		syncDir := path.Join(options.DataDir, "sync", p)
 		tf, err := tfexec.NewTerraform(syncDir, execPath)
 		if err != nil {
 			return err
 		}
-		tf.SetStdout(os.Stderr)
 		err = tf.Init(ctx, tfexec.Upgrade(true))
 		if err != nil {
 			return err
 		}
+		tf.SetStdout(os.Stderr)
 		err = tf.Apply(ctx)
 		if err != nil {
 			return err
@@ -104,4 +110,39 @@ func Sync(ctx context.Context, include, exclude []string, configDir, dataDir str
 	}
 
 	return nil
+}
+
+func fetchTerraformPath(ctx context.Context, options SyncOptions) (string, error) {
+	if options.ForceDownload {
+		return downloadTerraform(ctx, options)
+	}
+	execPath, err := exec.LookPath("terraform")
+	if err != nil {
+		if !errors.Is(err, exec.ErrNotFound) {
+			return "", err
+		}
+		execPath, err = downloadTerraform(ctx, options)
+		if err != nil {
+			return "", err
+		}
+	}
+	return execPath, nil
+}
+
+func downloadTerraform(ctx context.Context, options SyncOptions) (string, error) {
+	tfDir := path.Join(options.DataDir, "tf")
+	err := os.MkdirAll(tfDir, 0755)
+	if err != nil {
+		return "", err
+	}
+	installer := &releases.ExactVersion{
+		Product:    product.Terraform,
+		Version:    version.Must(version.NewVersion(options.DownloadVersion)),
+		InstallDir: tfDir,
+	}
+	execPath, err := installer.Install(ctx)
+	if err != nil {
+		return "", err
+	}
+	return execPath, nil
 }

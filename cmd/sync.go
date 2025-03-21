@@ -28,11 +28,28 @@ var syncCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return internal.Sync(cmd.Context(), include, exclude, configDir, dataDir)
+		forceDownload, err := cmd.Flags().GetBool("force-download")
+		if err != nil {
+			return err
+		}
+		downloadVersion, err := cmd.Flags().GetString("download-version")
+		if err != nil {
+			return err
+		}
+		return internal.Sync(cmd.Context(), internal.SyncOptions{
+			Include:         include,
+			Exclude:         exclude,
+			ConfigDir:       configDir,
+			DataDir:         dataDir,
+			ForceDownload:   forceDownload,
+			DownloadVersion: downloadVersion,
+		})
 	},
 }
 
 func init() {
 	syncCmd.Flags().StringArrayP("include", "i", []string{}, "explicitly includes a group of resources into the sync")
 	syncCmd.Flags().StringArrayP("exclude", "e", []string{}, "explicitly excludes a group of resources from the sync")
+	syncCmd.Flags().Bool("force-download", false, "forces the download of the Terraform binary even if it's on the path")
+	syncCmd.Flags().String("download-version", "", "defines the Terraform version to be downloaded, if a download is made. Defaults to the latest version")
 }

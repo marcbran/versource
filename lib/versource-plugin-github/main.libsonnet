@@ -36,4 +36,50 @@
       |||,
     },
   },
+  projections: {
+    user(resource): [
+      {
+        provider: 'Versource',
+        providerAlias: null,
+        namespace: resource.uuid,
+        resourceType: 'Page',
+        name: 'Profile',
+        data: {
+          url: 'https://github.com/%s' % resource.data.username,
+        },
+      },
+    ],
+    organization(resource): [
+      {
+        provider: 'Versource',
+        providerAlias: null,
+        namespace: resource.uuid,
+        resourceType: 'Page',
+        name: 'Organisation',
+        data: {
+          url: 'https://github.com/%s' % resource.data.orgname,
+        },
+      },
+    ],
+    repository(resource):
+      local pages = [
+        { path: '', name: 'Repo' },
+        { path: '/issues', name: 'Issues' },
+        { path: '/pulls', name: 'Pull Requests' },
+        { path: '/actions', name: 'Actions' },
+      ];
+      [
+        {
+          provider: 'Versource',
+          providerAlias: null,
+          namespace: resource.uuid,
+          resourceType: 'Page',
+          name: page.name,
+          data: {
+            url: '%s%s' % [resource.data.html_url, page.path],
+          },
+        }
+        for page in pages
+      ],
+  },
 }

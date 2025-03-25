@@ -26,7 +26,7 @@ type SyncOptions struct {
 	DownloadVersion string
 }
 
-// Sync TODO jb install
+// Sync TODO Make sure to run jb install as well.
 func Sync(ctx context.Context, options SyncOptions) error {
 	vendorDir := path.Join(options.ConfigDir, "vendor")
 	mainFile := path.Join(options.ConfigDir, "main.jsonnet")
@@ -92,6 +92,9 @@ func Sync(ctx context.Context, options SyncOptions) error {
 	}
 
 	execPath, err := fetchTerraformPath(ctx, options)
+	if err != nil {
+		return err
+	}
 	for _, p := range paths {
 		syncDir := path.Join(options.DataDir, "sync", p)
 		tf, err := tfexec.NewTerraform(syncDir, execPath)

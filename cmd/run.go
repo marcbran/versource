@@ -1,16 +1,15 @@
 package cmd
 
 import (
-	"encoding/json"
 	"github.com/marcbran/versource/internal"
 	"github.com/spf13/cobra"
 	"os"
 	"path"
 )
 
-var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "Lists all resources of a certain view",
+var runCmd = &cobra.Command{
+	Use:   "run",
+	Short: "Runs a particular action related to the provided resource",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		configDir := os.Getenv("VERSOURCE_CONFIG_HOME")
@@ -27,21 +26,8 @@ var listCmd = &cobra.Command{
 		}
 		defer logFile.Close()
 
-		var query string
-		if len(args) > 0 {
-			query = args[0]
-		}
 		resource := os.Getenv("resource")
-		list, err := internal.List(cmd.Context(), configDir, dataDir, query, resource)
-		if err != nil {
-			return err
-		}
-
-		b, err := json.Marshal(list)
-		if err != nil {
-			return err
-		}
-		_, err = os.Stdout.Write(b)
+		err = internal.Run(cmd.Context(), configDir, dataDir, resource)
 		if err != nil {
 			return err
 		}

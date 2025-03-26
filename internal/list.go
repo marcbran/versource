@@ -48,7 +48,7 @@ func List(ctx context.Context, configDir, dataDir, query, resource string) (Filt
 	if err != nil {
 		return FilterList{}, err
 	}
-	list, err := listResources(ctx, db, query, resource, configDir)
+	list, err := listResources(ctx, db, resource, configDir)
 	if err != nil {
 		return FilterList{}, err
 	}
@@ -63,17 +63,9 @@ func List(ctx context.Context, configDir, dataDir, query, resource string) (Filt
 	return list, nil
 }
 
-func listResources(ctx context.Context, db *sql.DB, query string, resource string, configDir string) (FilterList, error) {
-	if strings.HasSuffix(query, " ") {
-		if strings.TrimSuffix(query, " ") == resource {
-			return listResourceProjections(ctx, db, configDir, resource)
-		}
-		return FilterList{
-			Variables: map[string]string{
-				"resource": strings.TrimSuffix(query, " "),
-			},
-			Rerun: 0.01,
-		}, nil
+func listResources(ctx context.Context, db *sql.DB, resource string, configDir string) (FilterList, error) {
+	if resource != "" {
+		return listResourceProjections(ctx, db, configDir, resource)
 	}
 	resources, err := listAllResources(ctx, db)
 	if err != nil {
@@ -224,7 +216,15 @@ func listResourceProjectionsForResource(configDir string, resource Resource) ([]
 func itemizeResources(resources []Resource) ([]Item, error) {
 	var items []Item
 	for _, resource := range resources {
-		title := fmt.Sprintf("%s/%s/%s/%s", resource.Provider, resource.ProviderAlias, resource.Namespace, resource.Name)
+		titleParts := []string{resource.Provider, resource.ProviderAlias, resource.ResourceType, resource.Namespace, resource.Name}
+		var titleNonEmptyParts []string
+		for _, part := range titleParts {
+			if part == "" {
+				continue
+			}
+			titleNonEmptyParts = append(titleNonEmptyParts, part)
+		}
+		title := strings.Join(titleNonEmptyParts, "/")
 		b, err := json.Marshal(resource)
 		if err != nil {
 			return nil, err
@@ -232,7 +232,7 @@ func itemizeResources(resources []Resource) ([]Item, error) {
 		items = append(items, Item{
 			Uid:          resource.Uuid,
 			Title:        title,
-			Autocomplete: fmt.Sprintf("%s ", title),
+			Autocomplete: title,
 			Variables: map[string]string{
 				"resource": string(b),
 			},
@@ -247,7 +247,7 @@ func itemizeResourceTitles(resourceTitles []ResourceTitle) []Item {
 		items = append(items, Item{
 			Uid:          resourceTitle.Uuid,
 			Title:        resourceTitle.Title,
-			Autocomplete: fmt.Sprintf("%s ", resourceTitle.Title),
+			Autocomplete: resourceTitle.Title,
 			Variables: map[string]string{
 				"resource": resourceTitle.Title,
 			},

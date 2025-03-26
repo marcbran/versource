@@ -39,11 +39,11 @@
   projections: {
     user(resource): [
       {
-        provider: 'Versource',
+        provider: 'github',
         providerAlias: null,
-        namespace: resource.uuid,
-        resourceType: 'Page',
-        name: 'Profile',
+        namespace: '%s/%s' % [resource.namespace, resource.name],
+        resourceType: 'page',
+        name: 'profile',
         data: {
           url: 'https://github.com/%s' % resource.data.username,
         },
@@ -51,11 +51,11 @@
     ],
     organization(resource): [
       {
-        provider: 'Versource',
+        provider: 'github',
         providerAlias: null,
-        namespace: resource.uuid,
-        resourceType: 'Page',
-        name: 'Organisation',
+        namespace: '%s/%s' % [resource.namespace, resource.name],
+        resourceType: 'page',
+        name: 'main',
         data: {
           url: 'https://github.com/%s' % resource.data.orgname,
         },
@@ -63,17 +63,17 @@
     ],
     repository(resource):
       local pages = [
-        { path: '', name: 'Repo' },
-        { path: '/issues', name: 'Issues' },
-        { path: '/pulls', name: 'Pull Requests' },
-        { path: '/actions', name: 'Actions' },
+        { path: '', name: 'repo' },
+        { path: '/issues', name: 'issues' },
+        { path: '/pulls', name: 'pull-requests' },
+        { path: '/actions', name: 'actions' },
       ];
       [
         {
-          provider: 'Versource',
+          provider: 'github',
           providerAlias: null,
-          namespace: resource.uuid,
-          resourceType: 'Page',
+          namespace: '%s/%s' % [resource.namespace, resource.name],
+          resourceType: 'page',
           name: page.name,
           data: {
             url: '%s%s' % [resource.data.html_url, page.path],

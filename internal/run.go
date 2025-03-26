@@ -33,7 +33,7 @@ func Run(ctx context.Context, configDir, dataDir, resourceOrResourceTitle string
 
 func runResource(resource Resource) error {
 	switch resource.ResourceType {
-	case "Page":
+	case "page":
 		p, err := exec.LookPath("open")
 		if err != nil {
 			return err

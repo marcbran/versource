@@ -12,23 +12,23 @@ import (
 	"strings"
 )
 
-func Run(ctx context.Context, configDir, dataDir, resourceOrResourceTitle string) error {
+func Run(ctx context.Context, configDir, dataDir, resourceOrResourceId string) error {
 	dbDir := path.Join(dataDir, "db")
 	db, err := sql.Open("dolt", fmt.Sprintf("file://%s?database=%s&commitname=%s&commitemail=%s", dbDir, "versource", "none", "none"))
 	if err != nil {
 		return err
 	}
 
-	if strings.HasPrefix(resourceOrResourceTitle, "{") {
+	if strings.HasPrefix(resourceOrResourceId, "{") {
 		var resource Resource
-		err := json.Unmarshal([]byte(resourceOrResourceTitle), &resource)
+		err := json.Unmarshal([]byte(resourceOrResourceId), &resource)
 		if err != nil {
 			return err
 		}
 		return runResource(resource)
 	}
 
-	return runResourceTitle(ctx, db, configDir, resourceOrResourceTitle)
+	return runResourceId(ctx, db, configDir, resourceOrResourceId)
 }
 
 func runResource(resource Resource) error {
@@ -51,8 +51,8 @@ func runResource(resource Resource) error {
 	return nil
 }
 
-func runResourceTitle(ctx context.Context, db *sql.DB, configDir, resourceTitle string) error {
-	resource, err := getResource(ctx, db, resourceTitle)
+func runResourceId(ctx context.Context, db *sql.DB, configDir, resourceId string) error {
+	resource, err := getResource(ctx, db, resourceId)
 	if err != nil {
 		return err
 	}

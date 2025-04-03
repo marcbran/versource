@@ -45,8 +45,8 @@ local pluginViewsCfg(dolt, block) =
 
 local terraformResourceGroup(resource) = {
   provider: resource._.provider,
-  providerAlias: if resource._.providerAlias == null then '' else resource._.providerAlias,
   resourceType: resource._.resourceType,
+  providerAlias: if resource._.providerAlias == null then '' else resource._.providerAlias,
   namespace: '',
   name: resource._.name,
   resources:
@@ -58,8 +58,8 @@ local terraformResourceGroup(resource) = {
 local resourceGroupResources(resourceGroup) = [
   {
     provider: resourceGroup.provider,
-    providerAlias: resourceGroup.providerAlias,
     resourceType: resourceGroup.resourceType,
+    providerAlias: resourceGroup.providerAlias,
     namespace: resourceGroup.namespace,
     name: resourceGroup.name,
     data: resource,
@@ -83,14 +83,14 @@ local namespace = '5b1f7a3f-c85e-4d97-8f55-491a2feb413c';
 local resourceValues(resource) = [
   std.native('uuidv5')(namespace, std.join('/', [
     resource.provider,
-    resource.providerAlias,
     resource.resourceType,
+    resource.providerAlias,
     resource.namespace,
     resource.name,
   ])),
   resource.provider,
-  resource.providerAlias,
   resource.resourceType,
+  resource.providerAlias,
   resource.namespace,
   resource.name,
   std.manifestJsonMinified(resource.data),

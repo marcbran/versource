@@ -22,9 +22,16 @@ type FilterList struct {
 type Item struct {
 	Uid          string            `json:"uid"`
 	Title        string            `json:"title"`
+	Subtitle     string            `json:"subtitle"`
+	Match        string            `json:"match"`
+	Icon         Icon              `json:"icon"`
 	Arg          []string          `json:"arg"`
 	Autocomplete string            `json:"autocomplete,omitempty"`
 	Variables    map[string]string `json:"variables"`
+}
+
+type Icon struct {
+	Path string `json:"path"`
 }
 
 type Resource struct {
@@ -37,9 +44,23 @@ type Resource struct {
 	Data          map[string]any `json:"data"`
 }
 
-type ResourceTitle struct {
-	Uuid  string `json:"uuid"`
-	Title string `json:"title"`
+func (r Resource) Id() string {
+	return joinNonEmpty([]string{r.Provider, r.ResourceType, r.ProviderAlias, r.Namespace, r.Name}, "/")
+}
+
+func (r Resource) FullResourceType() string {
+	return joinNonEmpty([]string{r.Provider, r.ResourceType}, " ")
+}
+
+func (r Resource) FullName() string {
+	return joinNonEmpty([]string{r.ProviderAlias, r.Namespace, r.Name}, "/")
+}
+
+type ResourceIds struct {
+	Uuid             string `json:"uuid"`
+	Id               string `json:"id"`
+	FullResourceType string `json:"full_resource_type"`
+	FullName         string `json:"full_name"`
 }
 
 func List(ctx context.Context, configDir, dataDir, query, resource string) (FilterList, error) {
@@ -67,15 +88,15 @@ func listResources(ctx context.Context, db *sql.DB, resource string, configDir s
 	if resource != "" {
 		return listResourceProjections(ctx, db, configDir, resource)
 	}
-	resources, err := listAllResources(ctx, db)
+	resources, err := listAllResources(ctx, db, configDir)
 	if err != nil {
 		return FilterList{}, err
 	}
 	return resources, nil
 }
 
-func listResourceProjections(ctx context.Context, db *sql.DB, configDir string, resourceTitle string) (FilterList, error) {
-	r, err := getResource(ctx, db, resourceTitle)
+func listResourceProjections(ctx context.Context, db *sql.DB, configDir string, resourceId string) (FilterList, error) {
+	r, err := getResource(ctx, db, resourceId)
 	if err != nil {
 		return FilterList{}, err
 	}
@@ -83,7 +104,7 @@ func listResourceProjections(ctx context.Context, db *sql.DB, configDir string, 
 	if err != nil {
 		return FilterList{}, err
 	}
-	items, err := itemizeResources(resources)
+	items, err := itemizeResources(configDir, resources)
 	if err != nil {
 		return FilterList{}, err
 	}
@@ -93,18 +114,18 @@ func listResourceProjections(ctx context.Context, db *sql.DB, configDir string, 
 	return list, nil
 }
 
-func listAllResources(ctx context.Context, db *sql.DB) (FilterList, error) {
-	resourceTitles, err := listAllResourceTitles(ctx, db)
+func listAllResources(ctx context.Context, db *sql.DB, configDir string) (FilterList, error) {
+	resourceIds, err := listAllResourceIds(ctx, db)
 	if err != nil {
 		return FilterList{}, err
 	}
 	list := FilterList{
-		Items: itemizeResourceTitles(resourceTitles),
+		Items: itemizeResourceIds(configDir, resourceIds),
 	}
 	return list, nil
 }
 
-func listAllResourceTitles(ctx context.Context, db *sql.DB) ([]ResourceTitle, error) {
+func listAllResourceIds(ctx context.Context, db *sql.DB) ([]ResourceIds, error) {
 	rows, err := db.QueryContext(
 		ctx,
 		`SELECT
@@ -112,11 +133,22 @@ func listAllResourceTitles(ctx context.Context, db *sql.DB) ([]ResourceTitle, er
 		  CONCAT_WS(
 			'/',
 			NULLIF(provider, ''),
-			NULLIF(provider_alias, ''),
 			NULLIF(resource_type, ''),
+			NULLIF(NULLIF(provider_alias, ''), 'default'),
 			NULLIF(namespace, ''),
 			NULLIF(name, '')
-		  ) AS title
+		  ) AS id,
+		  CONCAT_WS(
+			' ',
+			NULLIF(provider, ''),
+			NULLIF(resource_type, '')
+		  ) AS full_resource_type,
+		  CONCAT_WS(
+			'/',
+			NULLIF(NULLIF(provider_alias, ''), 'default'),
+			NULLIF(namespace, ''),
+			NULLIF(name, '')
+		  ) AS full_name
 		FROM resources`,
 	)
 	if err != nil {
@@ -124,22 +156,24 @@ func listAllResourceTitles(ctx context.Context, db *sql.DB) ([]ResourceTitle, er
 	}
 	defer rows.Close()
 
-	var resourceTitles []ResourceTitle
+	var resourceIds []ResourceIds
 	for rows.Next() {
-		var uuid, title string
-		err := rows.Scan(&uuid, &title)
+		var uuid, id, fullResourceType, fullName string
+		err := rows.Scan(&uuid, &id, &fullResourceType, &fullName)
 		if err != nil {
 			return nil, err
 		}
-		resourceTitles = append(resourceTitles, ResourceTitle{
-			Uuid:  uuid,
-			Title: title,
+		resourceIds = append(resourceIds, ResourceIds{
+			Uuid:             uuid,
+			Id:               id,
+			FullResourceType: fullResourceType,
+			FullName:         fullName,
 		})
 	}
-	return resourceTitles, nil
+	return resourceIds, nil
 }
 
-func getResource(ctx context.Context, db *sql.DB, resourceTitle string) (Resource, error) {
+func getResource(ctx context.Context, db *sql.DB, resourceId string) (Resource, error) {
 	rows, err := db.QueryContext(
 		ctx,
 		`SELECT *
@@ -148,13 +182,13 @@ func getResource(ctx context.Context, db *sql.DB, resourceTitle string) (Resourc
 		CONCAT_WS(
 			'/',
 			NULLIF(provider, ''),
-			NULLIF(provider_alias, ''),
 			NULLIF(resource_type, ''),
+			NULLIF(NULLIF(provider_alias, ''), 'default'),
 			NULLIF(namespace, ''),
 			NULLIF(name, '')
 		) = ?
 		LIMIT 1`,
-		resourceTitle,
+		resourceId,
 	)
 	if err != nil {
 		return Resource{}, err
@@ -162,7 +196,7 @@ func getResource(ctx context.Context, db *sql.DB, resourceTitle string) (Resourc
 	defer rows.Close()
 
 	if !rows.Next() {
-		return Resource{}, fmt.Errorf("cannot find resource with title %s", resourceTitle)
+		return Resource{}, fmt.Errorf("cannot find resource with id %s", resourceId)
 	}
 	var uuid, provider, providerAlias, resourceType, namespace, name, dataString string
 	err = rows.Scan(&uuid, &provider, &providerAlias, &resourceType, &namespace, &name, &dataString)
@@ -213,26 +247,21 @@ func listResourceProjectionsForResource(configDir string, resource Resource) ([]
 	return projections, nil
 }
 
-func itemizeResources(resources []Resource) ([]Item, error) {
+func itemizeResources(configDir string, resources []Resource) ([]Item, error) {
 	var items []Item
 	for _, resource := range resources {
-		titleParts := []string{resource.Provider, resource.ProviderAlias, resource.ResourceType, resource.Namespace, resource.Name}
-		var titleNonEmptyParts []string
-		for _, part := range titleParts {
-			if part == "" {
-				continue
-			}
-			titleNonEmptyParts = append(titleNonEmptyParts, part)
-		}
-		title := strings.Join(titleNonEmptyParts, "/")
 		b, err := json.Marshal(resource)
 		if err != nil {
 			return nil, err
 		}
 		items = append(items, Item{
-			Uid:          resource.Uuid,
-			Title:        title,
-			Autocomplete: title,
+			Uid:      resource.Uuid,
+			Title:    resource.FullName(),
+			Subtitle: resource.FullResourceType(),
+			Match:    resource.Id(),
+			Icon: Icon{
+				Path: path.Join(configDir, "icons", fmt.Sprintf("%s.svg", resource.Provider)),
+			},
 			Variables: map[string]string{
 				"resource": string(b),
 			},
@@ -241,15 +270,19 @@ func itemizeResources(resources []Resource) ([]Item, error) {
 	return items, nil
 }
 
-func itemizeResourceTitles(resourceTitles []ResourceTitle) []Item {
+func itemizeResourceIds(configDir string, resourceIds []ResourceIds) []Item {
 	var items []Item
-	for _, resourceTitle := range resourceTitles {
+	for _, resourceId := range resourceIds {
 		items = append(items, Item{
-			Uid:          resourceTitle.Uuid,
-			Title:        resourceTitle.Title,
-			Autocomplete: resourceTitle.Title,
+			Uid:      resourceId.Uuid,
+			Title:    resourceId.FullName,
+			Subtitle: resourceId.FullResourceType,
+			Match:    resourceId.Id,
+			Icon: Icon{
+				Path: path.Join(configDir, "icons", fmt.Sprintf("%s.svg", strings.Split(resourceId.FullResourceType, " ")[0])),
+			},
 			Variables: map[string]string{
-				"resource": resourceTitle.Title,
+				"resource": resourceId.Id,
 			},
 		})
 	}
@@ -257,37 +290,44 @@ func itemizeResourceTitles(resourceTitles []ResourceTitle) []Item {
 }
 
 func filter(filter FilterList, query string) (FilterList, error) {
-	// TODO handle the case where a resource is selected in the query but another list is shown to be filtered
-	if strings.HasSuffix(query, " ") {
-		return filter, nil
-	}
 	if len(filter.Items) < 2 {
 		return filter, nil
 	}
 
-	var titles []string
-	titlesToItem := make(map[string]Item)
+	var matches []string
+	matchesToItem := make(map[string]Item)
 	for _, item := range filter.Items {
-		titles = append(titles, item.Title)
-		titlesToItem[item.Title] = item
+		matches = append(matches, item.Match)
+		matchesToItem[item.Match] = item
 	}
 
 	cmd := exec.Command("fzf", "-f", query)
-	cmd.Stdin = strings.NewReader(strings.Join(titles, "\n"))
+	cmd.Stdin = strings.NewReader(strings.Join(matches, "\n"))
 	cmd.Stderr = os.Stderr
 	b, err := cmd.Output()
 	if err != nil {
 		return FilterList{}, err
 	}
-	filteredTitles := strings.Split(string(b), "\n")
+	filteredMatches := strings.Split(string(b), "\n")
 
 	var filteredItems []Item
-	for _, title := range filteredTitles {
-		filteredItems = append(filteredItems, titlesToItem[title])
+	for _, match := range filteredMatches {
+		filteredItems = append(filteredItems, matchesToItem[match])
 	}
 	return FilterList{
 		Items:     filteredItems,
 		Variables: filter.Variables,
 		Rerun:     filter.Rerun,
 	}, nil
+}
+
+func joinNonEmpty(elems []string, sep string) string {
+	var nonEmptyElems []string
+	for _, e := range elems {
+		if e == "" {
+			continue
+		}
+		nonEmptyElems = append(nonEmptyElems, e)
+	}
+	return strings.Join(nonEmptyElems, sep)
 }

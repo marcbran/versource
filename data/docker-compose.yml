@@ -1,0 +1,10 @@
+services:
+  dolt:
+    image: dolthub/dolt-sql-server:latest
+    container_name: versource-dolt
+    environment:
+      DOLT_ROOT_HOST: %
+    volumes:
+      - ./db:/var/lib/dolt
+    ports:
+      - "3306:3306"

@@ -1,3 +1,7 @@
 .idea
 .DS_Store
 gen
+data/db
+versource
+data/tf/*
+!data/tf/modules

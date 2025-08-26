@@ -14,6 +14,9 @@ lint:
 test:
 	go test -v ./...
 
+test-e2e:
+	go test -v -tags e2e -count=1 ./tests/...
+
 test-coverage:
 	go test -v -cover ./...
 

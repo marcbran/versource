@@ -96,6 +96,16 @@ func commitChanges(tx *gorm.DB, message string) error {
 		return fmt.Errorf("failed to add changes: %w", err)
 	}
 
+	var count int64
+	err = tx.Raw("SELECT COUNT(*) FROM dolt_diff WHERE commit_hash = 'WORKING'").Scan(&count).Error
+	if err != nil {
+		return fmt.Errorf("failed to check for changes: %w", err)
+	}
+
+	if count == 0 {
+		return nil
+	}
+
 	err = tx.Exec("CALL DOLT_COMMIT('-m', ?)", message).Error
 	if err != nil {
 		return fmt.Errorf("failed to commit with message '%s': %w", message, err)
@@ -148,4 +158,16 @@ func (tm *GormTransactionManager) DeleteBranch(ctx context.Context, branch strin
 	}
 
 	return nil
+}
+
+func (tm *GormTransactionManager) BranchExists(ctx context.Context, branch string) (bool, error) {
+	tx := getTxOrDb(ctx, tm.db)
+
+	var count int64
+	err := tx.Raw("SELECT COUNT(*) FROM dolt_branches WHERE name = ?", branch).Scan(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check if branch exists: %w", err)
+	}
+
+	return count > 0, nil
 }

@@ -1,0 +1,113 @@
+services:
+  server:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    command: serve
+    container_name: versource-e2e-server
+    environment:
+      DB_HOST: dolt
+      DB_USER: versource
+      DB_PASSWORD: versource
+      DB_NAME: versource
+      HTTP_HOSTNAME: 0.0.0.0
+    depends_on:
+      dolt:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  client:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    entrypoint: []
+    command: sh -c "while true; do sleep 1; done"
+    container_name: versource-e2e-client
+    environment:
+      HTTP_HOSTNAME: server
+      HTTP_PORT: 8080
+    depends_on:
+      server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ps aux | grep -v grep | grep sleep"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
+  dolt:
+    image: dolthub/dolt-sql-server:latest
+    container_name: versource-e2e-dolt
+    environment:
+      DOLT_ROOT_HOST: "%"
+    volumes:
+      - ./datasets:/datasets
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "dolt",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "3306",
+          "--no-tls",
+          "sql",
+          "-q",
+          "select current_timestamp();",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  db-init:
+    image: mysql:8.0
+    container_name: versource-e2e-db-init
+    command: >
+      sh -c "
+        echo 'Waiting for dolt to be ready...' &&
+        while ! mysql -h dolt -u root -e 'SELECT 1' >/dev/null 2>&1; do
+          sleep 2
+        done &&
+        echo 'Creating versource database and user...' &&
+        mysql -h dolt -u root -e '
+          CREATE DATABASE IF NOT EXISTS versource;
+          CREATE USER IF NOT EXISTS \"versource\"@\"%\" IDENTIFIED BY \"versource\";
+          GRANT ALL PRIVILEGES ON *.* TO \"versource\"@\"%\";
+          FLUSH PRIVILEGES;
+        ' &&
+        echo 'Database initialization completed'
+      "
+    depends_on:
+      dolt:
+        condition: service_healthy
+
+  db-client:
+    image: mysql:8.0
+    entrypoint: []
+    command: sh -c "while true; do sleep 1; done"
+    container_name: versource-e2e-db-client
+    environment:
+      MYSQL_HOST: dolt
+      MYSQL_PORT: 3306
+      MYSQL_USER: versource
+      MYSQL_PASSWORD: versource
+      MYSQL_DATABASE: versource
+    depends_on:
+      dolt:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "mysql", "-h", "dolt", "-u", "root", "-e", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 3

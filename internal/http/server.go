@@ -186,15 +186,10 @@ func (s *Server) handleCreatePlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req internal.CreatePlanRequest
-	err = json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		returnBadRequest(w, fmt.Errorf("invalid request body"))
-		return
+	req := internal.CreatePlanRequest{
+		ModuleID:  uint(moduleID),
+		Changeset: changesetName,
 	}
-
-	req.ModuleID = uint(moduleID)
-	req.Changeset = changesetName
 
 	resp, err := s.createPlan.Exec(r.Context(), req)
 	if err != nil {

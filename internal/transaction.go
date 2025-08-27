@@ -9,4 +9,5 @@ type TransactionManager interface {
 	GetHead(ctx context.Context) (string, error)
 	MergeBranch(ctx context.Context, branch string) error
 	DeleteBranch(ctx context.Context, branch string) error
+	BranchExists(ctx context.Context, branch string) (bool, error)
 }

@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"fmt"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -59,8 +60,16 @@ func (c *CreateChangeset) Exec(ctx context.Context, req CreateChangesetRequest) 
 		return nil, UserErr("name is required")
 	}
 
+	branchExists, err := c.tx.BranchExists(ctx, req.Name)
+	if err != nil {
+		return nil, InternalErrE("failed to check if branch exists", err)
+	}
+	if branchExists {
+		return nil, UserErr(fmt.Sprintf("changeset with name '%s' already exists", req.Name))
+	}
+
 	var response *CreateChangesetResponse
-	err := c.tx.Do(ctx, req.Name, "create changeset", func(ctx context.Context) error {
+	err = c.tx.Do(ctx, req.Name, "create changeset", func(ctx context.Context) error {
 		changeset := &Changeset{
 			Name:  req.Name,
 			State: ChangesetStateDraft,

@@ -4,6 +4,7 @@ package tests
 
 import (
 	"bytes"
+	"os"
 	"os/exec"
 	"testing"
 )
@@ -25,8 +26,18 @@ func scenario(t *testing.T) (*Stage, *Stage, *Stage) {
 }
 
 func (s *Stage) a_blank_instance() *Stage {
-	s.execRootQuery("DROP DATABASE IF EXISTS versource;")
-	s.execRootQuery("CALL DOLT_CLONE('file:///datasets/blank-instance', 'versource')")
+	if os.Getenv("USE_DATASET") == "false" {
+		s.execRootQuery("DROP DATABASE IF EXISTS versource;")
+		s.runDockerCompose("restart", "db-init")
+		s.runDockerCompose("restart", "migrate")
+		s.runDockerCompose("restart", "server")
+		s.execQuery("CALL DOLT_REMOTE('add', 'origin', 'file:///datasets/blank-instance')")
+		s.execQuery("CALL DOLT_PUSH('origin', 'main')")
+	} else {
+		s.execRootQuery("DROP DATABASE IF EXISTS versource;")
+		s.execRootQuery("CALL DOLT_CLONE('file:///datasets/blank-instance', 'versource')")
+	}
+
 	return s
 }
 
@@ -36,6 +47,10 @@ func (s *Stage) and() *Stage {
 
 func runDockerCompose(args ...string) error {
 	return exec.Command("docker", append([]string{"compose"}, args...)...).Run()
+}
+
+func (s *Stage) runDockerCompose(args ...string) error {
+	return runDockerCompose(args...)
 }
 
 func (s *Stage) execCommand(args ...string) *Stage {

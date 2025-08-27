@@ -69,6 +69,7 @@ type Server struct {
 	mergeChangeset  *internal.MergeChangeset
 	runPlan         *internal.RunPlan
 	runApply        *internal.RunApply
+	createModule    *internal.CreateModule
 	planWorker      *internal.PlanWorker
 	applyWorker     *internal.ApplyWorker
 }
@@ -85,6 +86,8 @@ func NewServer(config *internal.Config) (*Server, error) {
 	planStore := file.NewPlanStore(config.Terraform.WorkDir)
 	applyRepo := database.NewGormApplyRepo(db)
 	changesetRepo := database.NewGormChangesetRepo(db)
+	moduleRepo := database.NewGormModuleRepo(db)
+	moduleVersionRepo := database.NewGormModuleVersionRepo(db)
 	transactionManager := database.NewGormTransactionManager(db)
 
 	runApply := internal.NewRunApply(config, applyRepo, stateRepo, planStore, transactionManager)
@@ -105,6 +108,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		mergeChangeset:  internal.NewMergeChangeset(changesetRepo, applyRepo, applyWorker, transactionManager),
 		runPlan:         runPlan,
 		runApply:        runApply,
+		createModule:    internal.NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
 		planWorker:      planWorker,
 		applyWorker:     applyWorker,
 	}
@@ -124,6 +128,7 @@ func (s *Server) setupMiddleware() {
 func (s *Server) setupRoutes() {
 	s.router.Route("/api/v1", func(r chi.Router) {
 		r.Post("/changesets", s.handleCreateChangeset)
+		r.Post("/modules", s.handleCreateModule)
 		r.Route("/changesets/{changesetName}", func(r chi.Router) {
 			r.Post("/components", s.handleCreateComponent)
 			r.Route("/components/{componentID}", func(r chi.Router) {
@@ -144,6 +149,23 @@ func (s *Server) handleCreateChangeset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := s.createChangeset.Exec(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnCreated(w, resp)
+}
+
+func (s *Server) handleCreateModule(w http.ResponseWriter, r *http.Request) {
+	var req internal.CreateModuleRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid request body"))
+		return
+	}
+
+	resp, err := s.createModule.Exec(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return

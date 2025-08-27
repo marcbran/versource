@@ -8,7 +8,9 @@ import (
 )
 
 type Component struct {
-	ID        uint `gorm:"primarykey"`
+	ID uint `gorm:"primarykey"`
+	//ModuleVersion   ModuleVersion `gorm:"foreignKey:ModuleVersionID"`
+	//ModuleVersionID uint
 	Source    string
 	Version   string
 	Variables datatypes.JSON `gorm:"type:jsonb"`

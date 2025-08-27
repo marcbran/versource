@@ -10,16 +10,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var moduleCmd = &cobra.Command{
-	Use:   "module",
-	Short: "Manage modules",
-	Long:  `Manage modules`,
+var componentCmd = &cobra.Command{
+	Use:   "component",
+	Short: "Manage components",
+	Long:  `Manage components`,
 }
 
-var moduleCreateCmd = &cobra.Command{
+var componentCreateCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create a new module",
-	Long:  `Create a new module with source, version, and variables`,
+	Short: "Create a new component",
+	Long:  `Create a new component with source, version, and variables`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		source, err := cmd.Flags().GetString("source")
 		if err != nil {
@@ -63,45 +63,45 @@ var moduleCreateCmd = &cobra.Command{
 
 		client := http.NewClient(config)
 
-		req := internal.CreateModuleRequest{
+		req := internal.CreateComponentRequest{
 			Source:    source,
 			Version:   version,
 			Changeset: changeset,
 			Variables: variables,
 		}
 
-		module, err := client.CreateModule(cmd.Context(), req)
+		component, err := client.CreateComponent(cmd.Context(), req)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("Module created successfully with ID: %d\n", module.ID)
+		fmt.Printf("Component created successfully with ID: %d\n", component.ID)
 		return nil
 	},
 }
 
 func init() {
-	moduleCreateCmd.Flags().String("source", "", "Module source")
-	moduleCreateCmd.Flags().String("version", "", "Module version")
-	moduleCreateCmd.Flags().String("changeset", "", "Module changeset")
-	moduleCreateCmd.Flags().String("variables", "{}", "Module variables as JSON string")
-	moduleCreateCmd.MarkFlagRequired("source")
-	moduleCreateCmd.MarkFlagRequired("changeset")
+	componentCreateCmd.Flags().String("source", "", "Component source")
+	componentCreateCmd.Flags().String("version", "", "Component version")
+	componentCreateCmd.Flags().String("changeset", "", "Component changeset")
+	componentCreateCmd.Flags().String("variables", "{}", "Component variables as JSON string")
+	componentCreateCmd.MarkFlagRequired("source")
+	componentCreateCmd.MarkFlagRequired("changeset")
 
-	moduleCmd.AddCommand(moduleCreateCmd)
-	moduleCmd.AddCommand(moduleUpdateCmd)
+	componentCmd.AddCommand(componentCreateCmd)
+	componentCmd.AddCommand(componentUpdateCmd)
 }
 
-var moduleUpdateCmd = &cobra.Command{
-	Use:   "update [module-id]",
-	Short: "Update a module",
-	Long:  `Update a module by patching individual fields`,
+var componentUpdateCmd = &cobra.Command{
+	Use:   "update [component-id]",
+	Short: "Update a component",
+	Long:  `Update a component by patching individual fields`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		moduleIDStr := args[0]
-		moduleID, err := strconv.ParseUint(moduleIDStr, 10, 64)
+		componentIDStr := args[0]
+		componentID, err := strconv.ParseUint(componentIDStr, 10, 64)
 		if err != nil {
-			return fmt.Errorf("invalid module ID: %w", err)
+			return fmt.Errorf("invalid component ID: %w", err)
 		}
 
 		source, err := cmd.Flags().GetString("source")
@@ -138,9 +138,9 @@ var moduleUpdateCmd = &cobra.Command{
 
 		client := http.NewClient(config)
 
-		req := internal.UpdateModuleRequest{
-			ModuleID:  uint(moduleID),
-			Changeset: changeset,
+		req := internal.UpdateComponentRequest{
+			ComponentID: uint(componentID),
+			Changeset:   changeset,
 		}
 
 		if source != "" {
@@ -158,20 +158,20 @@ var moduleUpdateCmd = &cobra.Command{
 			req.Variables = &variables
 		}
 
-		module, err := client.UpdateModule(cmd.Context(), req)
+		component, err := client.UpdateComponent(cmd.Context(), req)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("Module updated successfully with ID: %d\n", module.ID)
+		fmt.Printf("Component updated successfully with ID: %d\n", component.ID)
 		return nil
 	},
 }
 
 func init() {
-	moduleUpdateCmd.Flags().String("changeset", "", "Changeset name")
-	moduleUpdateCmd.Flags().String("source", "", "Module source")
-	moduleUpdateCmd.Flags().String("version", "", "Module version")
-	moduleUpdateCmd.Flags().String("variables", "", "Module variables as JSON string")
-	moduleUpdateCmd.MarkFlagRequired("changeset")
+	componentUpdateCmd.Flags().String("changeset", "", "Changeset name")
+	componentUpdateCmd.Flags().String("source", "", "Component source")
+	componentUpdateCmd.Flags().String("version", "", "Component version")
+	componentUpdateCmd.Flags().String("variables", "", "Component variables as JSON string")
+	componentUpdateCmd.MarkFlagRequired("changeset")
 }

@@ -10,38 +10,38 @@ import (
 	"github.com/marcbran/versource/internal"
 )
 
-type GormModuleRepo struct {
+type GormComponentRepo struct {
 	db *gorm.DB
 }
 
-func NewGormModuleRepo(db *gorm.DB) *GormModuleRepo {
-	return &GormModuleRepo{db: db}
+func NewGormComponentRepo(db *gorm.DB) *GormComponentRepo {
+	return &GormComponentRepo{db: db}
 }
 
-func (r *GormModuleRepo) GetModule(ctx context.Context, moduleID uint) (*internal.Module, error) {
+func (r *GormComponentRepo) GetComponent(ctx context.Context, componentID uint) (*internal.Component, error) {
 	db := getTxOrDb(ctx, r.db)
-	var module internal.Module
-	err := db.WithContext(ctx).Where("id = ?", moduleID).First(&module).Error
+	var component internal.Component
+	err := db.WithContext(ctx).Where("id = ?", componentID).First(&component).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to get module: %w", err)
+		return nil, fmt.Errorf("failed to get component: %w", err)
 	}
-	return &module, nil
+	return &component, nil
 }
 
-func (r *GormModuleRepo) CreateModule(ctx context.Context, module *internal.Module) error {
+func (r *GormComponentRepo) CreateComponent(ctx context.Context, component *internal.Component) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Create(module).Error
+	err := db.WithContext(ctx).Create(component).Error
 	if err != nil {
-		return fmt.Errorf("failed to create module: %w", err)
+		return fmt.Errorf("failed to create component: %w", err)
 	}
 	return nil
 }
 
-func (r *GormModuleRepo) UpdateModule(ctx context.Context, module *internal.Module) error {
+func (r *GormComponentRepo) UpdateComponent(ctx context.Context, component *internal.Component) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Save(module).Error
+	err := db.WithContext(ctx).Save(component).Error
 	if err != nil {
-		return fmt.Errorf("failed to update module: %w", err)
+		return fmt.Errorf("failed to update component: %w", err)
 	}
 	return nil
 }
@@ -57,9 +57,9 @@ func NewGormStateRepo(db *gorm.DB) *GormStateRepo {
 func (r *GormStateRepo) UpsertState(ctx context.Context, state *internal.State) error {
 	db := getTxOrDb(ctx, r.db)
 	var existingState internal.State
-	err := db.WithContext(ctx).Where("module_id = ?", state.ModuleID).First(&existingState).Error
+	err := db.WithContext(ctx).Where("component_id = ?", state.ComponentID).First(&existingState).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return fmt.Errorf("failed to get existing module output: %w", err)
+		return fmt.Errorf("failed to get existing component output: %w", err)
 	}
 	if existingState.ID == 0 {
 		err := db.WithContext(ctx).Create(state).Error
@@ -70,7 +70,7 @@ func (r *GormStateRepo) UpsertState(ctx context.Context, state *internal.State) 
 		state.ID = existingState.ID
 		err := db.WithContext(ctx).Model(&existingState).Updates(state).Error
 		if err != nil {
-			return fmt.Errorf("failed to update existing module output: %w", err)
+			return fmt.Errorf("failed to update existing component output: %w", err)
 		}
 	}
 	return nil
@@ -96,7 +96,7 @@ func (r *GormPlanRepo) CreatePlan(ctx context.Context, plan *internal.Plan) erro
 func (r *GormPlanRepo) GetPlan(ctx context.Context, planID uint) (*internal.Plan, error) {
 	db := getTxOrDb(ctx, r.db)
 	var plan internal.Plan
-	err := db.WithContext(ctx).Preload("Module").Preload("Changeset").Where("id = ?", planID).First(&plan).Error
+	err := db.WithContext(ctx).Preload("Component").Preload("Changeset").Where("id = ?", planID).First(&plan).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get plan: %w", err)
 	}
@@ -115,7 +115,7 @@ func (r *GormPlanRepo) UpdatePlanState(ctx context.Context, planID uint, state i
 func (r *GormPlanRepo) GetQueuedPlans(ctx context.Context) ([]internal.RunPlanRequest, error) {
 	db := getTxOrDb(ctx, r.db)
 	var plans []internal.Plan
-	err := db.WithContext(ctx).Preload("Module").Preload("Changeset").Where("state = ?", internal.TaskStateQueued).Find(&plans).Error
+	err := db.WithContext(ctx).Preload("Component").Preload("Changeset").Where("state = ?", internal.TaskStateQueued).Find(&plans).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queued plans: %w", err)
 	}
@@ -150,7 +150,7 @@ func (r *GormApplyRepo) CreateApply(ctx context.Context, apply *internal.Apply) 
 func (r *GormApplyRepo) GetApply(ctx context.Context, applyID uint) (*internal.Apply, error) {
 	db := getTxOrDb(ctx, r.db)
 	var apply internal.Apply
-	err := db.WithContext(ctx).Preload("Plan.Module").Preload("Plan.Changeset").Preload("Changeset").Where("id = ?", applyID).First(&apply).Error
+	err := db.WithContext(ctx).Preload("Plan.Component").Preload("Plan.Changeset").Preload("Changeset").Where("id = ?", applyID).First(&apply).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get apply: %w", err)
 	}

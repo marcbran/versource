@@ -62,8 +62,8 @@ func Serve(ctx context.Context, config *internal.Config) error {
 type Server struct {
 	config          *internal.Config
 	router          *chi.Mux
-	createModule    *internal.CreateModule
-	updateModule    *internal.UpdateModule
+	createComponent *internal.CreateComponent
+	updateComponent *internal.UpdateComponent
 	createPlan      *internal.CreatePlan
 	createChangeset *internal.CreateChangeset
 	mergeChangeset  *internal.MergeChangeset
@@ -79,7 +79,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		return nil, err
 	}
 
-	moduleRepo := database.NewGormModuleRepo(db)
+	componentRepo := database.NewGormComponentRepo(db)
 	stateRepo := database.NewGormStateRepo(db)
 	planRepo := database.NewGormPlanRepo(db)
 	planStore := file.NewPlanStore(config.Terraform.WorkDir)
@@ -92,14 +92,14 @@ func NewServer(config *internal.Config) (*Server, error) {
 
 	runPlan := internal.NewRunPlan(config, planRepo, planStore, applyRepo, transactionManager)
 	planWorker := internal.NewPlanWorker(runPlan, planRepo)
-	createPlan := internal.NewCreatePlan(moduleRepo, planRepo, changesetRepo, transactionManager, planWorker)
+	createPlan := internal.NewCreatePlan(componentRepo, planRepo, changesetRepo, transactionManager, planWorker)
 	ensureChangeset := internal.NewEnsureChangeset(changesetRepo, transactionManager)
 
 	s := &Server{
 		config:          config,
 		router:          chi.NewRouter(),
-		createModule:    internal.NewCreateModule(moduleRepo, ensureChangeset, createPlan, transactionManager),
-		updateModule:    internal.NewUpdateModule(moduleRepo, ensureChangeset, transactionManager),
+		createComponent: internal.NewCreateComponent(componentRepo, ensureChangeset, createPlan, transactionManager),
+		updateComponent: internal.NewUpdateComponent(componentRepo, ensureChangeset, transactionManager),
 		createPlan:      createPlan,
 		createChangeset: internal.NewCreateChangeset(changesetRepo, transactionManager),
 		mergeChangeset:  internal.NewMergeChangeset(changesetRepo, applyRepo, applyWorker, transactionManager),
@@ -125,9 +125,9 @@ func (s *Server) setupRoutes() {
 	s.router.Route("/api/v1", func(r chi.Router) {
 		r.Post("/changesets", s.handleCreateChangeset)
 		r.Route("/changesets/{changesetName}", func(r chi.Router) {
-			r.Post("/modules", s.handleCreateModule)
-			r.Route("/modules/{moduleID}", func(r chi.Router) {
-				r.Patch("/", s.handleUpdateModule)
+			r.Post("/components", s.handleCreateComponent)
+			r.Route("/components/{componentID}", func(r chi.Router) {
+				r.Patch("/", s.handleUpdateComponent)
 				r.Post("/plans", s.handleCreatePlan)
 			})
 			r.Post("/merge", s.handleMergeChangeset)
@@ -179,16 +179,16 @@ func (s *Server) handleCreatePlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	moduleIDStr := chi.URLParam(r, "moduleID")
-	moduleID, err := strconv.ParseUint(moduleIDStr, 10, 64)
+	componentIDStr := chi.URLParam(r, "componentID")
+	componentID, err := strconv.ParseUint(componentIDStr, 10, 64)
 	if err != nil {
-		returnBadRequest(w, fmt.Errorf("invalid module ID"))
+		returnBadRequest(w, fmt.Errorf("invalid component ID"))
 		return
 	}
 
 	req := internal.CreatePlanRequest{
-		ModuleID:  uint(moduleID),
-		Changeset: changesetName,
+		ComponentID: uint(componentID),
+		Changeset:   changesetName,
 	}
 
 	resp, err := s.createPlan.Exec(r.Context(), req)
@@ -200,14 +200,14 @@ func (s *Server) handleCreatePlan(w http.ResponseWriter, r *http.Request) {
 	returnCreated(w, resp)
 }
 
-func (s *Server) handleCreateModule(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleCreateComponent(w http.ResponseWriter, r *http.Request) {
 	changesetName := chi.URLParam(r, "changesetName")
 	if changesetName == "" {
 		returnBadRequest(w, fmt.Errorf("changeset name is required"))
 		return
 	}
 
-	var req internal.CreateModuleRequest
+	var req internal.CreateComponentRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		returnBadRequest(w, fmt.Errorf("invalid request body"))
@@ -216,7 +216,7 @@ func (s *Server) handleCreateModule(w http.ResponseWriter, r *http.Request) {
 
 	req.Changeset = changesetName
 
-	resp, err := s.createModule.Exec(r.Context(), req)
+	resp, err := s.createComponent.Exec(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -225,21 +225,21 @@ func (s *Server) handleCreateModule(w http.ResponseWriter, r *http.Request) {
 	returnCreated(w, resp)
 }
 
-func (s *Server) handleUpdateModule(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleUpdateComponent(w http.ResponseWriter, r *http.Request) {
 	changesetName := chi.URLParam(r, "changesetName")
 	if changesetName == "" {
 		returnBadRequest(w, fmt.Errorf("changeset name is required"))
 		return
 	}
 
-	moduleIDStr := chi.URLParam(r, "moduleID")
-	moduleID, err := strconv.ParseUint(moduleIDStr, 10, 64)
+	componentIDStr := chi.URLParam(r, "componentID")
+	componentID, err := strconv.ParseUint(componentIDStr, 10, 64)
 	if err != nil {
-		returnBadRequest(w, fmt.Errorf("invalid module ID"))
+		returnBadRequest(w, fmt.Errorf("invalid component ID"))
 		return
 	}
 
-	var req internal.UpdateModuleRequest
+	var req internal.UpdateComponentRequest
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		returnBadRequest(w, fmt.Errorf("invalid request body"))
@@ -247,9 +247,9 @@ func (s *Server) handleUpdateModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.Changeset = changesetName
-	req.ModuleID = uint(moduleID)
+	req.ComponentID = uint(componentID)
 
-	resp, err := s.updateModule.Exec(r.Context(), req)
+	resp, err := s.updateComponent.Exec(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return

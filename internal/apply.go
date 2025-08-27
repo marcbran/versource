@@ -39,10 +39,10 @@ type ApplyRepo interface {
 }
 
 type State struct {
-	ID       uint           `gorm:"primarykey"`
-	Module   Module         `gorm:"foreignKey:ModuleID"`
-	ModuleID uint           `gorm:"uniqueIndex"`
-	Output   datatypes.JSON `gorm:"type:jsonb"`
+	ID          uint           `gorm:"primarykey"`
+	Component   Component      `gorm:"foreignKey:ComponentID"`
+	ComponentID uint           `gorm:"uniqueIndex"`
+	Output      datatypes.JSON `gorm:"type:jsonb"`
 }
 
 type StateRepo interface {
@@ -162,15 +162,15 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 		return err
 	}
 
-	module := &apply.Plan.Module
+	component := &apply.Plan.Component
 	workDir := a.config.Terraform.WorkDir
-	tf, cleanup, err := NewTerraformFromModule(ctx, module, workDir)
+	tf, cleanup, err := NewTerraformFromComponent(ctx, component, workDir)
 	if err != nil {
-		return fmt.Errorf("failed to create terraform from module: %w", err)
+		return fmt.Errorf("failed to create terraform from component: %w", err)
 	}
 	defer cleanup()
 
-	log.Info("Created dynamic module config in temp directory")
+	log.Info("Created dynamic component config in temp directory")
 
 	err = tf.Init(ctx)
 	if err != nil {
@@ -224,8 +224,8 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	log.WithField("output_value", output["output"].Value).Debug("Output value")
 
 	state := State{
-		ModuleID: module.ID,
-		Output:   datatypes.JSON(output["output"].Value),
+		ComponentID: component.ID,
+		Output:      datatypes.JSON(output["output"].Value),
 	}
 
 	err = a.tx.Do(ctx, "main", "complete apply", func(ctx context.Context) error {
@@ -243,7 +243,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 			return fmt.Errorf("failed to update apply state: %w", err)
 		}
 
-		log.WithField("state_id", state.ID).Info("Saved module output")
+		log.WithField("state_id", state.ID).Info("Saved component output")
 
 		return nil
 	})

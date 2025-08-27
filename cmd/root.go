@@ -15,7 +15,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(changesetCmd)
-	rootCmd.AddCommand(moduleCmd)
+	rootCmd.AddCommand(componentCmd)
 	rootCmd.AddCommand(planCmd)
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(migrateCmd)

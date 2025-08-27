@@ -28,6 +28,7 @@ type ModuleVersionRepo interface {
 	CreateModuleVersion(ctx context.Context, moduleVersion *ModuleVersion) error
 	GetModuleVersion(ctx context.Context, moduleVersionID uint) (*ModuleVersion, error)
 	GetModuleVersions(ctx context.Context, moduleID uint) ([]ModuleVersion, error)
+	GetLatestModuleVersion(ctx context.Context, moduleID uint) (*ModuleVersion, error)
 }
 
 type CreateModule struct {
@@ -176,6 +177,83 @@ func (c *CreateModule) Exec(ctx context.Context, req CreateModuleRequest) (*Crea
 		response = &CreateModuleResponse{
 			ID:        module.ID,
 			Source:    module.Source,
+			VersionID: moduleVersion.ID,
+			Version:   moduleVersion.Version,
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+type UpdateModuleRequest struct {
+	ModuleID uint   `json:"module_id"`
+	Version  string `json:"version"`
+}
+
+type UpdateModuleResponse struct {
+	ModuleID  uint   `json:"module_id"`
+	VersionID uint   `json:"version_id"`
+	Version   string `json:"version"`
+}
+
+type UpdateModule struct {
+	tx                TransactionManager
+	moduleRepo        ModuleRepo
+	moduleVersionRepo ModuleVersionRepo
+}
+
+func NewUpdateModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo, tx TransactionManager) *UpdateModule {
+	return &UpdateModule{
+		moduleRepo:        moduleRepo,
+		moduleVersionRepo: moduleVersionRepo,
+		tx:                tx,
+	}
+}
+
+func (u *UpdateModule) Exec(ctx context.Context, req UpdateModuleRequest) (*UpdateModuleResponse, error) {
+	if req.Version == "" {
+		return nil, UserErr("version is required")
+	}
+
+	var response *UpdateModuleResponse
+	err := u.tx.Do(ctx, "main", "update module", func(ctx context.Context) error {
+		module, err := u.moduleRepo.GetModule(ctx, req.ModuleID)
+		if err != nil {
+			return InternalErrE("failed to get module", err)
+		}
+		if module == nil {
+			return UserErr("module not found")
+		}
+
+		currentVersion, err := u.moduleVersionRepo.GetLatestModuleVersion(ctx, req.ModuleID)
+		if err != nil {
+			return InternalErrE("failed to get current module version", err)
+		}
+		if currentVersion == nil {
+			return UserErr("module has no versions")
+		}
+
+		if currentVersion.Version == "" {
+			return UserErr("cannot update module with empty version")
+		}
+
+		moduleVersion := &ModuleVersion{
+			ModuleID: req.ModuleID,
+			Version:  req.Version,
+		}
+
+		err = u.moduleVersionRepo.CreateModuleVersion(ctx, moduleVersion)
+		if err != nil {
+			return InternalErrE("failed to create module version", err)
+		}
+
+		response = &UpdateModuleResponse{
+			ModuleID:  req.ModuleID,
 			VersionID: moduleVersion.ID,
 			Version:   moduleVersion.Version,
 		}

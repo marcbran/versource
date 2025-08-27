@@ -70,6 +70,7 @@ type Server struct {
 	runPlan         *internal.RunPlan
 	runApply        *internal.RunApply
 	createModule    *internal.CreateModule
+	updateModule    *internal.UpdateModule
 	planWorker      *internal.PlanWorker
 	applyWorker     *internal.ApplyWorker
 }
@@ -109,6 +110,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		runPlan:         runPlan,
 		runApply:        runApply,
 		createModule:    internal.NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
+		updateModule:    internal.NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
 		planWorker:      planWorker,
 		applyWorker:     applyWorker,
 	}
@@ -129,6 +131,7 @@ func (s *Server) setupRoutes() {
 	s.router.Route("/api/v1", func(r chi.Router) {
 		r.Post("/changesets", s.handleCreateChangeset)
 		r.Post("/modules", s.handleCreateModule)
+		r.Put("/modules/{moduleID}", s.handleUpdateModule)
 		r.Route("/changesets/{changesetName}", func(r chi.Router) {
 			r.Post("/components", s.handleCreateComponent)
 			r.Route("/components/{componentID}", func(r chi.Router) {
@@ -172,6 +175,32 @@ func (s *Server) handleCreateModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	returnCreated(w, resp)
+}
+
+func (s *Server) handleUpdateModule(w http.ResponseWriter, r *http.Request) {
+	moduleIDStr := chi.URLParam(r, "moduleID")
+	moduleID, err := strconv.ParseUint(moduleIDStr, 10, 32)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid module ID"))
+		return
+	}
+
+	var req internal.UpdateModuleRequest
+	err = json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid request body"))
+		return
+	}
+
+	req.ModuleID = uint(moduleID)
+
+	resp, err := s.updateModule.Exec(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
 }
 
 func (s *Server) handleMergeChangeset(w http.ResponseWriter, r *http.Request) {

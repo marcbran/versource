@@ -81,3 +81,21 @@ func (s *Stage) the_module_creation_has_failed() *Stage {
 	assert.Equal(s.t, 1, s.LastExitCode)
 	return s
 }
+
+func (s *Stage) a_module_is_updated(moduleID int, version string) *Stage {
+	args := []string{"module", "update", fmt.Sprintf("%d", moduleID), "--version", version}
+	return s.execCommand(args...)
+}
+
+func (s *Stage) the_module_is_updated_successfully() *Stage {
+	if s.LastExitCode != 0 {
+		fmt.Println(s.LastError)
+	}
+	assert.Equal(s.t, 0, s.LastExitCode)
+	return s
+}
+
+func (s *Stage) the_module_update_has_failed() *Stage {
+	assert.Equal(s.t, 1, s.LastExitCode)
+	return s
+}

@@ -82,3 +82,16 @@ func (r *GormModuleVersionRepo) GetModuleVersions(ctx context.Context, moduleID 
 	}
 	return moduleVersions, nil
 }
+
+func (r *GormModuleVersionRepo) GetLatestModuleVersion(ctx context.Context, moduleID uint) (*internal.ModuleVersion, error) {
+	db := getTxOrDb(ctx, r.db)
+	var moduleVersion internal.ModuleVersion
+	err := db.WithContext(ctx).Preload("Module").Where("module_id = ?", moduleID).Order("id DESC").First(&moduleVersion).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get latest module version: %w", err)
+	}
+	return &moduleVersion, nil
+}

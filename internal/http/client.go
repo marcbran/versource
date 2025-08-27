@@ -232,3 +232,39 @@ func (c *Client) CreateModule(ctx context.Context, req internal.CreateModuleRequ
 
 	return &moduleResp, nil
 }
+
+func (c *Client) UpdateModule(ctx context.Context, moduleID uint, req internal.UpdateModuleRequest) (*internal.UpdateModuleResponse, error) {
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/api/v1/modules/%d", c.baseURL, moduleID)
+	httpReq, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	var moduleResp internal.UpdateModuleResponse
+	if err := json.NewDecoder(resp.Body).Decode(&moduleResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &moduleResp, nil
+}

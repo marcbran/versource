@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http"
@@ -55,10 +56,59 @@ var moduleCreateCmd = &cobra.Command{
 	},
 }
 
+var moduleUpdateCmd = &cobra.Command{
+	Use:   "update",
+	Short: "Update a module with a new version",
+	Long:  `Update a module by creating a new version`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			return fmt.Errorf("module ID is required")
+		}
+
+		moduleIDStr := args[0]
+		moduleID, err := strconv.ParseUint(moduleIDStr, 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid module ID: %w", err)
+		}
+
+		version, err := cmd.Flags().GetString("version")
+		if err != nil {
+			return fmt.Errorf("failed to get version flag: %w", err)
+		}
+
+		if version == "" {
+			return fmt.Errorf("version is required")
+		}
+
+		config, err := LoadConfig()
+		if err != nil {
+			return err
+		}
+
+		client := http.NewClient(config)
+
+		req := internal.UpdateModuleRequest{
+			Version: version,
+		}
+
+		module, err := client.UpdateModule(cmd.Context(), uint(moduleID), req)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Module updated successfully with Version ID: %d\n", module.VersionID)
+		return nil
+	},
+}
+
 func init() {
 	moduleCreateCmd.Flags().String("source", "", "Module source")
 	moduleCreateCmd.Flags().String("version", "", "Module version (optional for some source types)")
 	moduleCreateCmd.MarkFlagRequired("source")
 
+	moduleUpdateCmd.Flags().String("version", "", "Module version")
+	moduleUpdateCmd.MarkFlagRequired("version")
+
 	moduleCmd.AddCommand(moduleCreateCmd)
+	moduleCmd.AddCommand(moduleUpdateCmd)
 }

@@ -32,9 +32,6 @@ var moduleCreateCmd = &cobra.Command{
 		if source == "" {
 			return fmt.Errorf("source is required")
 		}
-		if version == "" {
-			return fmt.Errorf("version is required")
-		}
 
 		config, err := LoadConfig()
 		if err != nil {
@@ -60,9 +57,8 @@ var moduleCreateCmd = &cobra.Command{
 
 func init() {
 	moduleCreateCmd.Flags().String("source", "", "Module source")
-	moduleCreateCmd.Flags().String("version", "", "Module version")
+	moduleCreateCmd.Flags().String("version", "", "Module version (optional for some source types)")
 	moduleCreateCmd.MarkFlagRequired("source")
-	moduleCreateCmd.MarkFlagRequired("version")
 
 	moduleCmd.AddCommand(moduleCreateCmd)
 }

@@ -23,6 +23,30 @@ services:
       retries: 3
       start_period: 30s
 
+  migrate:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    command: migrate
+    container_name: versource-e2e-migrate
+    environment:
+      DB_HOST: dolt
+      DB_USER: versource
+      DB_PASSWORD: versource
+      DB_NAME: versource
+      HTTP_HOSTNAME: 0.0.0.0
+    depends_on:
+      dolt:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
   client:
     build:
       context: ../
@@ -92,15 +116,8 @@ services:
 
   db-client:
     image: mysql:8.0
-    entrypoint: []
     command: sh -c "while true; do sleep 1; done"
     container_name: versource-e2e-db-client
-    environment:
-      MYSQL_HOST: dolt
-      MYSQL_PORT: 3306
-      MYSQL_USER: versource
-      MYSQL_PASSWORD: versource
-      MYSQL_DATABASE: versource
     depends_on:
       dolt:
         condition: service_healthy
@@ -111,3 +128,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 3
+
+  dolt-workbench:
+    image: dolthub/dolt-workbench:latest
+    container_name: versource-e2e-dolt-workbench
+    ports:
+      - "3000:3000"
+      - "9002:9002"
+    volumes:
+      - ./datasets:/datasets
+      - ./workbench:/app/graphql-server/store

@@ -10,12 +10,12 @@ import (
 
 var planCmd = &cobra.Command{
 	Use:   "plan",
-	Short: "Create a new plan for a module",
-	Long:  `Create a new plan for a specific module by its ID with branch name`,
+	Short: "Create a new plan for a component",
+	Long:  `Create a new plan for a specific component by its ID with branch name`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		moduleID, err := cmd.Flags().GetUint("module-id")
+		componentID, err := cmd.Flags().GetUint("component-id")
 		if err != nil {
-			return fmt.Errorf("failed to get module-id flag: %w", err)
+			return fmt.Errorf("failed to get component-id flag: %w", err)
 		}
 
 		changeset, err := cmd.Flags().GetString("changeset")
@@ -23,8 +23,8 @@ var planCmd = &cobra.Command{
 			return fmt.Errorf("failed to get changeset flag: %w", err)
 		}
 
-		if moduleID == 0 {
-			return fmt.Errorf("module-id is required")
+		if componentID == 0 {
+			return fmt.Errorf("component-id is required")
 		}
 		if changeset == "" {
 			return fmt.Errorf("changeset is required")
@@ -38,8 +38,8 @@ var planCmd = &cobra.Command{
 		client := http.NewClient(config)
 
 		req := internal.CreatePlanRequest{
-			ModuleID:  moduleID,
-			Changeset: changeset,
+			ComponentID: componentID,
+			Changeset:   changeset,
 		}
 
 		plan, err := client.CreatePlan(cmd.Context(), req)
@@ -47,14 +47,13 @@ var planCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Plan created successfully with ID: %d\n", plan.ID)
-		return nil
+		return formatOutput(plan, "Plan created successfully with ID: %d\n", plan.ID)
 	},
 }
 
 func init() {
-	planCmd.Flags().Uint("module-id", 0, "Module ID")
+	planCmd.Flags().Uint("component-id", 0, "Component ID")
 	planCmd.Flags().String("changeset", "", "Changeset name for the plan")
-	planCmd.MarkFlagRequired("module-id")
+	planCmd.MarkFlagRequired("component-id")
 	planCmd.MarkFlagRequired("changeset")
 }

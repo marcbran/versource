@@ -30,28 +30,28 @@ type TerraformBackendLocal struct {
 
 type TerraformStack []any
 
-func NewTerraformStackFromModule(module *Module, workDir string) (TerraformStack, error) {
+func NewTerraformStackFromComponent(component *Component, workDir string) (TerraformStack, error) {
 	terraformModule := TerraformModule{
-		Source: module.Source,
+		Source: component.ModuleVersion.Module.Source,
 	}
 
-	if module.Version != "" {
-		terraformModule.Version = module.Version
+	if component.ModuleVersion.Version != "" {
+		terraformModule.Version = component.ModuleVersion.Version
 	}
 
-	if module.Variables != nil {
+	if component.Variables != nil {
 		var variables map[string]any
-		err := json.Unmarshal(module.Variables, &variables)
+		err := json.Unmarshal(component.Variables, &variables)
 		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal module variables: %w", err)
+			return nil, fmt.Errorf("failed to unmarshal component variables: %w", err)
 		}
 		terraformModule.Variables = variables
 	}
 
-	statePath := filepath.Join(workDir, "states", fmt.Sprintf("%d.tfstate", module.ID))
+	statePath := filepath.Join(workDir, "states", fmt.Sprintf("%d.tfstate", component.ID))
 	terraformStack := NewTerraformStack().
-		AddModule("module", terraformModule).
-		AddOutput("output", TerraformOutput{Value: "${module.module}"}).
+		AddModule("component", terraformModule).
+		AddOutput("output", TerraformOutput{Value: "${module.component}"}).
 		AddBackend("backend", TerraformBackend{
 			Local: TerraformBackendLocal{
 				Path: statePath,
@@ -105,10 +105,10 @@ func (tc TerraformStack) AddBackend(name string, backend TerraformBackend) Terra
 	return append(tc, container)
 }
 
-func NewTerraformFromModule(ctx context.Context, module *Module, workDir string) (*tfexec.Terraform, func(), error) {
-	terraformStack, err := NewTerraformStackFromModule(module, workDir)
+func NewTerraformFromComponent(ctx context.Context, component *Component, workDir string) (*tfexec.Terraform, func(), error) {
+	terraformStack, err := NewTerraformStackFromComponent(component, workDir)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to convert module to terraform stack: %w", err)
+		return nil, nil, fmt.Errorf("failed to convert component to terraform stack: %w", err)
 	}
 
 	tempDir, err := os.MkdirTemp("", "versource-*")
@@ -135,13 +135,13 @@ func NewTerraformFromModule(ctx context.Context, module *Module, workDir string)
 	jsonData, err := json.MarshalIndent(terraformStack, "", "  ")
 	if err != nil {
 		os.RemoveAll(tempDir)
-		return nil, nil, fmt.Errorf("failed to marshal module config: %w", err)
+		return nil, nil, fmt.Errorf("failed to marshal stack config: %w", err)
 	}
 
 	err = os.WriteFile(mainJSONPath, jsonData, 0644)
 	if err != nil {
 		os.RemoveAll(tempDir)
-		return nil, nil, fmt.Errorf("failed to write module config: %w", err)
+		return nil, nil, fmt.Errorf("failed to write stack config: %w", err)
 	}
 
 	tf, err := tfexec.NewTerraform(tempDir, "terraform")

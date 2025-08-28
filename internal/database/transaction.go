@@ -91,19 +91,19 @@ func ensureBranch(tx *gorm.DB, branch string) error {
 }
 
 func commitChanges(tx *gorm.DB, message string) error {
-	err := tx.Exec("CALL DOLT_ADD('.')").Error
-	if err != nil {
-		return fmt.Errorf("failed to add changes: %w", err)
-	}
-
 	var count int64
-	err = tx.Raw("SELECT COUNT(*) FROM dolt_diff WHERE commit_hash = 'WORKING'").Scan(&count).Error
+	err := tx.Raw("SELECT COUNT(*) FROM dolt_diff WHERE commit_hash = 'WORKING'").Scan(&count).Error
 	if err != nil {
 		return fmt.Errorf("failed to check for changes: %w", err)
 	}
 
 	if count == 0 {
 		return nil
+	}
+
+	err = tx.Exec("CALL DOLT_ADD('.')").Error
+	if err != nil {
+		return fmt.Errorf("failed to add changes: %w", err)
 	}
 
 	err = tx.Exec("CALL DOLT_COMMIT('-m', ?)", message).Error

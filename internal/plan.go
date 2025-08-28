@@ -11,9 +11,9 @@ import (
 )
 
 type Plan struct {
-	ID          uint   `gorm:"primarykey"`
-	Module      Module `gorm:"foreignKey:ModuleID"`
-	ModuleID    uint
+	ID          uint      `gorm:"primarykey"`
+	Component   Component `gorm:"foreignKey:ComponentID"`
+	ComponentID uint
 	Changeset   Changeset `gorm:"foreignKey:ChangesetID"`
 	ChangesetID uint
 	MergeBase   string `gorm:"column:merge_base"`
@@ -34,16 +34,16 @@ type PlanStore interface {
 }
 
 type CreatePlan struct {
-	moduleRepo    ModuleRepo
+	componentRepo ComponentRepo
 	planRepo      PlanRepo
 	changesetRepo ChangesetRepo
 	tx            TransactionManager
 	planWorker    *PlanWorker
 }
 
-func NewCreatePlan(moduleRepo ModuleRepo, planRepo PlanRepo, changesetRepo ChangesetRepo, tx TransactionManager, planWorker *PlanWorker) *CreatePlan {
+func NewCreatePlan(componentRepo ComponentRepo, planRepo PlanRepo, changesetRepo ChangesetRepo, tx TransactionManager, planWorker *PlanWorker) *CreatePlan {
 	return &CreatePlan{
-		moduleRepo:    moduleRepo,
+		componentRepo: componentRepo,
 		planRepo:      planRepo,
 		changesetRepo: changesetRepo,
 		tx:            tx,
@@ -52,13 +52,13 @@ func NewCreatePlan(moduleRepo ModuleRepo, planRepo PlanRepo, changesetRepo Chang
 }
 
 type CreatePlanRequest struct {
-	ModuleID  uint   `json:"module_id"`
-	Changeset string `json:"changeset"`
+	ComponentID uint   `json:"component_id"`
+	Changeset   string `json:"changeset"`
 }
 
 type CreatePlanResponse struct {
 	ID          uint   `json:"id"`
-	ModuleID    uint   `json:"module_id"`
+	ComponentID uint   `json:"component_id"`
 	ChangesetID uint   `json:"changeset_id"`
 	MergeBase   string `json:"merge_base"`
 	Head        string `json:"head"`
@@ -77,9 +77,9 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 			return UserErrE("changeset not found", err)
 		}
 
-		module, err := c.moduleRepo.GetModule(ctx, req.ModuleID)
+		component, err := c.componentRepo.GetComponent(ctx, req.ComponentID)
 		if err != nil {
-			return UserErrE("module not found", err)
+			return UserErrE("component not found", err)
 		}
 
 		mergeBase, err := c.tx.GetMergeBase(ctx, "main", req.Changeset)
@@ -93,8 +93,8 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 		}
 
 		plan := &Plan{
-			ModuleID:    req.ModuleID,
-			Module:      *module,
+			ComponentID: req.ComponentID,
+			Component:   *component,
 			ChangesetID: changeset.ID,
 			MergeBase:   mergeBase,
 			Head:        head,
@@ -107,7 +107,7 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 
 		response = &CreatePlanResponse{
 			ID:          plan.ID,
-			ModuleID:    plan.ModuleID,
+			ComponentID: plan.ComponentID,
 			ChangesetID: plan.ChangesetID,
 			MergeBase:   plan.MergeBase,
 			Head:        plan.Head,
@@ -250,15 +250,15 @@ func (r *RunPlan) Exec(ctx context.Context, req RunPlanRequest) error {
 		return err
 	}
 
-	module := &plan.Module
+	component := &plan.Component
 	workDir := r.config.Terraform.WorkDir
-	tf, cleanup, err := NewTerraformFromModule(ctx, module, workDir)
+	tf, cleanup, err := NewTerraformFromComponent(ctx, component, workDir)
 	if err != nil {
-		return fmt.Errorf("failed to create terraform from module: %w", err)
+		return fmt.Errorf("failed to create terraform from component: %w", err)
 	}
 	defer cleanup()
 
-	log.Info("Created dynamic module config in temp directory")
+	log.Info("Created dynamic component config in temp directory")
 
 	err = tf.Init(ctx)
 	if err != nil {

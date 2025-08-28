@@ -44,8 +44,7 @@ var changesetCreateCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Changeset created successfully with ID: %d\n", changeset.ID)
-		return nil
+		return formatOutput(changeset, "Changeset created successfully with ID: %d\n", changeset.ID)
 	},
 }
 
@@ -76,8 +75,7 @@ var changesetMergeCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Changeset %s merged successfully\n", changeset.Name)
-		return nil
+		return formatOutput(changeset, "Changeset %s merged successfully\n", changeset.Name)
 	},
 }
 

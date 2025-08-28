@@ -4,6 +4,8 @@ package tests
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"testing"
@@ -12,12 +14,13 @@ import (
 type Stage struct {
 	t *testing.T
 
+	ModuleID      string
 	ChangesetName string
 	ComponentID   string
 
-	LastOutput   string
-	LastError    string
-	LastExitCode int
+	LastOutputMap map[string]any
+	LastError     string
+	LastExitCode  int
 }
 
 func scenario(t *testing.T) (*Stage, *Stage, *Stage) {
@@ -54,6 +57,7 @@ func (s *Stage) runDockerCompose(args ...string) error {
 }
 
 func (s *Stage) execCommand(args ...string) *Stage {
+	args = append(args, "--output", "json")
 	cmd := exec.Command("docker", append([]string{"compose", "exec", "-T", "client", "./versource"}, args...)...)
 
 	var stdout bytes.Buffer
@@ -62,7 +66,6 @@ func (s *Stage) execCommand(args ...string) *Stage {
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
-	s.LastOutput = stdout.String()
 	s.LastError = stderr.String()
 
 	if err != nil {
@@ -73,6 +76,15 @@ func (s *Stage) execCommand(args ...string) *Stage {
 		}
 	} else {
 		s.LastExitCode = 0
+		output := stdout.String()
+		fmt.Println(output)
+		if output != "" {
+			var outputMap map[string]any
+			jsonErr := json.Unmarshal([]byte(output), &outputMap)
+			if jsonErr == nil {
+				s.LastOutputMap = outputMap
+			}
+		}
 	}
 
 	return s

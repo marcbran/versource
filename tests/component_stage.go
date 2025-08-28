@@ -8,15 +8,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func (s *Stage) a_component_has_been_created(changeset, moduleID, variables string) *Stage {
-	return s.a_component_is_created(changeset, moduleID, variables).and().
+func (s *Stage) a_component_has_been_created(changeset, variables string) *Stage {
+	return s.a_component_is_created_for_the_module(changeset, variables).and().
 		the_component_is_created_successfully()
 }
 
-func (s *Stage) a_component_is_created(changeset, moduleID, variables string) *Stage {
+func (s *Stage) a_component_is_created_for_the_module(changeset, variables string) *Stage {
 	s.ChangesetName = changeset
-	args := []string{"component", "create", "--changeset", changeset, "--module-id", moduleID, "--variables", variables}
-	return s.execCommand(args...)
+	args := []string{"component", "create", "--changeset", changeset, "--module-id", s.ModuleID, "--variables", variables}
+	s.execCommand(args...)
+	if s.LastOutputMap != nil {
+		if id, ok := s.LastOutputMap["id"]; ok {
+			if idFloat, ok := id.(float64); ok {
+				s.ComponentID = fmt.Sprintf("%.0f", idFloat)
+			}
+		}
+	}
+	return s
 }
 
 func (s *Stage) a_component_is_created_with_empty_module_id(changeset, variables string) *Stage {

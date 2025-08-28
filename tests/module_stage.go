@@ -9,8 +9,8 @@ import (
 )
 
 func (s *Stage) a_module_has_been_created(source, version string) *Stage {
-	return s.a_module_is_created(source, version).and().
-		the_module_is_created_successfully()
+	s.a_module_is_created(source, version)
+	return s.the_module_is_created_successfully()
 }
 
 func (s *Stage) a_module_is_created(source, version string) *Stage {
@@ -18,55 +18,15 @@ func (s *Stage) a_module_is_created(source, version string) *Stage {
 	if version != "" {
 		args = append(args, "--version", version)
 	}
-	return s.execCommand(args...)
-}
-
-func (s *Stage) a_module_is_created_with_empty_source(version string) *Stage {
-	args := []string{"module", "create", "--source", ""}
-	if version != "" {
-		args = append(args, "--version", version)
+	s.execCommand(args...)
+	if s.LastOutputMap != nil {
+		if id, ok := s.LastOutputMap["id"]; ok {
+			if idFloat, ok := id.(float64); ok {
+				s.ModuleID = fmt.Sprintf("%.0f", idFloat)
+			}
+		}
 	}
-	return s.execCommand(args...)
-}
-
-func (s *Stage) a_module_is_created_with_empty_version(source string) *Stage {
-	args := []string{"module", "create", "--source", source, "--version", ""}
-	return s.execCommand(args...)
-}
-
-func (s *Stage) a_local_module_is_created(path string) *Stage {
-	args := []string{"module", "create", "--source", path}
-	return s.execCommand(args...)
-}
-
-func (s *Stage) a_registry_module_is_created(source, version string) *Stage {
-	args := []string{"module", "create", "--source", source, "--version", version}
-	return s.execCommand(args...)
-}
-
-func (s *Stage) a_github_module_is_created(source string) *Stage {
-	args := []string{"module", "create", "--source", source}
-	return s.execCommand(args...)
-}
-
-func (s *Stage) a_git_module_is_created(source string) *Stage {
-	args := []string{"module", "create", "--source", source}
-	return s.execCommand(args...)
-}
-
-func (s *Stage) an_s3_module_is_created(source string) *Stage {
-	args := []string{"module", "create", "--source", source}
-	return s.execCommand(args...)
-}
-
-func (s *Stage) a_gcs_module_is_created(source string) *Stage {
-	args := []string{"module", "create", "--source", source}
-	return s.execCommand(args...)
-}
-
-func (s *Stage) an_http_module_is_created(source string) *Stage {
-	args := []string{"module", "create", "--source", source}
-	return s.execCommand(args...)
+	return s
 }
 
 func (s *Stage) the_module_is_created_successfully() *Stage {

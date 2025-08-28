@@ -15,7 +15,7 @@ func TestCreateComponent(t *testing.T) {
 		a_module_has_been_created("hashicorp/consul/aws", "0.1.0")
 
 	when.
-		a_component_is_created("test1", "1", `{"key": "value"}`)
+		a_component_is_created_for_the_module("test1", `{"key": "value"}`)
 
 	then.
 		the_component_is_created_successfully()

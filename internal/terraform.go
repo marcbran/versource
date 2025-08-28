@@ -32,11 +32,11 @@ type TerraformStack []any
 
 func NewTerraformStackFromComponent(component *Component, workDir string) (TerraformStack, error) {
 	terraformModule := TerraformModule{
-		Source: component.Source,
+		Source: component.ModuleVersion.Module.Source,
 	}
 
-	if component.Version != "" {
-		terraformModule.Version = component.Version
+	if component.ModuleVersion.Version != "" {
+		terraformModule.Version = component.ModuleVersion.Version
 	}
 
 	if component.Variables != nil {

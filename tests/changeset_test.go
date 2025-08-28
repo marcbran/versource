@@ -2,78 +2,78 @@
 
 package tests
 
-// import (
-// 	"testing"
-// )
+import (
+	"testing"
+)
 
-// func TestCreateChangeset(t *testing.T) {
-// 	given, when, then := scenario(t)
+func TestCreateChangeset(t *testing.T) {
+	given, when, then := scenario(t)
 
-// 	given.
-// 		a_blank_instance()
+	given.
+		a_blank_instance()
 
-// 	when.
-// 		a_changeset_is_created("test1")
+	when.
+		a_changeset_is_created("test1")
 
-// 	then.
-// 		the_changeset_is_created_successfully()
-// }
+	then.
+		the_changeset_is_created_successfully()
+}
 
-// func TestCreateChangesetWithInvalidName(t *testing.T) {
-// 	given, when, then := scenario(t)
+func TestCreateChangesetWithInvalidName(t *testing.T) {
+	given, when, then := scenario(t)
 
-// 	given.
-// 		a_blank_instance()
+	given.
+		a_blank_instance()
 
-// 	when.
-// 		a_changeset_is_created(".invalid-name")
+	when.
+		a_changeset_is_created(".invalid-name")
 
-// 	then.
-// 		the_changeset_creation_has_failed()
-// }
+	then.
+		the_changeset_creation_has_failed()
+}
 
-// func TestCreateChangesetWithDuplicateName(t *testing.T) {
-// 	given, when, then := scenario(t)
+func TestCreateChangesetWithDuplicateName(t *testing.T) {
+	given, when, then := scenario(t)
 
-// 	given.
-// 		a_blank_instance().and().
-// 		a_changeset_has_been_created("test1")
+	given.
+		a_blank_instance().and().
+		a_changeset_has_been_created("test1")
 
-// 	when.
-// 		a_changeset_is_created("test1")
+	when.
+		a_changeset_is_created("test1")
 
-// 	then.
-// 		the_changeset_creation_has_failed()
-// }
+	then.
+		the_changeset_creation_has_failed()
+}
 
-// func TestMergeChangeset(t *testing.T) {
-// 	given, when, then := scenario(t)
+func TestMergeChangeset(t *testing.T) {
+	given, when, then := scenario(t)
 
-// 	given.
-// 		a_blank_instance().and().
-// 		a_changeset_has_been_created("test1")
+	given.
+		a_blank_instance().and().
+		a_changeset_has_been_created("test1")
 
-// 	when.
-// 		the_changeset_is_merged()
+	when.
+		the_changeset_is_merged()
 
-// 	then.
-// 		the_changeset_is_merged_successfully()
-// }
+	then.
+		the_changeset_is_merged_successfully()
+}
 
-// func TestCreateChangesetAfterMerge(t *testing.T) {
-// 	given, when, then := scenario(t)
+func TestCreateChangesetAfterMerge(t *testing.T) {
+	given, when, then := scenario(t)
 
-// 	given.
-// 		a_blank_instance().and().
-// 		a_changeset_has_been_created("test1").and().
-// 		the_changeset_has_been_merged()
+	given.
+		a_blank_instance().and().
+		a_changeset_has_been_created("test1").and().
+		the_changeset_has_been_merged()
 
-// 	when.
-// 		a_changeset_is_created("test1")
+	when.
+		a_changeset_is_created("test1")
 
-// 	then.
-// 		the_changeset_is_created_successfully()
-// }
+	then.
+		the_changeset_is_created_successfully()
+}
 
 // func TestMergeChangesetWithComponents(t *testing.T) {
 // 	given, when, then := scenario(t)

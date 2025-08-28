@@ -2,23 +2,24 @@
 
 package tests
 
-// import (
-// 	"testing"
-// )
+import (
+	"testing"
+)
 
-// func TestCreateComponent(t *testing.T) {
-// 	given, when, then := scenario(t)
+func TestCreateComponent(t *testing.T) {
+	given, when, then := scenario(t)
 
-// 	given.
-// 		a_blank_instance().and().
-// 		a_changeset_has_been_created("test1")
+	given.
+		a_blank_instance().and().
+		a_changeset_has_been_created("test1").and().
+		a_module_has_been_created("hashicorp/consul/aws", "0.1.0")
 
-// 	when.
-// 		a_component_is_created("test1", "test-component", "1.0.0", `{"key": "value"}`)
+	when.
+		a_component_is_created("test1", "1", `{"key": "value"}`)
 
-// 	then.
-// 		the_component_is_created_successfully()
-// }
+	then.
+		the_component_is_created_successfully()
+}
 
 // func TestCreateComponentWithoutChangeset(t *testing.T) {
 // 	given, when, then := scenario(t)

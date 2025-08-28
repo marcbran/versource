@@ -4,29 +4,24 @@ package tests
 
 import (
 	"fmt"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func (s *Stage) a_component_has_been_created(changeset, source, version, variables string) *Stage {
-	return s.a_component_is_created(changeset, source, version, variables).and().
+func (s *Stage) a_component_has_been_created(changeset, moduleID, variables string) *Stage {
+	return s.a_component_is_created(changeset, moduleID, variables).and().
 		the_component_is_created_successfully()
 }
 
-func (s *Stage) a_component_is_created(changeset, source, version, variables string) *Stage {
+func (s *Stage) a_component_is_created(changeset, moduleID, variables string) *Stage {
 	s.ChangesetName = changeset
-	args := []string{"component", "create", "--changeset", changeset, "--source", source, "--variables", variables}
-	if version != "" {
-		args = append(args, "--version", version)
-	}
+	args := []string{"component", "create", "--changeset", changeset, "--module-id", moduleID, "--variables", variables}
 	return s.execCommand(args...)
 }
 
-func (s *Stage) a_component_is_created_with_empty_source(changeset, version, variables string) *Stage {
+func (s *Stage) a_component_is_created_with_empty_module_id(changeset, variables string) *Stage {
 	s.ChangesetName = changeset
-	args := []string{"component", "create", "--changeset", changeset, "--source", "", "--variables", variables}
-	if version != "" {
-		args = append(args, "--version", version)
-	}
+	args := []string{"component", "create", "--changeset", changeset, "--module-id", "", "--variables", variables}
 	return s.execCommand(args...)
 }
 
@@ -51,15 +46,12 @@ func (s *Stage) both_components_are_created_successfully() *Stage {
 	return s
 }
 
-func (s *Stage) the_component_is_updated(changeset, componentID, source, version, variables string) *Stage {
+func (s *Stage) the_component_is_updated(changeset, componentID, moduleID, variables string) *Stage {
 	s.ChangesetName = changeset
 	s.ComponentID = componentID
 	args := []string{"component", "update", componentID, "--changeset", changeset}
-	if source != "" {
-		args = append(args, "--source", source)
-	}
-	if version != "" {
-		args = append(args, "--version", version)
+	if moduleID != "" {
+		args = append(args, "--module-id", moduleID)
 	}
 	if variables != "" {
 		args = append(args, "--variables", variables)

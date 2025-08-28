@@ -102,8 +102,8 @@ func NewServer(config *internal.Config) (*Server, error) {
 	s := &Server{
 		config:          config,
 		router:          chi.NewRouter(),
-		createComponent: internal.NewCreateComponent(componentRepo, ensureChangeset, createPlan, transactionManager),
-		updateComponent: internal.NewUpdateComponent(componentRepo, ensureChangeset, transactionManager),
+		createComponent: internal.NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
+		updateComponent: internal.NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, transactionManager),
 		createPlan:      createPlan,
 		createChangeset: internal.NewCreateChangeset(changesetRepo, transactionManager),
 		mergeChangeset:  internal.NewMergeChangeset(changesetRepo, applyRepo, applyWorker, transactionManager),

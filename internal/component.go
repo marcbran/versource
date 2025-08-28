@@ -8,12 +8,10 @@ import (
 )
 
 type Component struct {
-	ID uint `gorm:"primarykey"`
-	//ModuleVersion   ModuleVersion `gorm:"foreignKey:ModuleVersionID"`
-	//ModuleVersionID uint
-	Source    string
-	Version   string
-	Variables datatypes.JSON `gorm:"type:jsonb"`
+	ID              uint          `gorm:"primarykey"`
+	ModuleVersion   ModuleVersion `gorm:"foreignKey:ModuleVersionID"`
+	ModuleVersionID uint
+	Variables       datatypes.JSON `gorm:"type:jsonb"`
 }
 
 type ComponentRepo interface {
@@ -23,25 +21,28 @@ type ComponentRepo interface {
 }
 
 type CreateComponent struct {
-	componentRepo   ComponentRepo
-	ensureChangeset *EnsureChangeset
-	createPlan      *CreatePlan
-	tx              TransactionManager
+	componentRepo     ComponentRepo
+	moduleRepo        ModuleRepo
+	moduleVersionRepo ModuleVersionRepo
+	ensureChangeset   *EnsureChangeset
+	createPlan        *CreatePlan
+	tx                TransactionManager
 }
 
-func NewCreateComponent(componentRepo ComponentRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *CreateComponent {
+func NewCreateComponent(componentRepo ComponentRepo, moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *CreateComponent {
 	return &CreateComponent{
-		componentRepo:   componentRepo,
-		ensureChangeset: ensureChangeset,
-		createPlan:      createPlan,
-		tx:              tx,
+		componentRepo:     componentRepo,
+		moduleRepo:        moduleRepo,
+		moduleVersionRepo: moduleVersionRepo,
+		ensureChangeset:   ensureChangeset,
+		createPlan:        createPlan,
+		tx:                tx,
 	}
 }
 
 type CreateComponentRequest struct {
 	Changeset string         `json:"changeset"`
-	Source    string         `json:"source"`
-	Version   string         `json:"version"`
+	ModuleID  uint           `json:"module_id"`
 	Variables map[string]any `json:"variables"`
 }
 
@@ -54,24 +55,28 @@ type CreateComponentResponse struct {
 }
 
 func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) (*CreateComponentResponse, error) {
-	if req.Source == "" {
-		return nil, UserErr("source is required")
-	}
 	if req.Changeset == "" {
 		return nil, UserErr("changeset is required")
 	}
 
 	var response *CreateComponentResponse
 	err := c.tx.Do(ctx, req.Changeset, "create component", func(ctx context.Context) error {
+		latestVersion, err := c.moduleVersionRepo.GetLatestModuleVersion(ctx, req.ModuleID)
+		if err != nil {
+			return InternalErrE("failed to get latest module version", err)
+		}
+		if latestVersion == nil {
+			return UserErr("module has no versions")
+		}
+
 		variablesJSON, err := json.Marshal(req.Variables)
 		if err != nil {
 			return UserErrE("invalid variables format", err)
 		}
 
 		component := &Component{
-			Source:    req.Source,
-			Version:   req.Version,
-			Variables: datatypes.JSON(variablesJSON),
+			ModuleVersionID: latestVersion.ID,
+			Variables:       datatypes.JSON(variablesJSON),
 		}
 
 		err = c.componentRepo.CreateComponent(ctx, component)
@@ -87,8 +92,8 @@ func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) 
 
 		response = &CreateComponentResponse{
 			ID:        component.ID,
-			Source:    component.Source,
-			Version:   component.Version,
+			Source:    latestVersion.Module.Source,
+			Version:   latestVersion.Version,
 			Variables: variables,
 		}
 		return nil
@@ -123,24 +128,25 @@ func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) 
 }
 
 type UpdateComponent struct {
-	componentRepo   ComponentRepo
-	ensureChangeset *EnsureChangeset
-	tx              TransactionManager
+	componentRepo     ComponentRepo
+	moduleVersionRepo ModuleVersionRepo
+	ensureChangeset   *EnsureChangeset
+	tx                TransactionManager
 }
 
-func NewUpdateComponent(componentRepo ComponentRepo, ensureChangeset *EnsureChangeset, tx TransactionManager) *UpdateComponent {
+func NewUpdateComponent(componentRepo ComponentRepo, moduleVersionRepo ModuleVersionRepo, ensureChangeset *EnsureChangeset, tx TransactionManager) *UpdateComponent {
 	return &UpdateComponent{
-		componentRepo:   componentRepo,
-		ensureChangeset: ensureChangeset,
-		tx:              tx,
+		componentRepo:     componentRepo,
+		moduleVersionRepo: moduleVersionRepo,
+		ensureChangeset:   ensureChangeset,
+		tx:                tx,
 	}
 }
 
 type UpdateComponentRequest struct {
 	ComponentID uint            `json:"component_id"`
 	Changeset   string          `json:"changeset"`
-	Source      *string         `json:"source,omitempty"`
-	Version     *string         `json:"version,omitempty"`
+	ModuleID    *uint           `json:"module_id,omitempty"`
 	Variables   *map[string]any `json:"variables,omitempty"`
 }
 
@@ -163,11 +169,15 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 			return UserErrE("component not found", err)
 		}
 
-		if req.Source != nil {
-			component.Source = *req.Source
-		}
-		if req.Version != nil {
-			component.Version = *req.Version
+		if req.ModuleID != nil {
+			latestVersion, err := u.moduleVersionRepo.GetLatestModuleVersion(ctx, *req.ModuleID)
+			if err != nil {
+				return InternalErrE("failed to get latest module version", err)
+			}
+			if latestVersion == nil {
+				return UserErr("module has no versions")
+			}
+			component.ModuleVersionID = latestVersion.ID
 		}
 		if req.Variables != nil {
 			variablesJSON, err := json.Marshal(*req.Variables)
@@ -190,8 +200,8 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 
 		response = &UpdateComponentResponse{
 			ID:        component.ID,
-			Source:    component.Source,
-			Version:   component.Version,
+			Source:    component.ModuleVersion.Module.Source,
+			Version:   component.ModuleVersion.Version,
 			Variables: variables,
 		}
 

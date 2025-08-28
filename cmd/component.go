@@ -19,16 +19,11 @@ var componentCmd = &cobra.Command{
 var componentCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a new component",
-	Long:  `Create a new component with source, version, and variables`,
+	Long:  `Create a new component with module ID and variables (uses latest module version)`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		source, err := cmd.Flags().GetString("source")
+		moduleIDStr, err := cmd.Flags().GetString("module-id")
 		if err != nil {
-			return fmt.Errorf("failed to get source flag: %w", err)
-		}
-
-		version, err := cmd.Flags().GetString("version")
-		if err != nil {
-			return fmt.Errorf("failed to get version flag: %w", err)
+			return fmt.Errorf("failed to get module-id flag: %w", err)
 		}
 
 		changeset, err := cmd.Flags().GetString("changeset")
@@ -41,11 +36,16 @@ var componentCreateCmd = &cobra.Command{
 			return fmt.Errorf("failed to get variables flag: %w", err)
 		}
 
-		if source == "" {
-			return fmt.Errorf("source is required")
+		if moduleIDStr == "" {
+			return fmt.Errorf("module-id is required")
 		}
 		if changeset == "" {
 			return fmt.Errorf("changeset is required")
+		}
+
+		moduleID, err := strconv.ParseUint(moduleIDStr, 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid module ID: %w", err)
 		}
 
 		var variables map[string]any
@@ -64,8 +64,7 @@ var componentCreateCmd = &cobra.Command{
 		client := http.NewClient(config)
 
 		req := internal.CreateComponentRequest{
-			Source:    source,
-			Version:   version,
+			ModuleID:  uint(moduleID),
 			Changeset: changeset,
 			Variables: variables,
 		}
@@ -81,11 +80,10 @@ var componentCreateCmd = &cobra.Command{
 }
 
 func init() {
-	componentCreateCmd.Flags().String("source", "", "Component source")
-	componentCreateCmd.Flags().String("version", "", "Component version")
+	componentCreateCmd.Flags().String("module-id", "", "Module ID (will use latest version)")
 	componentCreateCmd.Flags().String("changeset", "", "Component changeset")
 	componentCreateCmd.Flags().String("variables", "{}", "Component variables as JSON string")
-	componentCreateCmd.MarkFlagRequired("source")
+	componentCreateCmd.MarkFlagRequired("module-id")
 	componentCreateCmd.MarkFlagRequired("changeset")
 
 	componentCmd.AddCommand(componentCreateCmd)
@@ -104,14 +102,9 @@ var componentUpdateCmd = &cobra.Command{
 			return fmt.Errorf("invalid component ID: %w", err)
 		}
 
-		source, err := cmd.Flags().GetString("source")
+		moduleIDStr, err := cmd.Flags().GetString("module-id")
 		if err != nil {
-			return fmt.Errorf("failed to get source flag: %w", err)
-		}
-
-		version, err := cmd.Flags().GetString("version")
-		if err != nil {
-			return fmt.Errorf("failed to get version flag: %w", err)
+			return fmt.Errorf("failed to get module-id flag: %w", err)
 		}
 
 		changeset, err := cmd.Flags().GetString("changeset")
@@ -127,7 +120,7 @@ var componentUpdateCmd = &cobra.Command{
 		if changeset == "" {
 			return fmt.Errorf("changeset is required")
 		}
-		if source == "" && version == "" && variablesStr == "" {
+		if moduleIDStr == "" && variablesStr == "" {
 			return fmt.Errorf("at least one field must be provided to update")
 		}
 
@@ -143,11 +136,13 @@ var componentUpdateCmd = &cobra.Command{
 			Changeset:   changeset,
 		}
 
-		if source != "" {
-			req.Source = &source
-		}
-		if version != "" {
-			req.Version = &version
+		if moduleIDStr != "" {
+			moduleID, err := strconv.ParseUint(moduleIDStr, 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid module ID: %w", err)
+			}
+			moduleIDUint := uint(moduleID)
+			req.ModuleID = &moduleIDUint
 		}
 		if variablesStr != "" {
 			var variables map[string]any
@@ -170,8 +165,7 @@ var componentUpdateCmd = &cobra.Command{
 
 func init() {
 	componentUpdateCmd.Flags().String("changeset", "", "Changeset name")
-	componentUpdateCmd.Flags().String("source", "", "Component source")
-	componentUpdateCmd.Flags().String("version", "", "Component version")
+	componentUpdateCmd.Flags().String("module-id", "", "Module ID (will use latest version)")
 	componentUpdateCmd.Flags().String("variables", "", "Component variables as JSON string")
 	componentUpdateCmd.MarkFlagRequired("changeset")
 }

@@ -29,7 +29,13 @@ func (r *GormApplyRepo) CreateApply(ctx context.Context, apply *internal.Apply) 
 func (r *GormApplyRepo) GetApply(ctx context.Context, applyID uint) (*internal.Apply, error) {
 	db := getTxOrDb(ctx, r.db)
 	var apply internal.Apply
-	err := db.WithContext(ctx).Preload("Plan.Component").Preload("Plan.Changeset").Preload("Changeset").Where("id = ?", applyID).First(&apply).Error
+	err := db.WithContext(ctx).
+		Preload("Plan.Component.ModuleVersion.Module").
+		Preload("Plan.Component.ModuleVersion").
+		Preload("Plan.Component").
+		Preload("Plan.Changeset").
+		Preload("Changeset").
+		Where("id = ?", applyID).First(&apply).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get apply: %w", err)
 	}

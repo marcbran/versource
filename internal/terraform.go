@@ -48,7 +48,11 @@ func NewTerraformStackFromComponent(component *Component, workDir string) (Terra
 		terraformModule.Variables = variables
 	}
 
-	statePath := filepath.Join(workDir, "states", fmt.Sprintf("%d.tfstate", component.ID))
+	statePath, err := filepath.Abs(filepath.Join(workDir, "states", fmt.Sprintf("%d.tfstate", component.ID)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path for state file: %w", err)
+	}
+
 	terraformStack := NewTerraformStack().
 		AddModule("component", terraformModule).
 		AddOutput("output", TerraformOutput{Value: "${module.component}"}).

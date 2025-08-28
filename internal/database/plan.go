@@ -29,7 +29,11 @@ func (r *GormPlanRepo) CreatePlan(ctx context.Context, plan *internal.Plan) erro
 func (r *GormPlanRepo) GetPlan(ctx context.Context, planID uint) (*internal.Plan, error) {
 	db := getTxOrDb(ctx, r.db)
 	var plan internal.Plan
-	err := db.WithContext(ctx).Preload("Component").Preload("Changeset").Where("id = ?", planID).First(&plan).Error
+	err := db.WithContext(ctx).
+		Preload("Component.ModuleVersion.Module").
+		Preload("Component.ModuleVersion").
+		Preload("Changeset").
+		Where("id = ?", planID).First(&plan).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get plan: %w", err)
 	}
@@ -48,7 +52,7 @@ func (r *GormPlanRepo) UpdatePlanState(ctx context.Context, planID uint, state i
 func (r *GormPlanRepo) GetQueuedPlans(ctx context.Context) ([]internal.RunPlanRequest, error) {
 	db := getTxOrDb(ctx, r.db)
 	var plans []internal.Plan
-	err := db.WithContext(ctx).Preload("Component").Preload("Changeset").Where("state = ?", internal.TaskStateQueued).Find(&plans).Error
+	err := db.WithContext(ctx).Preload("Component.ModuleVersion.Module").Preload("Changeset").Where("state = ?", internal.TaskStateQueued).Find(&plans).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queued plans: %w", err)
 	}

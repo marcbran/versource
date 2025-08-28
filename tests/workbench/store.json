@@ -1,0 +1,10 @@
+[
+  {
+    "connectionUrl": "mysql://root:@dolt:3306/versource",
+    "hideDoltFeatures": false,
+    "useSSL": false,
+    "type": "mysql",
+    "name": "versource",
+    "isDolt": true
+  }
+]

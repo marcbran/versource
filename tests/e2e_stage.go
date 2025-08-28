@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type Stage struct {
@@ -24,23 +26,13 @@ type Stage struct {
 }
 
 func scenario(t *testing.T) (*Stage, *Stage, *Stage) {
-	stage := &Stage{t: t}
+	stage := &Stage{
+		t: t,
+	}
 	return stage, stage, stage
 }
 
-func (s *Stage) a_blank_instance() *Stage {
-	if os.Getenv("USE_DATASET") == "false" {
-		s.execRootQuery("DROP DATABASE IF EXISTS versource;")
-		s.runDockerCompose("restart", "db-init")
-		s.runDockerCompose("restart", "migrate")
-		s.runDockerCompose("restart", "server")
-		s.execQuery("CALL DOLT_REMOTE('add', 'origin', 'file:///datasets/blank-instance')")
-		s.execQuery("CALL DOLT_PUSH('origin', 'main')")
-	} else {
-		s.execRootQuery("DROP DATABASE IF EXISTS versource;")
-		s.execRootQuery("CALL DOLT_CLONE('file:///datasets/blank-instance', 'versource')")
-	}
-
+func (s *Stage) where() *Stage {
 	return s
 }
 
@@ -48,8 +40,29 @@ func (s *Stage) and() *Stage {
 	return s
 }
 
+func (s *Stage) the_command_has_succeeded() *Stage {
+	if s.LastExitCode != 0 {
+		fmt.Println(s.LastError)
+	}
+	assert.Equal(s.t, 0, s.LastExitCode)
+	return s
+}
+
+func (s *Stage) the_command_has_failed() *Stage {
+	assert.Equal(s.t, 1, s.LastExitCode)
+	return s
+}
+
 func runDockerCompose(args ...string) error {
-	return exec.Command("docker", append([]string{"compose"}, args...)...).Run()
+	cmd := exec.Command("docker", append([]string{"compose"}, args...)...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(stderr.String())
+	}
+	return err
 }
 
 func (s *Stage) runDockerCompose(args ...string) error {
@@ -59,6 +72,10 @@ func (s *Stage) runDockerCompose(args ...string) error {
 func (s *Stage) execCommand(args ...string) *Stage {
 	args = append(args, "--output", "json")
 	cmd := exec.Command("docker", append([]string{"compose", "exec", "-T", "client", "./versource"}, args...)...)
+
+	if os.Getenv("VS_LOG") == "DEBUG" {
+		fmt.Printf("DEBUG: Executing command: %v\n", args)
+	}
 
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
@@ -77,7 +94,9 @@ func (s *Stage) execCommand(args ...string) *Stage {
 	} else {
 		s.LastExitCode = 0
 		output := stdout.String()
-		fmt.Println(output)
+		if os.Getenv("VS_LOG") == "DEBUG" {
+			fmt.Printf("DEBUG: Command output: %s\n", output)
+		}
 		if output != "" {
 			var outputMap map[string]any
 			jsonErr := json.Unmarshal([]byte(output), &outputMap)

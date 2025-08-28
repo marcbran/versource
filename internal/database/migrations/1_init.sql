@@ -48,7 +48,7 @@ CREATE INDEX states_component_id ON states (component_id);
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS changesets (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
     state VARCHAR(50) NOT NULL DEFAULT ('Open')
 );
 -- +goose StatementEnd

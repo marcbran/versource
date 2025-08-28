@@ -1,10 +1,8 @@
-//go:build e2e
+//go:build e2e && (all || module)
 
 package tests
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestCreateModule(t *testing.T) {
 	given, when, then := scenario(t)
@@ -62,7 +60,7 @@ func TestUpdateModuleWithVersion(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance().and().
+		the_blank_instance_dataset().and().
 		a_module_has_been_created("hashicorp/consul/aws", "0.1.0")
 
 	when.
@@ -76,7 +74,7 @@ func TestUpdateModuleWithoutVersion(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance().and().
+		the_blank_instance_dataset().and().
 		a_module_has_been_created("./local/modules/test-module", "")
 
 	when.

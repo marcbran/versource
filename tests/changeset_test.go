@@ -1,29 +1,27 @@
-//go:build e2e
+//go:build e2e && (all || changeset)
 
 package tests
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestCreateChangeset(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance()
+		the_blank_instance_dataset()
 
 	when.
 		a_changeset_is_created("test1")
 
 	then.
-		the_changeset_is_created_successfully()
+		the_changeset_creation_has_succeeded()
 }
 
 func TestCreateChangesetWithInvalidName(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance()
+		the_blank_instance_dataset()
 
 	when.
 		a_changeset_is_created(".invalid-name")
@@ -36,7 +34,7 @@ func TestCreateChangesetWithDuplicateName(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance().and().
+		the_blank_instance_dataset().and().
 		a_changeset_has_been_created("test1")
 
 	when.
@@ -50,21 +48,21 @@ func TestMergeChangeset(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance().and().
+		the_blank_instance_dataset().and().
 		a_changeset_has_been_created("test1")
 
 	when.
 		the_changeset_is_merged()
 
 	then.
-		the_changeset_is_merged_successfully()
+		the_changeset_creation_has_succeeded()
 }
 
 func TestCreateChangesetAfterMerge(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance().and().
+		the_blank_instance_dataset().and().
 		a_changeset_has_been_created("test1").and().
 		the_changeset_has_been_merged()
 
@@ -72,39 +70,50 @@ func TestCreateChangesetAfterMerge(t *testing.T) {
 		a_changeset_is_created("test1")
 
 	then.
-		the_changeset_is_created_successfully()
+		the_changeset_creation_has_succeeded()
+}
+func TestCreateChangesetWithSpecialCharacters(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		a_blank_instance()
+
+	when.
+		a_changeset_is_created("test-changeset-123")
+
+	then.
+		the_changeset_creation_has_succeeded()
 }
 
-// func TestMergeChangesetWithComponents(t *testing.T) {
-// 	given, when, then := scenario(t)
+func TestMergeChangesetWithComponents(t *testing.T) {
+	given, when, then := scenario(t)
 
-// 	given.
-// 		a_blank_instance().and().
-// 		a_changeset_has_been_created("test1").and().
-// 		a_component_has_been_created("test1", "test-component", "1.0.0", `{"key": "value"}`).and().
-// 		a_plan_has_been_created("test1", "1")
+	given.
+		the_blank_instance_dataset().and().
+		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_changeset_has_been_created("test1").and().
+		a_component_has_been_created(`{"key": "value"}`)
 
-// 	when.
-// 		the_changeset_is_merged()
+	when.
+		the_changeset_is_merged()
 
-// 	then.
-// 		the_changeset_is_merged_successfully()
-// }
+	then.
+		the_changeset_creation_has_succeeded()
+}
 
-// func TestMergeChangesetWithMultipleComponents(t *testing.T) {
-// 	given, when, then := scenario(t)
+func TestMergeChangesetWithMultipleComponents(t *testing.T) {
+	given, when, then := scenario(t)
 
-// 	given.
-// 		a_blank_instance().and().
-// 		a_changeset_has_been_created("test1").and().
-// 		a_component_has_been_created("test1", "component1", "1.0.0", `{"key1": "value1"}`).and().
-// 		a_component_has_been_created("test1", "component2", "2.0.0", `{"key2": "value2"}`).and().
-// 		a_plan_has_been_created("test1", "1").and().
-// 		a_plan_has_been_created("test1", "2")
+	given.
+		the_blank_instance_dataset().and().
+		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_changeset_has_been_created("test1").and().
+		a_component_has_been_created(`{"key1": "value1"}`).and().
+		a_component_has_been_created(`{"key2": "value2"}`)
 
-// 	when.
-// 		the_changeset_is_merged()
+	when.
+		the_changeset_is_merged()
 
-// 	then.
-// 		the_changeset_is_merged_successfully()
-// }
+	then.
+		the_changeset_creation_has_succeeded()
+}

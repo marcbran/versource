@@ -1,4 +1,4 @@
-//go:build e2e
+//go:build e2e && (all || datasets)
 
 package tests
 
@@ -8,13 +8,22 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	runDockerCompose("down")
-	runDockerCompose("build", "--no-cache")
-	runDockerCompose("up", "-d")
+	err := runDockerCompose("down")
+	if err != nil {
+		os.Exit(1)
+	}
+	err = runDockerCompose("build", "--no-cache")
+	if err != nil {
+		os.Exit(1)
+	}
+	err = runDockerCompose("up", "-d")
+	if err != nil {
+		os.Exit(1)
+	}
 
 	code := m.Run()
 
-	runDockerCompose("down")
+	//runDockerCompose("down")
 
 	os.Exit(code)
 }

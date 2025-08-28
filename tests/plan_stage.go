@@ -2,41 +2,37 @@
 
 package tests
 
-import (
-	"fmt"
-	"github.com/stretchr/testify/assert"
-)
-
-func (s *Stage) a_plan_has_been_created(changeset, componentID string) *Stage {
-	return s.a_plan_is_created(changeset, componentID).and().
-		the_plan_is_created_successfully()
+func (s *Stage) a_plan_has_been_created() *Stage {
+	return s.a_plan_is_created().and().
+		the_plan_creation_has_succeeded()
 }
 
-func (s *Stage) a_plan_is_created(changeset, componentID string) *Stage {
-	s.ChangesetName = changeset
+func (s *Stage) a_plan_is_created() *Stage {
+	return s.execCommand("plan", "--component-id", s.ComponentID, "--changeset", s.ChangesetName)
+}
+
+func (s *Stage) a_plan_is_created_for_the_component(componentID string) *Stage {
 	s.ComponentID = componentID
-	return s.execCommand("plan", "--component-id", componentID, "--changeset", changeset)
+	return s.execCommand("plan", "--component-id", componentID, "--changeset", s.ChangesetName)
 }
 
-func (s *Stage) a_plan_is_created_without_changeset(componentID string) *Stage {
-	s.ComponentID = componentID
-	return s.execCommand("plan", "--component-id", componentID)
-}
-
-func (s *Stage) a_plan_is_created_without_component_id(changeset string) *Stage {
+func (s *Stage) a_plan_is_created_for_the_changeset(changeset string) *Stage {
 	s.ChangesetName = changeset
-	return s.execCommand("plan", "--changeset", changeset)
+	return s.execCommand("plan", "--component-id", s.ComponentID, "--changeset", changeset)
 }
 
-func (s *Stage) the_plan_is_created_successfully() *Stage {
-	if s.LastExitCode != 0 {
-		fmt.Println(s.LastError)
-	}
-	assert.Equal(s.t, 0, s.LastExitCode)
-	return s
+func (s *Stage) a_plan_is_created_without_changeset() *Stage {
+	return s.execCommand("plan", "--component-id", s.ComponentID)
+}
+
+func (s *Stage) a_plan_is_created_without_component_id() *Stage {
+	return s.execCommand("plan", "--changeset", s.ChangesetName)
+}
+
+func (s *Stage) the_plan_creation_has_succeeded() *Stage {
+	return s.the_command_has_succeeded()
 }
 
 func (s *Stage) the_plan_creation_has_failed() *Stage {
-	assert.Equal(s.t, 1, s.LastExitCode)
-	return s
+	return s.the_command_has_failed()
 }

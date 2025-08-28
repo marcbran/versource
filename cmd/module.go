@@ -51,8 +51,7 @@ var moduleCreateCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Module created successfully with ID: %d, Version ID: %d\n", module.ID, module.VersionID)
-		return nil
+		return formatOutput(module, "Module created successfully with ID: %d, Version ID: %d\n", module.ID, module.VersionID)
 	},
 }
 
@@ -96,8 +95,7 @@ var moduleUpdateCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Module updated successfully with Version ID: %d\n", module.VersionID)
-		return nil
+		return formatOutput(module, "Module updated successfully with Version ID: %d\n", module.VersionID)
 	},
 }
 

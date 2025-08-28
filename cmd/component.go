@@ -74,8 +74,7 @@ var componentCreateCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Component created successfully with ID: %d\n", component.ID)
-		return nil
+		return formatOutput(component, "Component created successfully with ID: %d\n", component.ID)
 	},
 }
 
@@ -158,8 +157,7 @@ var componentUpdateCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Component updated successfully with ID: %d\n", component.ID)
-		return nil
+		return formatOutput(component, "Component updated successfully with ID: %d\n", component.ID)
 	},
 }
 

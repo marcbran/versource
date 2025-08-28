@@ -47,8 +47,7 @@ var planCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Plan created successfully with ID: %d\n", plan.ID)
-		return nil
+		return formatOutput(plan, "Plan created successfully with ID: %d\n", plan.ID)
 	},
 }
 

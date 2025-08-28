@@ -2,10 +2,12 @@ package internal
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
+	tfjson "github.com/hashicorp/terraform-json"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/datatypes"
 )
@@ -47,6 +49,30 @@ type State struct {
 
 type StateRepo interface {
 	UpsertState(ctx context.Context, state *State) error
+}
+
+type Resource struct {
+	ID           uint  `gorm:"primarykey"`
+	State        State `gorm:"foreignKey:StateID"`
+	StateID      uint
+	Address      string
+	Mode         ResourceMode
+	ProviderName string
+	Count        *int
+	ForEach      *string
+	Type         string
+	Attributes   datatypes.JSON `gorm:"type:jsonb"`
+}
+
+type ResourceMode string
+
+const (
+	DataResourceMode    ResourceMode = "data"
+	ManagedResourceMode ResourceMode = "managed"
+)
+
+type ResourceRepo interface {
+	UpsertResources(ctx context.Context, resources []Resource) error
 }
 
 type ApplyWorker struct {
@@ -119,20 +145,22 @@ func (aw *ApplyWorker) processQueuedApplies(ctx context.Context) {
 }
 
 type RunApply struct {
-	config    *Config
-	applyRepo ApplyRepo
-	stateRepo StateRepo
-	planStore PlanStore
-	tx        TransactionManager
+	config       *Config
+	applyRepo    ApplyRepo
+	stateRepo    StateRepo
+	resourceRepo ResourceRepo
+	planStore    PlanStore
+	tx           TransactionManager
 }
 
-func NewRunApply(config *Config, applyRepo ApplyRepo, stateRepo StateRepo, planStore PlanStore, tx TransactionManager) *RunApply {
+func NewRunApply(config *Config, applyRepo ApplyRepo, stateRepo StateRepo, resourceRepo ResourceRepo, planStore PlanStore, tx TransactionManager) *RunApply {
 	return &RunApply{
-		config:    config,
-		applyRepo: applyRepo,
-		stateRepo: stateRepo,
-		planStore: planStore,
-		tx:        tx,
+		config:       config,
+		applyRepo:    applyRepo,
+		stateRepo:    stateRepo,
+		resourceRepo: resourceRepo,
+		planStore:    planStore,
+		tx:           tx,
 	}
 }
 
@@ -214,18 +242,32 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 		return fmt.Errorf("failed to get terraform state: %w", err)
 	}
 
-	log.WithField("tf_state", tfState).Debug("Terraform state")
-
-	output, err := tf.Output(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get terraform output: %w", err)
+	output := make(map[string]any)
+	for name, out := range tfState.Values.Outputs {
+		if out == nil {
+			continue
+		}
+		if out.Sensitive {
+			continue
+		}
+		output[name] = out.Value
 	}
-
-	log.WithField("output_value", output["output"].Value).Debug("Output value")
+	jsonOutput, err := json.Marshal(output)
+	if err != nil {
+		return fmt.Errorf("failed to marshal output: %w", err)
+	}
 
 	state := State{
 		ComponentID: component.ID,
-		Output:      datatypes.JSON(output["output"].Value),
+		Output:      datatypes.JSON(jsonOutput),
+	}
+
+	var resources []Resource
+	if tfState.Values != nil && tfState.Values.RootModule != nil {
+		resources, err = extractResources(tfState.Values.RootModule)
+		if err != nil {
+			return fmt.Errorf("failed to extract resources: %w", err)
+		}
 	}
 
 	err = a.tx.Do(ctx, "main", "complete apply", func(ctx context.Context) error {
@@ -236,6 +278,21 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 				return fmt.Errorf("failed to upsert state: %w, and failed to update apply state: %w", err, stateErr)
 			}
 			return fmt.Errorf("failed to upsert state: %w", err)
+		}
+
+		for i := range resources {
+			resources[i].StateID = state.ID
+		}
+
+		if len(resources) > 0 {
+			err = a.resourceRepo.UpsertResources(ctx, resources)
+			if err != nil {
+				stateErr := a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
+				if stateErr != nil {
+					return fmt.Errorf("failed to upsert resources: %w, and failed to update apply state: %w", err, stateErr)
+				}
+				return fmt.Errorf("failed to upsert resources: %w", err)
+			}
 		}
 
 		err = a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateCompleted)
@@ -249,4 +306,43 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	})
 
 	return err
+}
+
+func extractResources(module *tfjson.StateModule) ([]Resource, error) {
+	var resources []Resource
+
+	for _, tfResource := range module.Resources {
+		var count *int
+		var forEach *string
+		switch index := tfResource.Index.(type) {
+		case int:
+			count = &index
+		case string:
+			forEach = &index
+		}
+		jsonAttributes, err := json.Marshal(tfResource.AttributeValues)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal attributes: %w", err)
+		}
+		resource := Resource{
+			Address:      tfResource.Address,
+			Mode:         ResourceMode(tfResource.Mode),
+			ProviderName: tfResource.ProviderName,
+			Count:        count,
+			ForEach:      forEach,
+			Type:         tfResource.Type,
+			Attributes:   datatypes.JSON(jsonAttributes),
+		}
+		resources = append(resources, resource)
+	}
+
+	for _, childModule := range module.ChildModules {
+		childResources, err := extractResources(childModule)
+		if err != nil {
+			return nil, fmt.Errorf("failed to extract resources: %w", err)
+		}
+		resources = append(resources, childResources...)
+	}
+
+	return resources, nil
 }

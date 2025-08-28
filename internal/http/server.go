@@ -83,6 +83,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 
 	componentRepo := database.NewGormComponentRepo(db)
 	stateRepo := database.NewGormStateRepo(db)
+	resourceRepo := database.NewGormResourceRepo(db)
 	planRepo := database.NewGormPlanRepo(db)
 	planStore := file.NewPlanStore(config.Terraform.WorkDir)
 	applyRepo := database.NewGormApplyRepo(db)
@@ -91,7 +92,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 	moduleVersionRepo := database.NewGormModuleVersionRepo(db)
 	transactionManager := database.NewGormTransactionManager(db)
 
-	runApply := internal.NewRunApply(config, applyRepo, stateRepo, planStore, transactionManager)
+	runApply := internal.NewRunApply(config, applyRepo, stateRepo, resourceRepo, planStore, transactionManager)
 	applyWorker := internal.NewApplyWorker(runApply, applyRepo)
 
 	runPlan := internal.NewRunPlan(config, planRepo, planStore, applyRepo, transactionManager)

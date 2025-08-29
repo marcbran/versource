@@ -38,6 +38,7 @@ type ApplyRepo interface {
 	UpdateApplyState(ctx context.Context, applyID uint, state TaskState) error
 	GetQueuedApplies(ctx context.Context) ([]uint, error)
 	GetQueuedAppliesByChangeset(ctx context.Context, changesetID uint) ([]uint, error)
+	ListApplies(ctx context.Context) ([]Apply, error)
 }
 
 type State struct {
@@ -306,6 +307,33 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	})
 
 	return err
+}
+
+type ListAppliesRequest struct{}
+
+type ListAppliesResponse struct {
+	Applies []Apply `json:"applies"`
+}
+
+type ListApplies struct {
+	applyRepo ApplyRepo
+}
+
+func NewListApplies(applyRepo ApplyRepo) *ListApplies {
+	return &ListApplies{
+		applyRepo: applyRepo,
+	}
+}
+
+func (l *ListApplies) Exec(ctx context.Context, req ListAppliesRequest) (*ListAppliesResponse, error) {
+	applies, err := l.applyRepo.ListApplies(ctx)
+	if err != nil {
+		return nil, InternalErrE("failed to list applies", err)
+	}
+
+	return &ListAppliesResponse{
+		Applies: applies,
+	}, nil
 }
 
 func extractResources(module *tfjson.StateModule) ([]Resource, error) {

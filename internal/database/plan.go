@@ -66,3 +66,17 @@ func (r *GormPlanRepo) GetQueuedPlans(ctx context.Context) ([]internal.RunPlanRe
 	}
 	return requests, nil
 }
+
+func (r *GormPlanRepo) ListPlans(ctx context.Context) ([]internal.Plan, error) {
+	db := getTxOrDb(ctx, r.db)
+	var plans []internal.Plan
+	err := db.WithContext(ctx).
+		Preload("Component.ModuleVersion.Module").
+		Preload("Component.ModuleVersion").
+		Preload("Changeset").
+		Find(&plans).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list plans: %w", err)
+	}
+	return plans, nil
+}

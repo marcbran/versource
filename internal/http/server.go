@@ -71,6 +71,11 @@ type Server struct {
 	runApply        *internal.RunApply
 	createModule    *internal.CreateModule
 	updateModule    *internal.UpdateModule
+	listModules     *internal.ListModules
+	listComponents  *internal.ListComponents
+	listPlans       *internal.ListPlans
+	listApplies     *internal.ListApplies
+	listChangesets  *internal.ListChangesets
 	planWorker      *internal.PlanWorker
 	applyWorker     *internal.ApplyWorker
 }
@@ -112,6 +117,11 @@ func NewServer(config *internal.Config) (*Server, error) {
 		runApply:        runApply,
 		createModule:    internal.NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
 		updateModule:    internal.NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
+		listModules:     internal.NewListModules(moduleRepo),
+		listComponents:  internal.NewListComponents(componentRepo),
+		listPlans:       internal.NewListPlans(planRepo),
+		listApplies:     internal.NewListApplies(applyRepo),
+		listChangesets:  internal.NewListChangesets(changesetRepo),
 		planWorker:      planWorker,
 		applyWorker:     applyWorker,
 	}
@@ -130,6 +140,11 @@ func (s *Server) setupMiddleware() {
 
 func (s *Server) setupRoutes() {
 	s.router.Route("/api/v1", func(r chi.Router) {
+		r.Get("/modules", s.handleListModules)
+		r.Get("/components", s.handleListComponents)
+		r.Get("/plans", s.handleListPlans)
+		r.Get("/applies", s.handleListApplies)
+		r.Get("/changesets", s.handleListChangesets)
 		r.Post("/changesets", s.handleCreateChangeset)
 		r.Post("/modules", s.handleCreateModule)
 		r.Put("/modules/{moduleID}", s.handleUpdateModule)
@@ -302,6 +317,56 @@ func (s *Server) handleUpdateComponent(w http.ResponseWriter, r *http.Request) {
 	req.ComponentID = uint(componentID)
 
 	resp, err := s.updateComponent.Exec(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
+func (s *Server) handleListModules(w http.ResponseWriter, r *http.Request) {
+	resp, err := s.listModules.Exec(r.Context(), internal.ListModulesRequest{})
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
+func (s *Server) handleListComponents(w http.ResponseWriter, r *http.Request) {
+	resp, err := s.listComponents.Exec(r.Context(), internal.ListComponentsRequest{})
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
+func (s *Server) handleListPlans(w http.ResponseWriter, r *http.Request) {
+	resp, err := s.listPlans.Exec(r.Context(), internal.ListPlansRequest{})
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
+func (s *Server) handleListApplies(w http.ResponseWriter, r *http.Request) {
+	resp, err := s.listApplies.Exec(r.Context(), internal.ListAppliesRequest{})
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
+func (s *Server) handleListChangesets(w http.ResponseWriter, r *http.Request) {
+	resp, err := s.listChangesets.Exec(r.Context(), internal.ListChangesetsRequest{})
 	if err != nil {
 		returnError(w, err)
 		return

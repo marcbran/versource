@@ -244,3 +244,30 @@ func (m *MergeChangeset) Exec(ctx context.Context, req MergeChangesetRequest) (*
 
 	return response, nil
 }
+
+type ListChangesetsRequest struct{}
+
+type ListChangesetsResponse struct {
+	Changesets []Changeset `json:"changesets"`
+}
+
+type ListChangesets struct {
+	changesetRepo ChangesetRepo
+}
+
+func NewListChangesets(changesetRepo ChangesetRepo) *ListChangesets {
+	return &ListChangesets{
+		changesetRepo: changesetRepo,
+	}
+}
+
+func (l *ListChangesets) Exec(ctx context.Context, req ListChangesetsRequest) (*ListChangesetsResponse, error) {
+	changesets, err := l.changesetRepo.ListChangesets(ctx)
+	if err != nil {
+		return nil, InternalErrE("failed to list changesets", err)
+	}
+
+	return &ListChangesetsResponse{
+		Changesets: changesets,
+	}, nil
+}

@@ -46,6 +46,16 @@ func (r *GormModuleRepo) GetModuleBySource(ctx context.Context, source string) (
 	return &module, nil
 }
 
+func (r *GormModuleRepo) ListModules(ctx context.Context) ([]internal.Module, error) {
+	db := getTxOrDb(ctx, r.db)
+	var modules []internal.Module
+	err := db.WithContext(ctx).Find(&modules).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list modules: %w", err)
+	}
+	return modules, nil
+}
+
 type GormModuleVersionRepo struct {
 	db *gorm.DB
 }

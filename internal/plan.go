@@ -26,6 +26,7 @@ type PlanRepo interface {
 	GetPlan(ctx context.Context, planID uint) (*Plan, error)
 	UpdatePlanState(ctx context.Context, planID uint, state TaskState) error
 	GetQueuedPlans(ctx context.Context) ([]RunPlanRequest, error)
+	ListPlans(ctx context.Context) ([]Plan, error)
 }
 
 type PlanStore interface {
@@ -126,6 +127,33 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 	}
 
 	return response, nil
+}
+
+type ListPlansRequest struct{}
+
+type ListPlansResponse struct {
+	Plans []Plan `json:"plans"`
+}
+
+type ListPlans struct {
+	planRepo PlanRepo
+}
+
+func NewListPlans(planRepo PlanRepo) *ListPlans {
+	return &ListPlans{
+		planRepo: planRepo,
+	}
+}
+
+func (l *ListPlans) Exec(ctx context.Context, req ListPlansRequest) (*ListPlansResponse, error) {
+	plans, err := l.planRepo.ListPlans(ctx)
+	if err != nil {
+		return nil, InternalErrE("failed to list plans", err)
+	}
+
+	return &ListPlansResponse{
+		Plans: plans,
+	}, nil
 }
 
 type PlanWorker struct {

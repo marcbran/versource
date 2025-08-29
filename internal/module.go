@@ -22,6 +22,7 @@ type ModuleRepo interface {
 	CreateModule(ctx context.Context, module *Module) error
 	GetModule(ctx context.Context, moduleID uint) (*Module, error)
 	GetModuleBySource(ctx context.Context, source string) (*Module, error)
+	ListModules(ctx context.Context) ([]Module, error)
 }
 
 type ModuleVersionRepo interface {
@@ -265,4 +266,31 @@ func (u *UpdateModule) Exec(ctx context.Context, req UpdateModuleRequest) (*Upda
 	}
 
 	return response, nil
+}
+
+type ListModulesRequest struct{}
+
+type ListModulesResponse struct {
+	Modules []Module `json:"modules"`
+}
+
+type ListModules struct {
+	moduleRepo ModuleRepo
+}
+
+func NewListModules(moduleRepo ModuleRepo) *ListModules {
+	return &ListModules{
+		moduleRepo: moduleRepo,
+	}
+}
+
+func (l *ListModules) Exec(ctx context.Context, req ListModulesRequest) (*ListModulesResponse, error) {
+	modules, err := l.moduleRepo.ListModules(ctx)
+	if err != nil {
+		return nil, InternalErrE("failed to list modules", err)
+	}
+
+	return &ListModulesResponse{
+		Modules: modules,
+	}, nil
 }

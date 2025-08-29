@@ -80,3 +80,18 @@ func (r *GormApplyRepo) GetQueuedAppliesByChangeset(ctx context.Context, changes
 	}
 	return applyIDs, nil
 }
+
+func (r *GormApplyRepo) ListApplies(ctx context.Context) ([]internal.Apply, error) {
+	db := getTxOrDb(ctx, r.db)
+	var applies []internal.Apply
+	err := db.WithContext(ctx).
+		Preload("Plan.Component.ModuleVersion.Module").
+		Preload("Plan.Component.ModuleVersion").
+		Preload("Plan.Changeset").
+		Preload("Changeset").
+		Find(&applies).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list applies: %w", err)
+	}
+	return applies, nil
+}

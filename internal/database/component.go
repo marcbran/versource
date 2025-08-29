@@ -44,3 +44,13 @@ func (r *GormComponentRepo) UpdateComponent(ctx context.Context, component *inte
 	}
 	return nil
 }
+
+func (r *GormComponentRepo) ListComponents(ctx context.Context) ([]internal.Component, error) {
+	db := getTxOrDb(ctx, r.db)
+	var components []internal.Component
+	err := db.WithContext(ctx).Preload("ModuleVersion.Module").Find(&components).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list components: %w", err)
+	}
+	return components, nil
+}

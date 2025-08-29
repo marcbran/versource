@@ -18,6 +18,7 @@ type ComponentRepo interface {
 	GetComponent(ctx context.Context, componentID uint) (*Component, error)
 	CreateComponent(ctx context.Context, component *Component) error
 	UpdateComponent(ctx context.Context, component *Component) error
+	ListComponents(ctx context.Context) ([]Component, error)
 }
 
 type CreateComponent struct {
@@ -213,4 +214,31 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 	}
 
 	return response, nil
+}
+
+type ListComponentsRequest struct{}
+
+type ListComponentsResponse struct {
+	Components []Component `json:"components"`
+}
+
+type ListComponents struct {
+	componentRepo ComponentRepo
+}
+
+func NewListComponents(componentRepo ComponentRepo) *ListComponents {
+	return &ListComponents{
+		componentRepo: componentRepo,
+	}
+}
+
+func (l *ListComponents) Exec(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error) {
+	components, err := l.componentRepo.ListComponents(ctx)
+	if err != nil {
+		return nil, InternalErrE("failed to list components", err)
+	}
+
+	return &ListComponentsResponse{
+		Components: components,
+	}, nil
 }

@@ -33,12 +33,12 @@ type Apply struct {
 }
 
 type ApplyRepo interface {
-	CreateApply(ctx context.Context, apply *Apply) error
 	GetApply(ctx context.Context, applyID uint) (*Apply, error)
-	UpdateApplyState(ctx context.Context, applyID uint, state TaskState) error
 	GetQueuedApplies(ctx context.Context) ([]uint, error)
 	GetQueuedAppliesByChangeset(ctx context.Context, changesetID uint) ([]uint, error)
 	ListApplies(ctx context.Context) ([]Apply, error)
+	CreateApply(ctx context.Context, apply *Apply) error
+	UpdateApplyState(ctx context.Context, applyID uint, state TaskState) error
 }
 
 type State struct {

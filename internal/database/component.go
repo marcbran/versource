@@ -27,24 +27,6 @@ func (r *GormComponentRepo) GetComponent(ctx context.Context, componentID uint) 
 	return &component, nil
 }
 
-func (r *GormComponentRepo) CreateComponent(ctx context.Context, component *internal.Component) error {
-	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Create(component).Error
-	if err != nil {
-		return fmt.Errorf("failed to create component: %w", err)
-	}
-	return nil
-}
-
-func (r *GormComponentRepo) UpdateComponent(ctx context.Context, component *internal.Component) error {
-	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Save(component).Error
-	if err != nil {
-		return fmt.Errorf("failed to update component: %w", err)
-	}
-	return nil
-}
-
 func (r *GormComponentRepo) ListComponents(ctx context.Context) ([]internal.Component, error) {
 	db := getTxOrDb(ctx, r.db)
 	var components []internal.Component
@@ -80,4 +62,22 @@ func (r *GormComponentRepo) ListComponentsByModuleVersion(ctx context.Context, m
 		return nil, fmt.Errorf("failed to list components by module version: %w", err)
 	}
 	return components, nil
+}
+
+func (r *GormComponentRepo) CreateComponent(ctx context.Context, component *internal.Component) error {
+	db := getTxOrDb(ctx, r.db)
+	err := db.WithContext(ctx).Create(component).Error
+	if err != nil {
+		return fmt.Errorf("failed to create component: %w", err)
+	}
+	return nil
+}
+
+func (r *GormComponentRepo) UpdateComponent(ctx context.Context, component *internal.Component) error {
+	db := getTxOrDb(ctx, r.db)
+	err := db.WithContext(ctx).Save(component).Error
+	if err != nil {
+		return fmt.Errorf("failed to update component: %w", err)
+	}
+	return nil
 }

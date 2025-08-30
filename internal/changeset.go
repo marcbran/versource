@@ -26,11 +26,11 @@ type Changeset struct {
 }
 
 type ChangesetRepo interface {
-	CreateChangeset(ctx context.Context, changeset *Changeset) error
 	GetChangeset(ctx context.Context, changesetID uint) (*Changeset, error)
 	GetChangesetByName(ctx context.Context, name string) (*Changeset, error)
-	UpdateChangesetState(ctx context.Context, changesetID uint, state ChangesetState) error
 	ListChangesets(ctx context.Context) ([]Changeset, error)
+	CreateChangeset(ctx context.Context, changeset *Changeset) error
+	UpdateChangesetState(ctx context.Context, changesetID uint, state ChangesetState) error
 }
 
 type ListChangesets struct {

@@ -22,11 +22,11 @@ type Plan struct {
 }
 
 type PlanRepo interface {
-	CreatePlan(ctx context.Context, plan *Plan) error
 	GetPlan(ctx context.Context, planID uint) (*Plan, error)
-	UpdatePlanState(ctx context.Context, planID uint, state TaskState) error
 	GetQueuedPlans(ctx context.Context) ([]RunPlanRequest, error)
 	ListPlans(ctx context.Context) ([]Plan, error)
+	CreatePlan(ctx context.Context, plan *Plan) error
+	UpdatePlanState(ctx context.Context, planID uint, state TaskState) error
 }
 
 type PlanStore interface {

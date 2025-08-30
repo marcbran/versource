@@ -19,18 +19,18 @@ type ModuleVersion struct {
 }
 
 type ModuleRepo interface {
-	CreateModule(ctx context.Context, module *Module) error
 	GetModule(ctx context.Context, moduleID uint) (*Module, error)
 	GetModuleBySource(ctx context.Context, source string) (*Module, error)
 	ListModules(ctx context.Context) ([]Module, error)
+	CreateModule(ctx context.Context, module *Module) error
 }
 
 type ModuleVersionRepo interface {
-	CreateModuleVersion(ctx context.Context, moduleVersion *ModuleVersion) error
 	GetModuleVersion(ctx context.Context, moduleVersionID uint) (*ModuleVersion, error)
-	ListModuleVersionsForModule(ctx context.Context, moduleID uint) ([]ModuleVersion, error)
 	GetLatestModuleVersion(ctx context.Context, moduleID uint) (*ModuleVersion, error)
 	ListModuleVersions(ctx context.Context) ([]ModuleVersion, error)
+	ListModuleVersionsForModule(ctx context.Context, moduleID uint) ([]ModuleVersion, error)
+	CreateModuleVersion(ctx context.Context, moduleVersion *ModuleVersion) error
 }
 
 type ListModules struct {

@@ -16,11 +16,11 @@ type Component struct {
 
 type ComponentRepo interface {
 	GetComponent(ctx context.Context, componentID uint) (*Component, error)
-	CreateComponent(ctx context.Context, component *Component) error
-	UpdateComponent(ctx context.Context, component *Component) error
 	ListComponents(ctx context.Context) ([]Component, error)
 	ListComponentsByModule(ctx context.Context, moduleID uint) ([]Component, error)
 	ListComponentsByModuleVersion(ctx context.Context, moduleVersionID uint) ([]Component, error)
+	CreateComponent(ctx context.Context, component *Component) error
+	UpdateComponent(ctx context.Context, component *Component) error
 }
 
 type ListComponents struct {

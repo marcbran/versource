@@ -17,15 +17,6 @@ func NewGormPlanRepo(db *gorm.DB) *GormPlanRepo {
 	return &GormPlanRepo{db: db}
 }
 
-func (r *GormPlanRepo) CreatePlan(ctx context.Context, plan *internal.Plan) error {
-	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Create(plan).Error
-	if err != nil {
-		return fmt.Errorf("failed to create plan: %w", err)
-	}
-	return nil
-}
-
 func (r *GormPlanRepo) GetPlan(ctx context.Context, planID uint) (*internal.Plan, error) {
 	db := getTxOrDb(ctx, r.db)
 	var plan internal.Plan
@@ -38,15 +29,6 @@ func (r *GormPlanRepo) GetPlan(ctx context.Context, planID uint) (*internal.Plan
 		return nil, fmt.Errorf("failed to get plan: %w", err)
 	}
 	return &plan, nil
-}
-
-func (r *GormPlanRepo) UpdatePlanState(ctx context.Context, planID uint, state internal.TaskState) error {
-	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Model(&internal.Plan{}).Where("id = ?", planID).Update("state", state).Error
-	if err != nil {
-		return fmt.Errorf("failed to update plan state: %w", err)
-	}
-	return nil
 }
 
 func (r *GormPlanRepo) GetQueuedPlans(ctx context.Context) ([]internal.RunPlanRequest, error) {
@@ -79,4 +61,22 @@ func (r *GormPlanRepo) ListPlans(ctx context.Context) ([]internal.Plan, error) {
 		return nil, fmt.Errorf("failed to list plans: %w", err)
 	}
 	return plans, nil
+}
+
+func (r *GormPlanRepo) CreatePlan(ctx context.Context, plan *internal.Plan) error {
+	db := getTxOrDb(ctx, r.db)
+	err := db.WithContext(ctx).Create(plan).Error
+	if err != nil {
+		return fmt.Errorf("failed to create plan: %w", err)
+	}
+	return nil
+}
+
+func (r *GormPlanRepo) UpdatePlanState(ctx context.Context, planID uint, state internal.TaskState) error {
+	db := getTxOrDb(ctx, r.db)
+	err := db.WithContext(ctx).Model(&internal.Plan{}).Where("id = ?", planID).Update("state", state).Error
+	if err != nil {
+		return fmt.Errorf("failed to update plan state: %w", err)
+	}
+	return nil
 }

@@ -60,24 +60,25 @@ func Serve(ctx context.Context, config *internal.Config) error {
 }
 
 type Server struct {
-	config          *internal.Config
-	router          *chi.Mux
-	createComponent *internal.CreateComponent
-	updateComponent *internal.UpdateComponent
-	createPlan      *internal.CreatePlan
-	createChangeset *internal.CreateChangeset
-	mergeChangeset  *internal.MergeChangeset
-	runPlan         *internal.RunPlan
-	runApply        *internal.RunApply
-	createModule    *internal.CreateModule
-	updateModule    *internal.UpdateModule
-	listModules     *internal.ListModules
-	listComponents  *internal.ListComponents
-	listPlans       *internal.ListPlans
-	listApplies     *internal.ListApplies
-	listChangesets  *internal.ListChangesets
-	planWorker      *internal.PlanWorker
-	applyWorker     *internal.ApplyWorker
+	config             *internal.Config
+	router             *chi.Mux
+	createComponent    *internal.CreateComponent
+	updateComponent    *internal.UpdateComponent
+	createPlan         *internal.CreatePlan
+	createChangeset    *internal.CreateChangeset
+	mergeChangeset     *internal.MergeChangeset
+	runPlan            *internal.RunPlan
+	runApply           *internal.RunApply
+	createModule       *internal.CreateModule
+	updateModule       *internal.UpdateModule
+	listModules        *internal.ListModules
+	listModuleVersions *internal.ListModuleVersions
+	listComponents     *internal.ListComponents
+	listPlans          *internal.ListPlans
+	listApplies        *internal.ListApplies
+	listChangesets     *internal.ListChangesets
+	planWorker         *internal.PlanWorker
+	applyWorker        *internal.ApplyWorker
 }
 
 func NewServer(config *internal.Config) (*Server, error) {
@@ -106,24 +107,25 @@ func NewServer(config *internal.Config) (*Server, error) {
 	ensureChangeset := internal.NewEnsureChangeset(changesetRepo, transactionManager)
 
 	s := &Server{
-		config:          config,
-		router:          chi.NewRouter(),
-		createComponent: internal.NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
-		updateComponent: internal.NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, transactionManager),
-		createPlan:      createPlan,
-		createChangeset: internal.NewCreateChangeset(changesetRepo, transactionManager),
-		mergeChangeset:  internal.NewMergeChangeset(changesetRepo, applyRepo, applyWorker, transactionManager),
-		runPlan:         runPlan,
-		runApply:        runApply,
-		createModule:    internal.NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
-		updateModule:    internal.NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
-		listModules:     internal.NewListModules(moduleRepo),
-		listComponents:  internal.NewListComponents(componentRepo),
-		listPlans:       internal.NewListPlans(planRepo),
-		listApplies:     internal.NewListApplies(applyRepo),
-		listChangesets:  internal.NewListChangesets(changesetRepo),
-		planWorker:      planWorker,
-		applyWorker:     applyWorker,
+		config:             config,
+		router:             chi.NewRouter(),
+		createComponent:    internal.NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
+		updateComponent:    internal.NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, transactionManager),
+		createPlan:         createPlan,
+		createChangeset:    internal.NewCreateChangeset(changesetRepo, transactionManager),
+		mergeChangeset:     internal.NewMergeChangeset(changesetRepo, applyRepo, applyWorker, transactionManager),
+		runPlan:            runPlan,
+		runApply:           runApply,
+		createModule:       internal.NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
+		updateModule:       internal.NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
+		listModules:        internal.NewListModules(moduleRepo),
+		listModuleVersions: internal.NewListModuleVersions(moduleVersionRepo),
+		listComponents:     internal.NewListComponents(componentRepo),
+		listPlans:          internal.NewListPlans(planRepo),
+		listApplies:        internal.NewListApplies(applyRepo),
+		listChangesets:     internal.NewListChangesets(changesetRepo),
+		planWorker:         planWorker,
+		applyWorker:        applyWorker,
 	}
 
 	s.setupMiddleware()
@@ -141,6 +143,7 @@ func (s *Server) setupMiddleware() {
 func (s *Server) setupRoutes() {
 	s.router.Route("/api/v1", func(r chi.Router) {
 		r.Get("/modules", s.handleListModules)
+		r.Get("/module-versions", s.handleListModuleVersions)
 		r.Get("/components", s.handleListComponents)
 		r.Get("/plans", s.handleListPlans)
 		r.Get("/applies", s.handleListApplies)
@@ -367,6 +370,16 @@ func (s *Server) handleListApplies(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleListChangesets(w http.ResponseWriter, r *http.Request) {
 	resp, err := s.listChangesets.Exec(r.Context(), internal.ListChangesetsRequest{})
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
+func (s *Server) handleListModuleVersions(w http.ResponseWriter, r *http.Request) {
+	resp, err := s.listModuleVersions.Exec(r.Context(), internal.ListModuleVersionsRequest{})
 	if err != nil {
 		returnError(w, err)
 		return

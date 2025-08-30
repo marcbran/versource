@@ -119,6 +119,8 @@ func getTable(data any) ([]table.Column, []table.Row) {
 	switch d := data.(type) {
 	case []internal.Module:
 		return getModulesTable(d)
+	case []internal.ModuleVersion:
+		return getModuleVersionsTable(d)
 	case []internal.Component:
 		return getComponentsTable(d)
 	case []internal.Plan:
@@ -143,6 +145,29 @@ func getModulesTable(modules []internal.Module) ([]table.Column, []table.Row) {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(module.ID), 10),
 			module.Source,
+		})
+	}
+
+	return columns, rows
+}
+
+func getModuleVersionsTable(moduleVersions []internal.ModuleVersion) ([]table.Column, []table.Row) {
+	columns := []table.Column{
+		{Title: "ID", Width: 1},
+		{Title: "Module", Width: 7},
+		{Title: "Version", Width: 2},
+	}
+
+	var rows []table.Row
+	for _, moduleVersion := range moduleVersions {
+		source := ""
+		if moduleVersion.Module.Source != "" {
+			source = moduleVersion.Module.Source
+		}
+		rows = append(rows, table.Row{
+			strconv.FormatUint(uint64(moduleVersion.ID), 10),
+			source,
+			moduleVersion.Version,
 		})
 	}
 
@@ -313,6 +338,12 @@ func (a *App) loadData() tea.Cmd {
 				return errorMsg{err: err}
 			}
 			return dataLoadedMsg{dataType: "modules", data: resp.Modules}
+		case "moduleversions":
+			resp, err := a.client.ListModuleVersions(ctx)
+			if err != nil {
+				return errorMsg{err: err}
+			}
+			return dataLoadedMsg{dataType: "moduleversions", data: resp.ModuleVersions}
 		case "components":
 			resp, err := a.client.ListComponents(ctx)
 			if err != nil {
@@ -357,6 +388,9 @@ func (a *App) executeCommand(command string) tea.Cmd {
 			return tea.Quit
 		case "modules":
 			a.currentView = "modules"
+			return a.loadData()()
+		case "moduleversions":
+			a.currentView = "moduleversions"
 			return a.loadData()()
 		case "components":
 			a.currentView = "components"

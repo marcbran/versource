@@ -30,6 +30,7 @@ type ModuleVersionRepo interface {
 	GetModuleVersion(ctx context.Context, moduleVersionID uint) (*ModuleVersion, error)
 	GetModuleVersions(ctx context.Context, moduleID uint) ([]ModuleVersion, error)
 	GetLatestModuleVersion(ctx context.Context, moduleID uint) (*ModuleVersion, error)
+	ListModuleVersions(ctx context.Context) ([]ModuleVersion, error)
 }
 
 type CreateModule struct {
@@ -292,5 +293,32 @@ func (l *ListModules) Exec(ctx context.Context, req ListModulesRequest) (*ListMo
 
 	return &ListModulesResponse{
 		Modules: modules,
+	}, nil
+}
+
+type ListModuleVersionsRequest struct{}
+
+type ListModuleVersionsResponse struct {
+	ModuleVersions []ModuleVersion `json:"module_versions"`
+}
+
+type ListModuleVersions struct {
+	moduleVersionRepo ModuleVersionRepo
+}
+
+func NewListModuleVersions(moduleVersionRepo ModuleVersionRepo) *ListModuleVersions {
+	return &ListModuleVersions{
+		moduleVersionRepo: moduleVersionRepo,
+	}
+}
+
+func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error) {
+	moduleVersions, err := l.moduleVersionRepo.ListModuleVersions(ctx)
+	if err != nil {
+		return nil, InternalErrE("failed to list module versions", err)
+	}
+
+	return &ListModuleVersionsResponse{
+		ModuleVersions: moduleVersions,
 	}, nil
 }

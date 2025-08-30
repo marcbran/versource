@@ -37,6 +37,16 @@ func Migrate(ctx context.Context, config *internal.DatabaseConfig) error {
 		return err
 	}
 
+	var count int64
+	err = db.QueryRow("SELECT COUNT(*) FROM dolt_diff WHERE commit_hash = 'WORKING'").Scan(&count)
+	if err != nil {
+		return fmt.Errorf("failed to check for changes: %w", err)
+	}
+
+	if count == 0 {
+		return nil
+	}
+
 	_, err = db.Exec("CALL DOLT_ADD('.')")
 	if err != nil {
 		return fmt.Errorf("failed to add changes: %w", err)

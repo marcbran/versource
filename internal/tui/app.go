@@ -569,7 +569,6 @@ func (p *ModuleVersionsForModulePage) Open(params map[string]string) tea.Cmd {
 func (p *ModuleVersionsForModulePage) Links(params map[string]string) map[string]string {
 	return map[string]string{
 		"m": "modules",
-		"c": fmt.Sprintf("components?module-version-id=%s", params["moduleVersionID"]),
 	}
 }
 
@@ -599,16 +598,51 @@ type ComponentsPage struct {
 func (p *ComponentsPage) Open(params map[string]string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		resp, err := p.app.client.ListComponents(ctx)
+
+		req := internal.ListComponentsRequest{}
+
+		if moduleIDStr, ok := params["module-id"]; ok {
+			if moduleID, err := strconv.ParseUint(moduleIDStr, 10, 32); err == nil {
+				moduleIDUint := uint(moduleID)
+				req.ModuleID = &moduleIDUint
+			}
+		}
+
+		if moduleVersionIDStr, ok := params["module-version-id"]; ok {
+			if moduleVersionID, err := strconv.ParseUint(moduleVersionIDStr, 10, 32); err == nil {
+				moduleVersionIDUint := uint(moduleVersionID)
+				req.ModuleVersionID = &moduleVersionIDUint
+			}
+		}
+
+		resp, err := p.app.client.ListComponents(ctx, req)
 		if err != nil {
 			return errorMsg{err: err}
 		}
-		return dataLoadedMsg{view: "components", data: resp.Components}
+
+		view := "components"
+		if len(params) > 0 {
+			queryParts := make([]string, 0)
+			if moduleIDStr, ok := params["module-id"]; ok {
+				queryParts = append(queryParts, fmt.Sprintf("module-id=%s", moduleIDStr))
+			}
+			if moduleVersionIDStr, ok := params["module-version-id"]; ok {
+				queryParts = append(queryParts, fmt.Sprintf("module-version-id=%s", moduleVersionIDStr))
+			}
+			if len(queryParts) > 0 {
+				view = fmt.Sprintf("components?%s", strings.Join(queryParts, "&"))
+			}
+		}
+
+		return dataLoadedMsg{view: view, data: resp.Components}
 	}
 }
 
 func (p *ComponentsPage) Links(params map[string]string) map[string]string {
-	return map[string]string{}
+	return map[string]string{
+		"m": "modules",
+		"v": "moduleversions",
+	}
 }
 
 type PlansPage struct {

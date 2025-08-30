@@ -342,7 +342,29 @@ func (s *Server) handleListModules(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListComponents(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.listComponents.Exec(r.Context(), internal.ListComponentsRequest{})
+	req := internal.ListComponentsRequest{}
+
+	if moduleIDStr := r.URL.Query().Get("module-id"); moduleIDStr != "" {
+		moduleID, err := strconv.ParseUint(moduleIDStr, 10, 32)
+		if err != nil {
+			returnBadRequest(w, fmt.Errorf("invalid module-id"))
+			return
+		}
+		moduleIDUint := uint(moduleID)
+		req.ModuleID = &moduleIDUint
+	}
+
+	if moduleVersionIDStr := r.URL.Query().Get("module-version-id"); moduleVersionIDStr != "" {
+		moduleVersionID, err := strconv.ParseUint(moduleVersionIDStr, 10, 32)
+		if err != nil {
+			returnBadRequest(w, fmt.Errorf("invalid module-version-id"))
+			return
+		}
+		moduleVersionIDUint := uint(moduleVersionID)
+		req.ModuleVersionID = &moduleVersionIDUint
+	}
+
+	resp, err := s.listComponents.Exec(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return

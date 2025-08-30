@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/marcbran/versource/internal"
 )
@@ -298,8 +299,21 @@ func (c *Client) ListModules(ctx context.Context) (*internal.ListModulesResponse
 	return &modulesResp, nil
 }
 
-func (c *Client) ListComponents(ctx context.Context) (*internal.ListComponentsResponse, error) {
+func (c *Client) ListComponents(ctx context.Context, req internal.ListComponentsRequest) (*internal.ListComponentsResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/components", c.baseURL)
+
+	params := make([]string, 0)
+	if req.ModuleID != nil {
+		params = append(params, fmt.Sprintf("module-id=%d", *req.ModuleID))
+	}
+	if req.ModuleVersionID != nil {
+		params = append(params, fmt.Sprintf("module-version-id=%d", *req.ModuleVersionID))
+	}
+
+	if len(params) > 0 {
+		url += "?" + strings.Join(params, "&")
+	}
+
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)

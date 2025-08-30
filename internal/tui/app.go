@@ -20,6 +20,7 @@ type App struct {
 	table       table.Model
 	columns     []table.Column
 	rows        []table.Row
+	rowIds      []string
 	size        Rect
 	loading     bool
 	err         error
@@ -100,12 +101,17 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if a.table.Cursor() > 0 {
 				a.table.SetCursor(a.table.Cursor() - 1)
 			}
+		case "enter":
+			if len(a.rowIds) > 0 && a.table.Cursor() >= 0 && a.table.Cursor() < len(a.rowIds) {
+				selectedId := a.rowIds[a.table.Cursor()]
+				return a, a.executePathCommand(fmt.Sprintf("/%s/%s", a.currentView, selectedId))
+			}
 		}
 	case dataLoadedMsg:
 		a.loading = false
 		a.err = nil
 		a.currentView = msg.view
-		a.columns, a.rows = getTable(msg.data)
+		a.columns, a.rows, a.rowIds = getTable(msg.data)
 		a.table = createTable(a.columns, a.rows, a.size, a.showInput)
 	case errorMsg:
 		a.loading = false
@@ -116,7 +122,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return a, cmd
 }
 
-func getTable(data any) ([]table.Column, []table.Row) {
+func getTable(data any) ([]table.Column, []table.Row, []string) {
 	switch d := data.(type) {
 	case []internal.Module:
 		return getModulesTable(d)
@@ -131,28 +137,30 @@ func getTable(data any) ([]table.Column, []table.Row) {
 	case []internal.Apply:
 		return getAppliesTable(d)
 	default:
-		return []table.Column{}, []table.Row{}
+		return []table.Column{}, []table.Row{}, []string{}
 	}
 }
 
-func getModulesTable(modules []internal.Module) ([]table.Column, []table.Row) {
+func getModulesTable(modules []internal.Module) ([]table.Column, []table.Row, []string) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Source", Width: 9},
 	}
 
 	var rows []table.Row
+	var ids []string
 	for _, module := range modules {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(module.ID), 10),
 			module.Source,
 		})
+		ids = append(ids, strconv.FormatUint(uint64(module.ID), 10))
 	}
 
-	return columns, rows
+	return columns, rows, ids
 }
 
-func getModuleVersionsTable(moduleVersions []internal.ModuleVersion) ([]table.Column, []table.Row) {
+func getModuleVersionsTable(moduleVersions []internal.ModuleVersion) ([]table.Column, []table.Row, []string) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Module", Width: 7},
@@ -160,6 +168,7 @@ func getModuleVersionsTable(moduleVersions []internal.ModuleVersion) ([]table.Co
 	}
 
 	var rows []table.Row
+	var ids []string
 	for _, moduleVersion := range moduleVersions {
 		source := ""
 		if moduleVersion.Module.Source != "" {
@@ -170,12 +179,13 @@ func getModuleVersionsTable(moduleVersions []internal.ModuleVersion) ([]table.Co
 			source,
 			moduleVersion.Version,
 		})
+		ids = append(ids, strconv.FormatUint(uint64(moduleVersion.ID), 10))
 	}
 
-	return columns, rows
+	return columns, rows, ids
 }
 
-func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []table.Row) {
+func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []table.Row, []string) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Name", Width: 7},
@@ -183,18 +193,20 @@ func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []tabl
 	}
 
 	var rows []table.Row
+	var ids []string
 	for _, changeset := range changesets {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(changeset.ID), 10),
 			changeset.Name,
 			string(changeset.State),
 		})
+		ids = append(ids, strconv.FormatUint(uint64(changeset.ID), 10))
 	}
 
-	return columns, rows
+	return columns, rows, ids
 }
 
-func getComponentsTable(components []internal.Component) ([]table.Column, []table.Row) {
+func getComponentsTable(components []internal.Component) ([]table.Column, []table.Row, []string) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Module", Width: 7},
@@ -202,6 +214,7 @@ func getComponentsTable(components []internal.Component) ([]table.Column, []tabl
 	}
 
 	var rows []table.Row
+	var ids []string
 	for _, component := range components {
 		source := ""
 		version := ""
@@ -216,12 +229,13 @@ func getComponentsTable(components []internal.Component) ([]table.Column, []tabl
 			source,
 			version,
 		})
+		ids = append(ids, strconv.FormatUint(uint64(component.ID), 10))
 	}
 
-	return columns, rows
+	return columns, rows, ids
 }
 
-func getPlansTable(plans []internal.Plan) ([]table.Column, []table.Row) {
+func getPlansTable(plans []internal.Plan) ([]table.Column, []table.Row, []string) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Component", Width: 1},
@@ -230,6 +244,7 @@ func getPlansTable(plans []internal.Plan) ([]table.Column, []table.Row) {
 	}
 
 	var rows []table.Row
+	var ids []string
 	for _, plan := range plans {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(plan.ID), 10),
@@ -237,12 +252,13 @@ func getPlansTable(plans []internal.Plan) ([]table.Column, []table.Row) {
 			plan.Changeset.Name,
 			plan.State,
 		})
+		ids = append(ids, strconv.FormatUint(uint64(plan.ID), 10))
 	}
 
-	return columns, rows
+	return columns, rows, ids
 }
 
-func getAppliesTable(applies []internal.Apply) ([]table.Column, []table.Row) {
+func getAppliesTable(applies []internal.Apply) ([]table.Column, []table.Row, []string) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Plan", Width: 1},
@@ -251,6 +267,7 @@ func getAppliesTable(applies []internal.Apply) ([]table.Column, []table.Row) {
 	}
 
 	var rows []table.Row
+	var ids []string
 	for _, apply := range applies {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(apply.ID), 10),
@@ -258,9 +275,10 @@ func getAppliesTable(applies []internal.Apply) ([]table.Column, []table.Row) {
 			apply.Changeset.Name,
 			apply.State,
 		})
+		ids = append(ids, strconv.FormatUint(uint64(apply.ID), 10))
 	}
 
-	return columns, rows
+	return columns, rows, ids
 }
 
 func createTable(columns []table.Column, rows []table.Row, size Rect, showInput bool) table.Model {
@@ -386,6 +404,30 @@ func (a *App) loadData(view string) tea.Cmd {
 				return errorMsg{err: err}
 			}
 			return dataLoadedMsg{view: view, dataType: "moduleversions", data: resp.ModuleVersions}
+		}
+
+		return nil
+	}
+}
+
+func (a *App) executePathCommand(path string) tea.Cmd {
+	return func() tea.Msg {
+		if path == "" {
+			return nil
+		}
+
+		switch {
+		case strings.HasPrefix(path, "/modules/"):
+			parts := strings.Split(path, "/")
+			if len(parts) == 3 {
+				moduleID := parts[2]
+				return a.loadData(fmt.Sprintf("modules/%s/moduleversions", moduleID))()
+			}
+		case strings.HasPrefix(path, "/moduleversions/"):
+		case strings.HasPrefix(path, "/changesets/"):
+		case strings.HasPrefix(path, "/components/"):
+		case strings.HasPrefix(path, "/plans/"):
+		case strings.HasPrefix(path, "/applies/"):
 		}
 
 		return nil

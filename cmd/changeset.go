@@ -28,7 +28,7 @@ var changesetCreateCmd = &cobra.Command{
 			return fmt.Errorf("name is required")
 		}
 
-		config, err := LoadConfig()
+		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}
@@ -59,7 +59,7 @@ var changesetMergeCmd = &cobra.Command{
 			return fmt.Errorf("changeset name is required")
 		}
 
-		config, err := LoadConfig()
+		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}

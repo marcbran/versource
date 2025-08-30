@@ -30,7 +30,7 @@ var planCmd = &cobra.Command{
 			return fmt.Errorf("changeset is required")
 		}
 
-		config, err := LoadConfig()
+		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}

@@ -1,30 +1,51 @@
 package cmd
 
 import (
+	"os"
 	"strings"
 
 	"github.com/marcbran/versource/internal"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func LoadConfig() (*internal.Config, error) {
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
+func LoadConfig(cmd *cobra.Command) (*internal.Config, error) {
+	v := viper.New()
+	v.SetConfigName("config")
+	v.SetConfigType("yaml")
+	v.AddConfigPath(".")
+	if xdgConfig := os.Getenv("XDG_CONFIG_HOME"); xdgConfig != "" {
+		v.AddConfigPath(xdgConfig + "/versource")
+	} else if home := os.Getenv("HOME"); home != "" {
+		v.AddConfigPath(home + "/.config/versource")
+	}
+	v.SetEnvPrefix("VS")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
-	dbConfig, err := LoadDatabaseConfig()
+	if err := v.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return nil, err
+		}
+	}
+
+	configKey, err := cmd.Flags().GetString("config")
 	if err != nil {
 		return nil, err
 	}
-
-	tfConfig, err := LoadTerraformConfig()
-	if err != nil {
-		return nil, err
+	if configKey == "" {
+		configKey = os.Getenv("VS_CONFIG")
+	}
+	if configKey == "" {
+		configKey = "default"
+	}
+	if sub := v.Sub(configKey); sub != nil {
+		v = sub
 	}
 
-	httpConfig, err := LoadHttpConfig()
-	if err != nil {
-		return nil, err
-	}
+	dbConfig := LoadDatabaseConfig(v)
+	tfConfig := LoadTerraformConfig(v)
+	httpConfig := LoadHttpConfig(v)
 
 	return &internal.Config{
 		Database:  dbConfig,
@@ -33,52 +54,38 @@ func LoadConfig() (*internal.Config, error) {
 	}, nil
 }
 
-func LoadDatabaseConfig() (*internal.DatabaseConfig, error) {
-	viper.SetDefault("db.host", "localhost")
-	viper.SetDefault("db.port", "3306")
-	viper.SetDefault("db.user", "versource")
-	viper.SetDefault("db.password", "versource")
-	viper.SetDefault("db.dbname", "versource")
-	viper.SetDefault("db.sslmode", "false")
+func LoadDatabaseConfig(v *viper.Viper) *internal.DatabaseConfig {
+	v.SetDefault("database.host", "localhost")
+	v.SetDefault("database.port", "3306")
+	v.SetDefault("database.user", "versource")
+	v.SetDefault("database.password", "versource")
+	v.SetDefault("database.dbname", "versource")
+	v.SetDefault("database.sslmode", "false")
 
-	viper.BindEnv("db.host", "DB_HOST")
-	viper.BindEnv("db.port", "DB_PORT")
-	viper.BindEnv("db.user", "DB_USER")
-	viper.BindEnv("db.password", "DB_PASSWORD")
-	viper.BindEnv("db.dbname", "DB_NAME")
-	viper.BindEnv("db.sslmode", "DB_SSLMODE")
-
-	config := &internal.DatabaseConfig{
-		Host:     viper.GetString("db.host"),
-		Port:     viper.GetString("db.port"),
-		User:     viper.GetString("db.user"),
-		Password: viper.GetString("db.password"),
-		DBName:   viper.GetString("db.dbname"),
-		SSLMode:  viper.GetString("db.sslmode"),
+	return &internal.DatabaseConfig{
+		Host:     v.GetString("database.host"),
+		Port:     v.GetString("database.port"),
+		User:     v.GetString("database.user"),
+		Password: v.GetString("database.password"),
+		DBName:   v.GetString("database.dbname"),
+		SSLMode:  v.GetString("database.sslmode"),
 	}
-
-	return config, nil
 }
 
-func LoadTerraformConfig() (*internal.TerraformConfig, error) {
-	viper.SetDefault("tf.workdir", "terraform")
-
-	viper.BindEnv("tf.workdir", "TF_WORKDIR")
+func LoadTerraformConfig(v *viper.Viper) *internal.TerraformConfig {
+	v.SetDefault("terraform.workdir", "terraform")
 
 	return &internal.TerraformConfig{
-		WorkDir: viper.GetString("tf.workdir"),
-	}, nil
+		WorkDir: v.GetString("terraform.workdir"),
+	}
 }
 
-func LoadHttpConfig() (*internal.HttpConfig, error) {
-	viper.SetDefault("http.hostname", "localhost")
-	viper.SetDefault("http.port", "8080")
-
-	viper.BindEnv("http.hostname", "HTTP_HOSTNAME")
-	viper.BindEnv("http.port", "HTTP_PORT")
+func LoadHttpConfig(v *viper.Viper) *internal.HttpConfig {
+	v.SetDefault("http.hostname", "localhost")
+	v.SetDefault("http.port", "8080")
 
 	return &internal.HttpConfig{
-		Hostname: viper.GetString("http.hostname"),
-		Port:     viper.GetString("http.port"),
-	}, nil
+		Hostname: v.GetString("http.hostname"),
+		Port:     v.GetString("http.port"),
+	}
 }

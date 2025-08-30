@@ -34,7 +34,7 @@ var moduleCreateCmd = &cobra.Command{
 			return fmt.Errorf("source is required")
 		}
 
-		config, err := LoadConfig()
+		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}
@@ -79,7 +79,7 @@ var moduleUpdateCmd = &cobra.Command{
 			return fmt.Errorf("version is required")
 		}
 
-		config, err := LoadConfig()
+		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}

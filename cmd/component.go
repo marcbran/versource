@@ -56,7 +56,7 @@ var componentCreateCmd = &cobra.Command{
 			}
 		}
 
-		config, err := LoadConfig()
+		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}
@@ -123,7 +123,7 @@ var componentUpdateCmd = &cobra.Command{
 			return fmt.Errorf("at least one field must be provided to update")
 		}
 
-		config, err := LoadConfig()
+		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}

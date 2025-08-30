@@ -14,7 +14,7 @@ var uiCmd = &cobra.Command{
 	Short: "Start the terminal user interface",
 	Long:  `Start an interactive terminal user interface for managing versource`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		config, err := LoadConfig()
+		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}

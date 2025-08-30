@@ -10,7 +10,7 @@ var migrateCmd = &cobra.Command{
 	Short: "Start the HTTP server",
 	Long:  `Start the HTTP server to handle API requests`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		config, err := LoadConfig()
+		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}

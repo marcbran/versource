@@ -17,6 +17,7 @@ import (
 type App struct {
 	client      *http.Client
 	currentView string
+	viewHistory []string
 	table       table.Model
 	columns     []table.Column
 	rows        []table.Row
@@ -41,6 +42,7 @@ func NewApp(client *http.Client) *App {
 	return &App{
 		client:      client,
 		currentView: "modules",
+		viewHistory: []string{},
 		table:       table.New(),
 		input:       ti,
 	}
@@ -105,6 +107,8 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if a.table.Cursor() > 0 {
 				a.table.SetCursor(a.table.Cursor() - 1)
 			}
+		case "esc":
+			return a, a.goBack()
 		case "enter":
 			if len(a.rowIds) > 0 && a.table.Cursor() >= 0 && a.table.Cursor() < len(a.rowIds) {
 				selectedId := a.rowIds[a.table.Cursor()]
@@ -114,6 +118,9 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case dataLoadedMsg:
 		a.loading = false
 		a.err = nil
+		if a.currentView != msg.view {
+			a.viewHistory = append(a.viewHistory, a.currentView)
+		}
 		a.currentView = msg.view
 		a.columns, a.rows, a.rowIds = getTable(msg.data)
 		a.table = createTable(a.columns, a.rows, a.size, a.showInput)
@@ -350,6 +357,81 @@ func adjustColumnWidths(columns []table.Column, totalWidth int) []table.Column {
 	return adjusted
 }
 
+func (a *App) executePathCommand(path string) tea.Cmd {
+	return func() tea.Msg {
+		if path == "" {
+			return nil
+		}
+
+		switch {
+		case strings.HasPrefix(path, "/modules/"):
+			parts := strings.Split(path, "/")
+			if len(parts) == 3 {
+				moduleID := parts[2]
+				return a.loadData(fmt.Sprintf("modules/%s/moduleversions", moduleID))()
+			}
+		case strings.HasPrefix(path, "/moduleversions/"):
+		case strings.HasPrefix(path, "/changesets/"):
+		case strings.HasPrefix(path, "/components/"):
+		case strings.HasPrefix(path, "/plans/"):
+		case strings.HasPrefix(path, "/applies/"):
+		}
+
+		return nil
+	}
+}
+
+func (a *App) executeCommand(command string) tea.Cmd {
+	return func() tea.Msg {
+		if command == "" {
+			return nil
+		}
+
+		switch command {
+		case "refresh", "r":
+			return a.loadData(a.currentView)()
+		case "back", "b":
+			return a.goBack()
+		case "modules":
+			return a.loadData("modules")()
+		case "moduleversions":
+			return a.loadData("moduleversions")()
+		case "components":
+			return a.loadData("components")()
+		case "plans":
+			return a.loadData("plans")()
+		case "applies":
+			return a.loadData("applies")()
+		case "changesets":
+			return a.loadData("changesets")()
+		default:
+			if !strings.HasPrefix(command, "modules/") || !strings.HasSuffix(command, "/moduleversions") {
+				return nil
+			}
+			parts := strings.Split(command, "/")
+			if len(parts) != 3 {
+				return nil
+			}
+			_, err := strconv.ParseUint(parts[1], 10, 32)
+			if err != nil {
+				return nil
+			}
+			return a.loadData(command)()
+		}
+	}
+}
+
+func (a *App) goBack() tea.Cmd {
+	return func() tea.Msg {
+		if len(a.viewHistory) > 0 {
+			previousView := a.viewHistory[len(a.viewHistory)-1]
+			a.viewHistory = a.viewHistory[:len(a.viewHistory)-1]
+			return a.loadData(previousView)()
+		}
+		return nil
+	}
+}
+
 func (a *App) loadData(view string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
@@ -409,72 +491,6 @@ func (a *App) loadData(view string) tea.Cmd {
 			}
 			return dataLoadedMsg{view: view, dataType: "moduleversions", data: resp.ModuleVersions}
 		}
-
-		return nil
-	}
-}
-
-func (a *App) executePathCommand(path string) tea.Cmd {
-	return func() tea.Msg {
-		if path == "" {
-			return nil
-		}
-
-		switch {
-		case strings.HasPrefix(path, "/modules/"):
-			parts := strings.Split(path, "/")
-			if len(parts) == 3 {
-				moduleID := parts[2]
-				return a.loadData(fmt.Sprintf("modules/%s/moduleversions", moduleID))()
-			}
-		case strings.HasPrefix(path, "/moduleversions/"):
-		case strings.HasPrefix(path, "/changesets/"):
-		case strings.HasPrefix(path, "/components/"):
-		case strings.HasPrefix(path, "/plans/"):
-		case strings.HasPrefix(path, "/applies/"):
-		}
-
-		return nil
-	}
-}
-
-func (a *App) executeCommand(command string) tea.Cmd {
-	return func() tea.Msg {
-		if command == "" {
-			return nil
-		}
-
-		switch command {
-		case "refresh", "r":
-			return a.loadData(a.currentView)()
-		case "modules":
-			return a.loadData("modules")()
-		case "moduleversions":
-			return a.loadData("moduleversions")()
-		case "components":
-			return a.loadData("components")()
-		case "plans":
-			return a.loadData("plans")()
-		case "applies":
-			return a.loadData("applies")()
-		case "changesets":
-			return a.loadData("changesets")()
-		default:
-			if !strings.HasPrefix(command, "modules/") || !strings.HasSuffix(command, "/moduleversions") {
-				return nil
-			}
-			parts := strings.Split(command, "/")
-			if len(parts) != 3 {
-				return nil
-			}
-			_, err := strconv.ParseUint(parts[1], 10, 32)
-			if err != nil {
-				return nil
-			}
-			return a.loadData(command)()
-		}
-
-		return nil
 	}
 }
 

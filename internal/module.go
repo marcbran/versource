@@ -33,6 +33,60 @@ type ModuleVersionRepo interface {
 	ListModuleVersions(ctx context.Context) ([]ModuleVersion, error)
 }
 
+type ListModules struct {
+	moduleRepo ModuleRepo
+}
+
+func NewListModules(moduleRepo ModuleRepo) *ListModules {
+	return &ListModules{
+		moduleRepo: moduleRepo,
+	}
+}
+
+type ListModulesRequest struct{}
+
+type ListModulesResponse struct {
+	Modules []Module `json:"modules"`
+}
+
+func (l *ListModules) Exec(ctx context.Context, req ListModulesRequest) (*ListModulesResponse, error) {
+	modules, err := l.moduleRepo.ListModules(ctx)
+	if err != nil {
+		return nil, InternalErrE("failed to list modules", err)
+	}
+
+	return &ListModulesResponse{
+		Modules: modules,
+	}, nil
+}
+
+type ListModuleVersions struct {
+	moduleVersionRepo ModuleVersionRepo
+}
+
+func NewListModuleVersions(moduleVersionRepo ModuleVersionRepo) *ListModuleVersions {
+	return &ListModuleVersions{
+		moduleVersionRepo: moduleVersionRepo,
+	}
+}
+
+type ListModuleVersionsRequest struct{}
+
+type ListModuleVersionsResponse struct {
+	ModuleVersions []ModuleVersion `json:"module_versions"`
+}
+
+func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error) {
+	moduleVersions, err := l.moduleVersionRepo.ListModuleVersions(ctx)
+	if err != nil {
+		return nil, InternalErrE("failed to list module versions", err)
+	}
+
+	return &ListModuleVersionsResponse{
+		ModuleVersions: moduleVersions,
+	}, nil
+}
+
 type CreateModule struct {
 	moduleRepo        ModuleRepo
 	moduleVersionRepo ModuleVersionRepo
@@ -57,103 +111,6 @@ type CreateModuleResponse struct {
 	Source    string `json:"source"`
 	VersionID uint   `json:"version_id"`
 	Version   string `json:"version"`
-}
-
-func extractVersionFromSource(source string) (string, error) {
-	if strings.HasPrefix(source, "./") || strings.HasPrefix(source, "../") {
-		return "", nil
-	}
-
-	if strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://") {
-		return "", UserErr("HTTP/HTTPS sources are not supported")
-	}
-
-	if strings.HasPrefix(source, "s3::") {
-		if !strings.Contains(source, "?versionId=") {
-			return "", UserErr("S3 sources require versionId parameter in source string")
-		}
-		u, err := url.Parse(strings.TrimPrefix(source, "s3::"))
-		if err != nil {
-			return "", UserErr("invalid S3 source URL")
-		}
-		return u.Query().Get("versionId"), nil
-	}
-
-	if strings.HasPrefix(source, "gcs::") {
-		if !strings.Contains(source, "?generation=") {
-			return "", UserErr("GCS sources require generation parameter in source string")
-		}
-		u, err := url.Parse(strings.TrimPrefix(source, "gcs::"))
-		if err != nil {
-			return "", UserErr("invalid GCS source URL")
-		}
-		return u.Query().Get("generation"), nil
-	}
-
-	if strings.HasPrefix(source, "github.com/") || strings.HasPrefix(source, "bitbucket.org/") || strings.HasPrefix(source, "git::") || strings.HasPrefix(source, "hg::") {
-		if !strings.Contains(source, "?ref=") {
-			return "", UserErr("git/mercurial sources require ref parameter in source string")
-		}
-		u, err := url.Parse(source)
-		if err != nil {
-			return "", UserErr("invalid git/mercurial source URL")
-		}
-		return u.Query().Get("ref"), nil
-	}
-
-	if !strings.Contains(source, "::") && !strings.Contains(source, "://") {
-		return "", nil
-	}
-
-	return "", UserErr("unknown module source type")
-}
-
-func createModuleWithVersion(request CreateModuleRequest) (*Module, *ModuleVersion, error) {
-	if request.Source == "" {
-		return nil, nil, UserErr("source is required")
-	}
-
-	if strings.HasPrefix(request.Source, "./") || strings.HasPrefix(request.Source, "../") {
-		if request.Version != "" {
-			return nil, nil, UserErr("local paths do not support version parameter")
-		}
-	} else if strings.HasPrefix(request.Source, "github.com/") || strings.HasPrefix(request.Source, "bitbucket.org/") || strings.HasPrefix(request.Source, "git::") || strings.HasPrefix(request.Source, "hg::") {
-		if request.Version != "" {
-			return nil, nil, UserErr("git/mercurial sources do not support version parameter, use ref parameter in source string")
-		}
-	} else if strings.HasPrefix(request.Source, "s3::") {
-		if request.Version != "" {
-			return nil, nil, UserErr("S3 sources do not support version parameter, use versionId parameter in source string")
-		}
-	} else if strings.HasPrefix(request.Source, "gcs::") {
-		if request.Version != "" {
-			return nil, nil, UserErr("GCS sources do not support version parameter, use generation parameter in source string")
-		}
-	} else if !strings.Contains(request.Source, "::") && !strings.Contains(request.Source, "://") {
-		if request.Version == "" {
-			return nil, nil, UserErr("terraform registry sources require version parameter")
-		}
-	}
-
-	extractedVersion, err := extractVersionFromSource(request.Source)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	module := &Module{
-		Source: request.Source,
-	}
-
-	version := request.Version
-	if extractedVersion != "" {
-		version = extractedVersion
-	}
-
-	moduleVersion := &ModuleVersion{
-		Version: version,
-	}
-
-	return module, moduleVersion, nil
 }
 
 func (c *CreateModule) Exec(ctx context.Context, req CreateModuleRequest) (*CreateModuleResponse, error) {
@@ -192,17 +149,6 @@ func (c *CreateModule) Exec(ctx context.Context, req CreateModuleRequest) (*Crea
 	return response, nil
 }
 
-type UpdateModuleRequest struct {
-	ModuleID uint   `json:"module_id"`
-	Version  string `json:"version"`
-}
-
-type UpdateModuleResponse struct {
-	ModuleID  uint   `json:"module_id"`
-	VersionID uint   `json:"version_id"`
-	Version   string `json:"version"`
-}
-
 type UpdateModule struct {
 	tx                TransactionManager
 	moduleRepo        ModuleRepo
@@ -215,6 +161,17 @@ func NewUpdateModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo,
 		moduleVersionRepo: moduleVersionRepo,
 		tx:                tx,
 	}
+}
+
+type UpdateModuleRequest struct {
+	ModuleID uint   `json:"module_id"`
+	Version  string `json:"version"`
+}
+
+type UpdateModuleResponse struct {
+	ModuleID  uint   `json:"module_id"`
+	VersionID uint   `json:"version_id"`
+	Version   string `json:"version"`
 }
 
 func (u *UpdateModule) Exec(ctx context.Context, req UpdateModuleRequest) (*UpdateModuleResponse, error) {
@@ -269,56 +226,99 @@ func (u *UpdateModule) Exec(ctx context.Context, req UpdateModuleRequest) (*Upda
 	return response, nil
 }
 
-type ListModulesRequest struct{}
-
-type ListModulesResponse struct {
-	Modules []Module `json:"modules"`
-}
-
-type ListModules struct {
-	moduleRepo ModuleRepo
-}
-
-func NewListModules(moduleRepo ModuleRepo) *ListModules {
-	return &ListModules{
-		moduleRepo: moduleRepo,
+func createModuleWithVersion(request CreateModuleRequest) (*Module, *ModuleVersion, error) {
+	if request.Source == "" {
+		return nil, nil, UserErr("source is required")
 	}
-}
 
-func (l *ListModules) Exec(ctx context.Context, req ListModulesRequest) (*ListModulesResponse, error) {
-	modules, err := l.moduleRepo.ListModules(ctx)
+	if strings.HasPrefix(request.Source, "./") || strings.HasPrefix(request.Source, "../") {
+		if request.Version != "" {
+			return nil, nil, UserErr("local paths do not support version parameter")
+		}
+	} else if strings.HasPrefix(request.Source, "github.com/") || strings.HasPrefix(request.Source, "bitbucket.org/") || strings.HasPrefix(request.Source, "git::") || strings.HasPrefix(request.Source, "hg::") {
+		if request.Version != "" {
+			return nil, nil, UserErr("git/mercurial sources do not support version parameter, use ref parameter in source string")
+		}
+	} else if strings.HasPrefix(request.Source, "s3::") {
+		if request.Version != "" {
+			return nil, nil, UserErr("S3 sources do not support version parameter, use versionId parameter in source string")
+		}
+	} else if strings.HasPrefix(request.Source, "gcs::") {
+		if request.Version != "" {
+			return nil, nil, UserErr("GCS sources do not support version parameter, use generation parameter in source string")
+		}
+	} else if !strings.Contains(request.Source, "::") && !strings.Contains(request.Source, "://") {
+		if request.Version == "" {
+			return nil, nil, UserErr("terraform registry sources require version parameter")
+		}
+	}
+
+	extractedVersion, err := extractVersionFromSource(request.Source)
 	if err != nil {
-		return nil, InternalErrE("failed to list modules", err)
+		return nil, nil, err
 	}
 
-	return &ListModulesResponse{
-		Modules: modules,
-	}, nil
-}
-
-type ListModuleVersionsRequest struct{}
-
-type ListModuleVersionsResponse struct {
-	ModuleVersions []ModuleVersion `json:"module_versions"`
-}
-
-type ListModuleVersions struct {
-	moduleVersionRepo ModuleVersionRepo
-}
-
-func NewListModuleVersions(moduleVersionRepo ModuleVersionRepo) *ListModuleVersions {
-	return &ListModuleVersions{
-		moduleVersionRepo: moduleVersionRepo,
-	}
-}
-
-func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error) {
-	moduleVersions, err := l.moduleVersionRepo.ListModuleVersions(ctx)
-	if err != nil {
-		return nil, InternalErrE("failed to list module versions", err)
+	module := &Module{
+		Source: request.Source,
 	}
 
-	return &ListModuleVersionsResponse{
-		ModuleVersions: moduleVersions,
-	}, nil
+	version := request.Version
+	if extractedVersion != "" {
+		version = extractedVersion
+	}
+
+	moduleVersion := &ModuleVersion{
+		Version: version,
+	}
+
+	return module, moduleVersion, nil
+}
+
+func extractVersionFromSource(source string) (string, error) {
+	if strings.HasPrefix(source, "./") || strings.HasPrefix(source, "../") {
+		return "", nil
+	}
+
+	if strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://") {
+		return "", UserErr("HTTP/HTTPS sources are not supported")
+	}
+
+	if strings.HasPrefix(source, "s3::") {
+		if !strings.Contains(source, "?versionId=") {
+			return "", UserErr("S3 sources require versionId parameter in source string")
+		}
+		u, err := url.Parse(strings.TrimPrefix(source, "s3::"))
+		if err != nil {
+			return "", UserErr("invalid S3 source URL")
+		}
+		return u.Query().Get("versionId"), nil
+	}
+
+	if strings.HasPrefix(source, "gcs::") {
+		if !strings.Contains(source, "?generation=") {
+			return "", UserErr("GCS sources require generation parameter in source string")
+		}
+		u, err := url.Parse(strings.TrimPrefix(source, "gcs::"))
+		if err != nil {
+			return "", UserErr("invalid GCS source URL")
+		}
+		return u.Query().Get("generation"), nil
+	}
+
+	if strings.HasPrefix(source, "github.com/") || strings.HasPrefix(source, "bitbucket.org/") || strings.HasPrefix(source, "git::") || strings.HasPrefix(source, "hg::") {
+		if !strings.Contains(source, "?ref=") {
+			return "", UserErr("git/mercurial sources require ref parameter in source string")
+		}
+		u, err := url.Parse(source)
+		if err != nil {
+			return "", UserErr("invalid git/mercurial source URL")
+		}
+		return u.Query().Get("ref"), nil
+	}
+
+	if !strings.Contains(source, "::") && !strings.Contains(source, "://") {
+		return "", nil
+	}
+
+	return "", UserErr("unknown module source type")
 }

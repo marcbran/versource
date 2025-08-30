@@ -121,14 +121,14 @@ func getTable(data any) ([]table.Column, []table.Row) {
 		return getModulesTable(d)
 	case []internal.ModuleVersion:
 		return getModuleVersionsTable(d)
+	case []internal.Changeset:
+		return getChangesetsTable(d)
 	case []internal.Component:
 		return getComponentsTable(d)
 	case []internal.Plan:
 		return getPlansTable(d)
 	case []internal.Apply:
 		return getAppliesTable(d)
-	case []internal.Changeset:
-		return getChangesetsTable(d)
 	default:
 		return []table.Column{}, []table.Row{}
 	}
@@ -168,6 +168,25 @@ func getModuleVersionsTable(moduleVersions []internal.ModuleVersion) ([]table.Co
 			strconv.FormatUint(uint64(moduleVersion.ID), 10),
 			source,
 			moduleVersion.Version,
+		})
+	}
+
+	return columns, rows
+}
+
+func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []table.Row) {
+	columns := []table.Column{
+		{Title: "ID", Width: 1},
+		{Title: "Name", Width: 7},
+		{Title: "State", Width: 2},
+	}
+
+	var rows []table.Row
+	for _, changeset := range changesets {
+		rows = append(rows, table.Row{
+			strconv.FormatUint(uint64(changeset.ID), 10),
+			changeset.Name,
+			string(changeset.State),
 		})
 	}
 
@@ -237,25 +256,6 @@ func getAppliesTable(applies []internal.Apply) ([]table.Column, []table.Row) {
 			strconv.FormatUint(uint64(apply.PlanID), 10),
 			apply.Changeset.Name,
 			apply.State,
-		})
-	}
-
-	return columns, rows
-}
-
-func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []table.Row) {
-	columns := []table.Column{
-		{Title: "ID", Width: 1},
-		{Title: "Name", Width: 7},
-		{Title: "State", Width: 2},
-	}
-
-	var rows []table.Row
-	for _, changeset := range changesets {
-		rows = append(rows, table.Row{
-			strconv.FormatUint(uint64(changeset.ID), 10),
-			changeset.Name,
-			string(changeset.State),
 		})
 	}
 

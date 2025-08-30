@@ -21,6 +21,33 @@ type ComponentRepo interface {
 	ListComponents(ctx context.Context) ([]Component, error)
 }
 
+type ListComponents struct {
+	componentRepo ComponentRepo
+}
+
+func NewListComponents(componentRepo ComponentRepo) *ListComponents {
+	return &ListComponents{
+		componentRepo: componentRepo,
+	}
+}
+
+type ListComponentsRequest struct{}
+
+type ListComponentsResponse struct {
+	Components []Component `json:"components"`
+}
+
+func (l *ListComponents) Exec(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error) {
+	components, err := l.componentRepo.ListComponents(ctx)
+	if err != nil {
+		return nil, InternalErrE("failed to list components", err)
+	}
+
+	return &ListComponentsResponse{
+		Components: components,
+	}, nil
+}
+
 type CreateComponent struct {
 	componentRepo     ComponentRepo
 	moduleRepo        ModuleRepo
@@ -214,31 +241,4 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 	}
 
 	return response, nil
-}
-
-type ListComponentsRequest struct{}
-
-type ListComponentsResponse struct {
-	Components []Component `json:"components"`
-}
-
-type ListComponents struct {
-	componentRepo ComponentRepo
-}
-
-func NewListComponents(componentRepo ComponentRepo) *ListComponents {
-	return &ListComponents{
-		componentRepo: componentRepo,
-	}
-}
-
-func (l *ListComponents) Exec(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error) {
-	components, err := l.componentRepo.ListComponents(ctx)
-	if err != nil {
-		return nil, InternalErrE("failed to list components", err)
-	}
-
-	return &ListComponentsResponse{
-		Components: components,
-	}, nil
 }

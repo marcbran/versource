@@ -28,7 +28,7 @@ type ModuleRepo interface {
 type ModuleVersionRepo interface {
 	CreateModuleVersion(ctx context.Context, moduleVersion *ModuleVersion) error
 	GetModuleVersion(ctx context.Context, moduleVersionID uint) (*ModuleVersion, error)
-	GetModuleVersions(ctx context.Context, moduleID uint) ([]ModuleVersion, error)
+	ListModuleVersionsForModule(ctx context.Context, moduleID uint) ([]ModuleVersion, error)
 	GetLatestModuleVersion(ctx context.Context, moduleID uint) (*ModuleVersion, error)
 	ListModuleVersions(ctx context.Context) ([]ModuleVersion, error)
 }
@@ -83,6 +83,35 @@ func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsReq
 	}
 
 	return &ListModuleVersionsResponse{
+		ModuleVersions: moduleVersions,
+	}, nil
+}
+
+type ListModuleVersionsForModule struct {
+	moduleVersionRepo ModuleVersionRepo
+}
+
+func NewListModuleVersionsForModule(moduleVersionRepo ModuleVersionRepo) *ListModuleVersionsForModule {
+	return &ListModuleVersionsForModule{
+		moduleVersionRepo: moduleVersionRepo,
+	}
+}
+
+type ListModuleVersionsForModuleRequest struct {
+	ModuleID uint `json:"module_id"`
+}
+
+type ListModuleVersionsForModuleResponse struct {
+	ModuleVersions []ModuleVersion `json:"module_versions"`
+}
+
+func (l *ListModuleVersionsForModule) Exec(ctx context.Context, req ListModuleVersionsForModuleRequest) (*ListModuleVersionsForModuleResponse, error) {
+	moduleVersions, err := l.moduleVersionRepo.ListModuleVersionsForModule(ctx, req.ModuleID)
+	if err != nil {
+		return nil, InternalErrE("failed to list module versions for module", err)
+	}
+
+	return &ListModuleVersionsForModuleResponse{
 		ModuleVersions: moduleVersions,
 	}, nil
 }

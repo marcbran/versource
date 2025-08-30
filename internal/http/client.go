@@ -442,3 +442,32 @@ func (c *Client) ListModuleVersions(ctx context.Context) (*internal.ListModuleVe
 
 	return &moduleVersionsResp, nil
 }
+
+func (c *Client) ListModuleVersionsForModule(ctx context.Context, moduleID uint) (*internal.ListModuleVersionsForModuleResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/modules/%d/versions", c.baseURL, moduleID)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	var moduleVersionsResp internal.ListModuleVersionsForModuleResponse
+	if err := json.NewDecoder(resp.Body).Decode(&moduleVersionsResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &moduleVersionsResp, nil
+}

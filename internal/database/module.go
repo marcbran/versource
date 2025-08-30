@@ -83,12 +83,12 @@ func (r *GormModuleVersionRepo) GetModuleVersion(ctx context.Context, moduleVers
 	return &moduleVersion, nil
 }
 
-func (r *GormModuleVersionRepo) GetModuleVersions(ctx context.Context, moduleID uint) ([]internal.ModuleVersion, error) {
+func (r *GormModuleVersionRepo) ListModuleVersionsForModule(ctx context.Context, moduleID uint) ([]internal.ModuleVersion, error) {
 	db := getTxOrDb(ctx, r.db)
 	var moduleVersions []internal.ModuleVersion
 	err := db.WithContext(ctx).Preload("Module").Where("module_id = ?", moduleID).Find(&moduleVersions).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to get module versions: %w", err)
+		return nil, fmt.Errorf("failed to list module versions for module: %w", err)
 	}
 	return moduleVersions, nil
 }

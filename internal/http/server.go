@@ -60,25 +60,26 @@ func Serve(ctx context.Context, config *internal.Config) error {
 }
 
 type Server struct {
-	config             *internal.Config
-	router             *chi.Mux
-	createComponent    *internal.CreateComponent
-	updateComponent    *internal.UpdateComponent
-	createPlan         *internal.CreatePlan
-	createChangeset    *internal.CreateChangeset
-	mergeChangeset     *internal.MergeChangeset
-	runPlan            *internal.RunPlan
-	runApply           *internal.RunApply
-	createModule       *internal.CreateModule
-	updateModule       *internal.UpdateModule
-	listModules        *internal.ListModules
-	listModuleVersions *internal.ListModuleVersions
-	listComponents     *internal.ListComponents
-	listPlans          *internal.ListPlans
-	listApplies        *internal.ListApplies
-	listChangesets     *internal.ListChangesets
-	planWorker         *internal.PlanWorker
-	applyWorker        *internal.ApplyWorker
+	config                      *internal.Config
+	router                      *chi.Mux
+	createComponent             *internal.CreateComponent
+	updateComponent             *internal.UpdateComponent
+	createPlan                  *internal.CreatePlan
+	createChangeset             *internal.CreateChangeset
+	mergeChangeset              *internal.MergeChangeset
+	runPlan                     *internal.RunPlan
+	runApply                    *internal.RunApply
+	createModule                *internal.CreateModule
+	updateModule                *internal.UpdateModule
+	listModules                 *internal.ListModules
+	listModuleVersions          *internal.ListModuleVersions
+	listModuleVersionsForModule *internal.ListModuleVersionsForModule
+	listComponents              *internal.ListComponents
+	listPlans                   *internal.ListPlans
+	listApplies                 *internal.ListApplies
+	listChangesets              *internal.ListChangesets
+	planWorker                  *internal.PlanWorker
+	applyWorker                 *internal.ApplyWorker
 }
 
 func NewServer(config *internal.Config) (*Server, error) {
@@ -107,25 +108,26 @@ func NewServer(config *internal.Config) (*Server, error) {
 	ensureChangeset := internal.NewEnsureChangeset(changesetRepo, transactionManager)
 
 	s := &Server{
-		config:             config,
-		router:             chi.NewRouter(),
-		createComponent:    internal.NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
-		updateComponent:    internal.NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, transactionManager),
-		createPlan:         createPlan,
-		createChangeset:    internal.NewCreateChangeset(changesetRepo, transactionManager),
-		mergeChangeset:     internal.NewMergeChangeset(changesetRepo, applyRepo, applyWorker, transactionManager),
-		runPlan:            runPlan,
-		runApply:           runApply,
-		createModule:       internal.NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
-		updateModule:       internal.NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
-		listModules:        internal.NewListModules(moduleRepo),
-		listModuleVersions: internal.NewListModuleVersions(moduleVersionRepo),
-		listComponents:     internal.NewListComponents(componentRepo),
-		listPlans:          internal.NewListPlans(planRepo),
-		listApplies:        internal.NewListApplies(applyRepo),
-		listChangesets:     internal.NewListChangesets(changesetRepo),
-		planWorker:         planWorker,
-		applyWorker:        applyWorker,
+		config:                      config,
+		router:                      chi.NewRouter(),
+		createComponent:             internal.NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
+		updateComponent:             internal.NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, transactionManager),
+		createPlan:                  createPlan,
+		createChangeset:             internal.NewCreateChangeset(changesetRepo, transactionManager),
+		mergeChangeset:              internal.NewMergeChangeset(changesetRepo, applyRepo, applyWorker, transactionManager),
+		runPlan:                     runPlan,
+		runApply:                    runApply,
+		createModule:                internal.NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
+		updateModule:                internal.NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
+		listModules:                 internal.NewListModules(moduleRepo),
+		listModuleVersions:          internal.NewListModuleVersions(moduleVersionRepo),
+		listModuleVersionsForModule: internal.NewListModuleVersionsForModule(moduleVersionRepo),
+		listComponents:              internal.NewListComponents(componentRepo),
+		listPlans:                   internal.NewListPlans(planRepo),
+		listApplies:                 internal.NewListApplies(applyRepo),
+		listChangesets:              internal.NewListChangesets(changesetRepo),
+		planWorker:                  planWorker,
+		applyWorker:                 applyWorker,
 	}
 
 	s.setupMiddleware()
@@ -151,6 +153,7 @@ func (s *Server) setupRoutes() {
 		r.Post("/changesets", s.handleCreateChangeset)
 		r.Post("/modules", s.handleCreateModule)
 		r.Put("/modules/{moduleID}", s.handleUpdateModule)
+		r.Get("/modules/{moduleID}/versions", s.handleListModuleVersionsForModule)
 		r.Route("/changesets/{changesetName}", func(r chi.Router) {
 			r.Post("/components", s.handleCreateComponent)
 			r.Route("/components/{componentID}", func(r chi.Router) {
@@ -380,6 +383,25 @@ func (s *Server) handleListChangesets(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleListModuleVersions(w http.ResponseWriter, r *http.Request) {
 	resp, err := s.listModuleVersions.Exec(r.Context(), internal.ListModuleVersionsRequest{})
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
+func (s *Server) handleListModuleVersionsForModule(w http.ResponseWriter, r *http.Request) {
+	moduleIDStr := chi.URLParam(r, "moduleID")
+	moduleID, err := strconv.ParseUint(moduleIDStr, 10, 32)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid module ID"))
+		return
+	}
+
+	resp, err := s.listModuleVersionsForModule.Exec(r.Context(), internal.ListModuleVersionsForModuleRequest{
+		ModuleID: uint(moduleID),
+	})
 	if err != nil {
 		returnError(w, err)
 		return

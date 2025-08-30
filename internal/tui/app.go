@@ -46,7 +46,7 @@ func NewApp(client *http.Client) *App {
 }
 
 func (a *App) Init() tea.Cmd {
-	return a.loadData()
+	return a.loadData(a.currentView)
 }
 
 func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -91,7 +91,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.table = createTable(a.columns, a.rows, a.size, a.showInput)
 			return a, textinput.Blink
 		case "r":
-			return a, a.loadData()
+			return a, a.loadData(a.currentView)
 		case "j", "down":
 			if a.table.Cursor() < len(a.table.Rows())-1 {
 				a.table.SetCursor(a.table.Cursor() + 1)
@@ -104,6 +104,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case dataLoadedMsg:
 		a.loading = false
 		a.err = nil
+		a.currentView = msg.view
 		a.columns, a.rows = getTable(msg.data)
 		a.table = createTable(a.columns, a.rows, a.size, a.showInput)
 	case errorMsg:
@@ -327,47 +328,64 @@ func adjustColumnWidths(columns []table.Column, totalWidth int) []table.Column {
 	return adjusted
 }
 
-func (a *App) loadData() tea.Cmd {
+func (a *App) loadData(view string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
-		switch a.currentView {
+		switch view {
 		case "modules":
 			resp, err := a.client.ListModules(ctx)
 			if err != nil {
 				return errorMsg{err: err}
 			}
-			return dataLoadedMsg{dataType: "modules", data: resp.Modules}
+			return dataLoadedMsg{view: view, dataType: "modules", data: resp.Modules}
 		case "moduleversions":
 			resp, err := a.client.ListModuleVersions(ctx)
 			if err != nil {
 				return errorMsg{err: err}
 			}
-			return dataLoadedMsg{dataType: "moduleversions", data: resp.ModuleVersions}
+			return dataLoadedMsg{view: view, dataType: "moduleversions", data: resp.ModuleVersions}
 		case "components":
 			resp, err := a.client.ListComponents(ctx)
 			if err != nil {
 				return errorMsg{err: err}
 			}
-			return dataLoadedMsg{dataType: "components", data: resp.Components}
+			return dataLoadedMsg{view: view, dataType: "components", data: resp.Components}
 		case "plans":
 			resp, err := a.client.ListPlans(ctx)
 			if err != nil {
 				return errorMsg{err: err}
 			}
-			return dataLoadedMsg{dataType: "plans", data: resp.Plans}
+			return dataLoadedMsg{view: view, dataType: "plans", data: resp.Plans}
 		case "applies":
 			resp, err := a.client.ListApplies(ctx)
 			if err != nil {
 				return errorMsg{err: err}
 			}
-			return dataLoadedMsg{dataType: "applies", data: resp.Applies}
+			return dataLoadedMsg{view: view, dataType: "applies", data: resp.Applies}
 		case "changesets":
 			resp, err := a.client.ListChangesets(ctx)
 			if err != nil {
 				return errorMsg{err: err}
 			}
-			return dataLoadedMsg{dataType: "changesets", data: resp.Changesets}
+			return dataLoadedMsg{view: view, dataType: "changesets", data: resp.Changesets}
+		default:
+			if !strings.HasPrefix(view, "modules/") || !strings.HasSuffix(view, "/moduleversions") {
+				return nil
+			}
+			parts := strings.Split(view, "/")
+			if len(parts) != 3 {
+				return nil
+			}
+			moduleID, err := strconv.ParseUint(parts[1], 10, 32)
+			if err != nil {
+				return nil
+			}
+			resp, err := a.client.ListModuleVersionsForModule(ctx, uint(moduleID))
+			if err != nil {
+				return errorMsg{err: err}
+			}
+			return dataLoadedMsg{view: view, dataType: "moduleversions", data: resp.ModuleVersions}
 		}
 
 		return nil
@@ -376,34 +394,40 @@ func (a *App) loadData() tea.Cmd {
 
 func (a *App) executeCommand(command string) tea.Cmd {
 	return func() tea.Msg {
-		parts := strings.Fields(command)
-		if len(parts) == 0 {
+		if command == "" {
 			return nil
 		}
 
-		switch parts[0] {
+		switch command {
 		case "refresh", "r":
-			return a.loadData()()
+			return a.loadData(a.currentView)()
 		case "quit", "q":
 			return tea.Quit
 		case "modules":
-			a.currentView = "modules"
-			return a.loadData()()
+			return a.loadData("modules")()
 		case "moduleversions":
-			a.currentView = "moduleversions"
-			return a.loadData()()
+			return a.loadData("moduleversions")()
 		case "components":
-			a.currentView = "components"
-			return a.loadData()()
+			return a.loadData("components")()
 		case "plans":
-			a.currentView = "plans"
-			return a.loadData()()
+			return a.loadData("plans")()
 		case "applies":
-			a.currentView = "applies"
-			return a.loadData()()
+			return a.loadData("applies")()
 		case "changesets":
-			a.currentView = "changesets"
-			return a.loadData()()
+			return a.loadData("changesets")()
+		default:
+			if !strings.HasPrefix(command, "modules/") || !strings.HasSuffix(command, "/moduleversions") {
+				return nil
+			}
+			parts := strings.Split(command, "/")
+			if len(parts) != 3 {
+				return nil
+			}
+			_, err := strconv.ParseUint(parts[1], 10, 32)
+			if err != nil {
+				return nil
+			}
+			return a.loadData(command)()
 		}
 
 		return nil
@@ -411,6 +435,7 @@ func (a *App) executeCommand(command string) tea.Cmd {
 }
 
 type dataLoadedMsg struct {
+	view     string
 	dataType string
 	data     any
 }

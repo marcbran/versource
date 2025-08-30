@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/marcbran/versource/internal"
@@ -14,15 +15,16 @@ import (
 )
 
 type App struct {
-	client     *http.Client
-	currentTab int
-	tabs       []string
-	table      table.Model
-	columns    []table.Column
-	rows       []table.Row
-	size       Rect
-	loading    bool
-	err        error
+	client      *http.Client
+	currentView string
+	table       table.Model
+	columns     []table.Column
+	rows        []table.Row
+	size        Rect
+	loading     bool
+	err         error
+	input       textinput.Model
+	showInput   bool
 }
 
 type Rect struct {
@@ -31,10 +33,15 @@ type Rect struct {
 }
 
 func NewApp(client *http.Client) *App {
+	ti := textinput.New()
+	ti.Placeholder = "Enter command..."
+	ti.CharLimit = 100
+
 	return &App{
-		client: client,
-		tabs:   []string{"Modules", "Components", "Plans", "Applies", "Changesets"},
-		table:  table.New(),
+		client:      client,
+		currentView: "modules",
+		table:       table.New(),
+		input:       ti,
 	}
 }
 
@@ -45,21 +52,44 @@ func (a *App) Init() tea.Cmd {
 func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
+	if a.showInput {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "q", "ctrl+c":
+				return a, tea.Quit
+			case "esc":
+				a.showInput = false
+				a.input.SetValue("")
+				a.table = createTable(a.columns, a.rows, a.size, a.showInput)
+				return a, nil
+			case "enter":
+				command := a.input.Value()
+				a.showInput = false
+				a.input.SetValue("")
+				a.table = createTable(a.columns, a.rows, a.size, a.showInput)
+				return a, a.executeCommand(command)
+			}
+		}
+		a.input, cmd = a.input.Update(msg)
+		return a, cmd
+	}
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		a.size.Width = msg.Width
 		a.size.Height = msg.Height
-		a.table = createTable(a.columns, a.rows, a.size)
+		a.input.Width = msg.Width - 7
+		a.table = createTable(a.columns, a.rows, a.size, a.showInput)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return a, tea.Quit
-		case "tab":
-			a.currentTab = (a.currentTab + 1) % len(a.tabs)
-			return a, a.loadData()
-		case "shift+tab":
-			a.currentTab = (a.currentTab - 1 + len(a.tabs)) % len(a.tabs)
-			return a, a.loadData()
+		case ":":
+			a.showInput = true
+			a.input.Focus()
+			a.table = createTable(a.columns, a.rows, a.size, a.showInput)
+			return a, textinput.Blink
 		case "r":
 			return a, a.loadData()
 		case "j", "down":
@@ -75,7 +105,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.loading = false
 		a.err = nil
 		a.columns, a.rows = getTable(msg.data)
-		a.table = createTable(a.columns, a.rows, a.size)
+		a.table = createTable(a.columns, a.rows, a.size, a.showInput)
 	case errorMsg:
 		a.loading = false
 		a.err = msg.err
@@ -207,7 +237,7 @@ func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []tabl
 	return columns, rows
 }
 
-func createTable(columns []table.Column, rows []table.Row, size Rect) table.Model {
+func createTable(columns []table.Column, rows []table.Row, size Rect, showInput bool) table.Model {
 	if len(rows) == 0 {
 		placeholderRow := make(table.Row, len(columns))
 		for i := range placeholderRow {
@@ -220,10 +250,16 @@ func createTable(columns []table.Column, rows []table.Row, size Rect) table.Mode
 	}
 
 	adjustedColumns := adjustColumnWidths(columns, size.Width)
+
+	tableHeight := size.Height - 2
+	if showInput {
+		tableHeight -= 3
+	}
+
 	t := table.New(
 		table.WithColumns(adjustedColumns),
 		table.WithRows(rows),
-		table.WithHeight(size.Height-2),
+		table.WithHeight(tableHeight),
 	)
 	t.SetStyles(table.Styles{
 		Header:   lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Background(lipgloss.Color("8")),
@@ -270,37 +306,70 @@ func (a *App) loadData() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
-		switch a.tabs[a.currentTab] {
-		case "Modules":
+		switch a.currentView {
+		case "modules":
 			resp, err := a.client.ListModules(ctx)
 			if err != nil {
 				return errorMsg{err: err}
 			}
 			return dataLoadedMsg{dataType: "modules", data: resp.Modules}
-		case "Components":
+		case "components":
 			resp, err := a.client.ListComponents(ctx)
 			if err != nil {
 				return errorMsg{err: err}
 			}
 			return dataLoadedMsg{dataType: "components", data: resp.Components}
-		case "Plans":
+		case "plans":
 			resp, err := a.client.ListPlans(ctx)
 			if err != nil {
 				return errorMsg{err: err}
 			}
 			return dataLoadedMsg{dataType: "plans", data: resp.Plans}
-		case "Applies":
+		case "applies":
 			resp, err := a.client.ListApplies(ctx)
 			if err != nil {
 				return errorMsg{err: err}
 			}
 			return dataLoadedMsg{dataType: "applies", data: resp.Applies}
-		case "Changesets":
+		case "changesets":
 			resp, err := a.client.ListChangesets(ctx)
 			if err != nil {
 				return errorMsg{err: err}
 			}
 			return dataLoadedMsg{dataType: "changesets", data: resp.Changesets}
+		}
+
+		return nil
+	}
+}
+
+func (a *App) executeCommand(command string) tea.Cmd {
+	return func() tea.Msg {
+		parts := strings.Fields(command)
+		if len(parts) == 0 {
+			return nil
+		}
+
+		switch parts[0] {
+		case "refresh", "r":
+			return a.loadData()()
+		case "quit", "q":
+			return tea.Quit
+		case "modules":
+			a.currentView = "modules"
+			return a.loadData()()
+		case "components":
+			a.currentView = "components"
+			return a.loadData()()
+		case "plans":
+			a.currentView = "plans"
+			return a.loadData()()
+		case "applies":
+			a.currentView = "applies"
+			return a.loadData()()
+		case "changesets":
+			a.currentView = "changesets"
+			return a.loadData()()
 		}
 
 		return nil
@@ -318,7 +387,7 @@ type errorMsg struct {
 
 func (a *App) View() string {
 	if a.loading {
-		return "Loading...\nPress 'q' to quit, 'r' to refresh, 'tab' to switch tabs"
+		return "Loading...\nPress 'q' to quit, 'r' to refresh, ':' to enter commands"
 	}
 
 	if a.err != nil {
@@ -329,7 +398,20 @@ func (a *App) View() string {
 
 	tableView := a.table.View()
 
-	return titledBox(a.tabs[a.currentTab], tableView)
+	content := titledBox(a.currentView, tableView)
+
+	if a.showInput {
+		inputView := a.input.View()
+		inputBox := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("8")).
+			Padding(0, 1).
+			Render(inputView)
+
+		content = lipgloss.JoinVertical(lipgloss.Left, inputBox, content)
+	}
+
+	return content
 }
 
 func titledBox(title, content string) string {

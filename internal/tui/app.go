@@ -18,23 +18,23 @@ type App struct {
 	currentTab int
 	tabs       []string
 	table      table.Model
-	width      int
-	height     int
+	columns    []table.Column
+	rows       []table.Row
+	size       Rect
 	loading    bool
 	err        error
 }
 
-func NewApp(client *http.Client) *App {
-	t := table.New()
-	t.SetStyles(table.Styles{
-		Header:   lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("240")),
-		Selected: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("170")),
-	})
+type Rect struct {
+	Width  int
+	Height int
+}
 
+func NewApp(client *http.Client) *App {
 	return &App{
 		client: client,
 		tabs:   []string{"Modules", "Components", "Plans", "Applies", "Changesets"},
-		table:  t,
+		table:  table.New(),
 	}
 }
 
@@ -47,8 +47,9 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		a.width = msg.Width
-		a.height = msg.Height
+		a.size.Width = msg.Width
+		a.size.Height = msg.Height
+		a.table = createTable(a.columns, a.rows, a.size)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
@@ -73,8 +74,8 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case dataLoadedMsg:
 		a.loading = false
 		a.err = nil
-		columns, rows := getTable(msg.data)
-		a.table = createTable(columns, rows, a.width, a.height)
+		a.columns, a.rows = getTable(msg.data)
+		a.table = createTable(a.columns, a.rows, a.size)
 	case errorMsg:
 		a.loading = false
 		a.err = msg.err
@@ -206,21 +207,23 @@ func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []tabl
 	return columns, rows
 }
 
-func createTable(columns []table.Column, rows []table.Row, width int, height int) table.Model {
+func createTable(columns []table.Column, rows []table.Row, size Rect) table.Model {
 	if len(rows) == 0 {
 		placeholderRow := make(table.Row, len(columns))
 		for i := range placeholderRow {
 			placeholderRow[i] = ""
 		}
-		placeholderRow[0] = "No data"
+		if len(columns) > 0 {
+			placeholderRow[0] = "No data"
+		}
 		rows = append(rows, placeholderRow)
 	}
 
-	adjustedColumns := adjustColumnWidths(columns, width)
+	adjustedColumns := adjustColumnWidths(columns, size.Width)
 	t := table.New(
 		table.WithColumns(adjustedColumns),
 		table.WithRows(rows),
-		table.WithHeight(height-2),
+		table.WithHeight(size.Height-2),
 	)
 	t.SetStyles(table.Styles{
 		Header:   lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Background(lipgloss.Color("8")),

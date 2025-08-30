@@ -24,6 +24,7 @@ func init() {
 	rootCmd.AddCommand(planCmd)
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(migrateCmd)
+	rootCmd.AddCommand(uiCmd)
 }
 
 func formatOutput(data any, textFormat string, textArgs ...any) error {

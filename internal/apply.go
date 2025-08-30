@@ -38,6 +38,7 @@ type ApplyRepo interface {
 	UpdateApplyState(ctx context.Context, applyID uint, state TaskState) error
 	GetQueuedApplies(ctx context.Context) ([]uint, error)
 	GetQueuedAppliesByChangeset(ctx context.Context, changesetID uint) ([]uint, error)
+	ListApplies(ctx context.Context) ([]Apply, error)
 }
 
 type State struct {
@@ -73,75 +74,6 @@ const (
 
 type ResourceRepo interface {
 	UpsertResources(ctx context.Context, resources []Resource) error
-}
-
-type ApplyWorker struct {
-	runApply  *RunApply
-	applyRepo ApplyRepo
-	applyChan chan uint
-}
-
-func NewApplyWorker(runApply *RunApply, applyRepo ApplyRepo) *ApplyWorker {
-	return &ApplyWorker{
-		runApply:  runApply,
-		applyRepo: applyRepo,
-		applyChan: make(chan uint, 100),
-	}
-}
-
-func (aw *ApplyWorker) Start(ctx context.Context) {
-	go aw.processApplies(ctx)
-}
-
-func (aw *ApplyWorker) QueueApply(applyID uint) {
-	select {
-	case aw.applyChan <- applyID:
-		log.WithField("apply_id", applyID).Debug("Queued apply for processing")
-	default:
-		log.WithField("apply_id", applyID).Warn("Apply channel full, apply will be picked up by polling")
-	}
-}
-
-func (aw *ApplyWorker) processApplies(ctx context.Context) {
-	ticker := time.NewTicker(30 * time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case applyID := <-aw.applyChan:
-			aw.runApplyInBackground(ctx, applyID)
-		case <-ticker.C:
-			aw.processQueuedApplies(ctx)
-		}
-	}
-}
-
-func (aw *ApplyWorker) runApplyInBackground(ctx context.Context, applyID uint) {
-	go func() {
-		workerCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
-		defer cancel()
-
-		err := aw.runApply.Exec(workerCtx, applyID)
-		if err != nil {
-			log.WithError(err).WithField("apply_id", applyID).Error("Failed to run apply")
-		} else {
-			log.WithField("apply_id", applyID).Info("Apply completed successfully")
-		}
-	}()
-}
-
-func (aw *ApplyWorker) processQueuedApplies(ctx context.Context) {
-	applyIDs, err := aw.applyRepo.GetQueuedApplies(ctx)
-	if err != nil {
-		log.WithError(err).Error("Failed to get queued applies")
-		return
-	}
-
-	for _, applyID := range applyIDs {
-		aw.runApplyInBackground(ctx, applyID)
-	}
 }
 
 type RunApply struct {
@@ -306,6 +238,102 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	})
 
 	return err
+}
+
+type ListApplies struct {
+	applyRepo ApplyRepo
+}
+
+func NewListApplies(applyRepo ApplyRepo) *ListApplies {
+	return &ListApplies{
+		applyRepo: applyRepo,
+	}
+}
+
+type ListAppliesRequest struct{}
+
+type ListAppliesResponse struct {
+	Applies []Apply `json:"applies"`
+}
+
+func (l *ListApplies) Exec(ctx context.Context, req ListAppliesRequest) (*ListAppliesResponse, error) {
+	applies, err := l.applyRepo.ListApplies(ctx)
+	if err != nil {
+		return nil, InternalErrE("failed to list applies", err)
+	}
+
+	return &ListAppliesResponse{
+		Applies: applies,
+	}, nil
+}
+
+type ApplyWorker struct {
+	runApply  *RunApply
+	applyRepo ApplyRepo
+	applyChan chan uint
+}
+
+func NewApplyWorker(runApply *RunApply, applyRepo ApplyRepo) *ApplyWorker {
+	return &ApplyWorker{
+		runApply:  runApply,
+		applyRepo: applyRepo,
+		applyChan: make(chan uint, 100),
+	}
+}
+
+func (aw *ApplyWorker) Start(ctx context.Context) {
+	go aw.processApplies(ctx)
+}
+
+func (aw *ApplyWorker) QueueApply(applyID uint) {
+	select {
+	case aw.applyChan <- applyID:
+		log.WithField("apply_id", applyID).Debug("Queued apply for processing")
+	default:
+		log.WithField("apply_id", applyID).Warn("Apply channel full, apply will be picked up by polling")
+	}
+}
+
+func (aw *ApplyWorker) processApplies(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case applyID := <-aw.applyChan:
+			aw.runApplyInBackground(ctx, applyID)
+		case <-ticker.C:
+			aw.processQueuedApplies(ctx)
+		}
+	}
+}
+
+func (aw *ApplyWorker) runApplyInBackground(ctx context.Context, applyID uint) {
+	go func() {
+		workerCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
+		defer cancel()
+
+		err := aw.runApply.Exec(workerCtx, applyID)
+		if err != nil {
+			log.WithError(err).WithField("apply_id", applyID).Error("Failed to run apply")
+		} else {
+			log.WithField("apply_id", applyID).Info("Apply completed successfully")
+		}
+	}()
+}
+
+func (aw *ApplyWorker) processQueuedApplies(ctx context.Context) {
+	applyIDs, err := aw.applyRepo.GetQueuedApplies(ctx)
+	if err != nil {
+		log.WithError(err).Error("Failed to get queued applies")
+		return
+	}
+
+	for _, applyID := range applyIDs {
+		aw.runApplyInBackground(ctx, applyID)
+	}
 }
 
 func extractResources(module *tfjson.StateModule) ([]Resource, error) {

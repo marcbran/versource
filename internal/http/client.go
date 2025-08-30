@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/marcbran/versource/internal"
 )
@@ -267,4 +268,220 @@ func (c *Client) UpdateModule(ctx context.Context, moduleID uint, req internal.U
 	}
 
 	return &moduleResp, nil
+}
+
+func (c *Client) ListModules(ctx context.Context) (*internal.ListModulesResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/modules", c.baseURL)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	var modulesResp internal.ListModulesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&modulesResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &modulesResp, nil
+}
+
+func (c *Client) ListComponents(ctx context.Context, req internal.ListComponentsRequest) (*internal.ListComponentsResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/components", c.baseURL)
+
+	params := make([]string, 0)
+	if req.ModuleID != nil {
+		params = append(params, fmt.Sprintf("module-id=%d", *req.ModuleID))
+	}
+	if req.ModuleVersionID != nil {
+		params = append(params, fmt.Sprintf("module-version-id=%d", *req.ModuleVersionID))
+	}
+
+	if len(params) > 0 {
+		url += "?" + strings.Join(params, "&")
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	var componentsResp internal.ListComponentsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&componentsResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &componentsResp, nil
+}
+
+func (c *Client) ListPlans(ctx context.Context) (*internal.ListPlansResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/plans", c.baseURL)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	var plansResp internal.ListPlansResponse
+	if err := json.NewDecoder(resp.Body).Decode(&plansResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &plansResp, nil
+}
+
+func (c *Client) ListApplies(ctx context.Context) (*internal.ListAppliesResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/applies", c.baseURL)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	var appliesResp internal.ListAppliesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&appliesResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &appliesResp, nil
+}
+
+func (c *Client) ListChangesets(ctx context.Context) (*internal.ListChangesetsResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/changesets", c.baseURL)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	var changesetsResp internal.ListChangesetsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&changesetsResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &changesetsResp, nil
+}
+
+func (c *Client) ListModuleVersions(ctx context.Context) (*internal.ListModuleVersionsResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/module-versions", c.baseURL)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	var moduleVersionsResp internal.ListModuleVersionsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&moduleVersionsResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &moduleVersionsResp, nil
+}
+
+func (c *Client) ListModuleVersionsForModule(ctx context.Context, moduleID uint) (*internal.ListModuleVersionsForModuleResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/modules/%d/versions", c.baseURL, moduleID)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	var moduleVersionsResp internal.ListModuleVersionsForModuleResponse
+	if err := json.NewDecoder(resp.Body).Decode(&moduleVersionsResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &moduleVersionsResp, nil
 }

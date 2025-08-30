@@ -33,14 +33,31 @@ type ChangesetRepo interface {
 	ListChangesets(ctx context.Context) ([]Changeset, error)
 }
 
-type CreateChangesetRequest struct {
-	Name string `json:"name"`
+type ListChangesets struct {
+	changesetRepo ChangesetRepo
 }
 
-type CreateChangesetResponse struct {
-	ID    uint           `json:"id"`
-	Name  string         `json:"name"`
-	State ChangesetState `json:"state"`
+func NewListChangesets(changesetRepo ChangesetRepo) *ListChangesets {
+	return &ListChangesets{
+		changesetRepo: changesetRepo,
+	}
+}
+
+type ListChangesetsRequest struct{}
+
+type ListChangesetsResponse struct {
+	Changesets []Changeset `json:"changesets"`
+}
+
+func (l *ListChangesets) Exec(ctx context.Context, req ListChangesetsRequest) (*ListChangesetsResponse, error) {
+	changesets, err := l.changesetRepo.ListChangesets(ctx)
+	if err != nil {
+		return nil, InternalErrE("failed to list changesets", err)
+	}
+
+	return &ListChangesetsResponse{
+		Changesets: changesets,
+	}, nil
 }
 
 type CreateChangeset struct {
@@ -53,6 +70,16 @@ func NewCreateChangeset(changesetRepo ChangesetRepo, tx TransactionManager) *Cre
 		changesetRepo: changesetRepo,
 		tx:            tx,
 	}
+}
+
+type CreateChangesetRequest struct {
+	Name string `json:"name"`
+}
+
+type CreateChangesetResponse struct {
+	ID    uint           `json:"id"`
+	Name  string         `json:"name"`
+	State ChangesetState `json:"state"`
 }
 
 func (c *CreateChangeset) Exec(ctx context.Context, req CreateChangesetRequest) (*CreateChangesetResponse, error) {
@@ -96,16 +123,6 @@ func (c *CreateChangeset) Exec(ctx context.Context, req CreateChangesetRequest) 
 	return response, nil
 }
 
-type EnsureChangesetRequest struct {
-	Name string `json:"name"`
-}
-
-type EnsureChangesetResponse struct {
-	ID    uint           `json:"id"`
-	Name  string         `json:"name"`
-	State ChangesetState `json:"state"`
-}
-
 type EnsureChangeset struct {
 	changesetRepo ChangesetRepo
 	tx            TransactionManager
@@ -116,6 +133,16 @@ func NewEnsureChangeset(changesetRepo ChangesetRepo, tx TransactionManager) *Ens
 		changesetRepo: changesetRepo,
 		tx:            tx,
 	}
+}
+
+type EnsureChangesetRequest struct {
+	Name string `json:"name"`
+}
+
+type EnsureChangesetResponse struct {
+	ID    uint           `json:"id"`
+	Name  string         `json:"name"`
+	State ChangesetState `json:"state"`
 }
 
 func (e *EnsureChangeset) Exec(ctx context.Context, req EnsureChangesetRequest) (*EnsureChangesetResponse, error) {
@@ -161,16 +188,6 @@ func (e *EnsureChangeset) Exec(ctx context.Context, req EnsureChangesetRequest) 
 	return response, nil
 }
 
-type MergeChangesetRequest struct {
-	ChangesetName string `json:"changeset_name"`
-}
-
-type MergeChangesetResponse struct {
-	ID    uint           `json:"id"`
-	Name  string         `json:"name"`
-	State ChangesetState `json:"state"`
-}
-
 type MergeChangeset struct {
 	changesetRepo ChangesetRepo
 	applyRepo     ApplyRepo
@@ -185,6 +202,16 @@ func NewMergeChangeset(changesetRepo ChangesetRepo, applyRepo ApplyRepo, applyWo
 		applyWorker:   applyWorker,
 		tx:            tx,
 	}
+}
+
+type MergeChangesetRequest struct {
+	ChangesetName string `json:"changeset_name"`
+}
+
+type MergeChangesetResponse struct {
+	ID    uint           `json:"id"`
+	Name  string         `json:"name"`
+	State ChangesetState `json:"state"`
 }
 
 func (m *MergeChangeset) Exec(ctx context.Context, req MergeChangesetRequest) (*MergeChangesetResponse, error) {

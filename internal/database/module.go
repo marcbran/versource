@@ -46,6 +46,16 @@ func (r *GormModuleRepo) GetModuleBySource(ctx context.Context, source string) (
 	return &module, nil
 }
 
+func (r *GormModuleRepo) ListModules(ctx context.Context) ([]internal.Module, error) {
+	db := getTxOrDb(ctx, r.db)
+	var modules []internal.Module
+	err := db.WithContext(ctx).Find(&modules).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list modules: %w", err)
+	}
+	return modules, nil
+}
+
 type GormModuleVersionRepo struct {
 	db *gorm.DB
 }
@@ -73,12 +83,12 @@ func (r *GormModuleVersionRepo) GetModuleVersion(ctx context.Context, moduleVers
 	return &moduleVersion, nil
 }
 
-func (r *GormModuleVersionRepo) GetModuleVersions(ctx context.Context, moduleID uint) ([]internal.ModuleVersion, error) {
+func (r *GormModuleVersionRepo) ListModuleVersionsForModule(ctx context.Context, moduleID uint) ([]internal.ModuleVersion, error) {
 	db := getTxOrDb(ctx, r.db)
 	var moduleVersions []internal.ModuleVersion
 	err := db.WithContext(ctx).Preload("Module").Where("module_id = ?", moduleID).Find(&moduleVersions).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to get module versions: %w", err)
+		return nil, fmt.Errorf("failed to list module versions for module: %w", err)
 	}
 	return moduleVersions, nil
 }
@@ -94,4 +104,14 @@ func (r *GormModuleVersionRepo) GetLatestModuleVersion(ctx context.Context, modu
 		return nil, fmt.Errorf("failed to get latest module version: %w", err)
 	}
 	return &moduleVersion, nil
+}
+
+func (r *GormModuleVersionRepo) ListModuleVersions(ctx context.Context) ([]internal.ModuleVersion, error) {
+	db := getTxOrDb(ctx, r.db)
+	var moduleVersions []internal.ModuleVersion
+	err := db.WithContext(ctx).Preload("Module").Find(&moduleVersions).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list module versions: %w", err)
+	}
+	return moduleVersions, nil
 }

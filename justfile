@@ -35,5 +35,8 @@ migrate:
 serve: install
   versource serve
 
+ui: install
+  versource ui
+
 sql:
   dolt --host localhost --no-tls --use-db versource sql

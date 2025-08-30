@@ -44,3 +44,40 @@ func (r *GormComponentRepo) UpdateComponent(ctx context.Context, component *inte
 	}
 	return nil
 }
+
+func (r *GormComponentRepo) ListComponents(ctx context.Context) ([]internal.Component, error) {
+	db := getTxOrDb(ctx, r.db)
+	var components []internal.Component
+	err := db.WithContext(ctx).Preload("ModuleVersion.Module").Find(&components).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list components: %w", err)
+	}
+	return components, nil
+}
+
+func (r *GormComponentRepo) ListComponentsByModule(ctx context.Context, moduleID uint) ([]internal.Component, error) {
+	db := getTxOrDb(ctx, r.db)
+	var components []internal.Component
+	err := db.WithContext(ctx).
+		Preload("ModuleVersion.Module").
+		Joins("JOIN module_versions ON components.module_version_id = module_versions.id").
+		Where("module_versions.module_id = ?", moduleID).
+		Find(&components).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list components by module: %w", err)
+	}
+	return components, nil
+}
+
+func (r *GormComponentRepo) ListComponentsByModuleVersion(ctx context.Context, moduleVersionID uint) ([]internal.Component, error) {
+	db := getTxOrDb(ctx, r.db)
+	var components []internal.Component
+	err := db.WithContext(ctx).
+		Preload("ModuleVersion.Module").
+		Where("module_version_id = ?", moduleVersionID).
+		Find(&components).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list components by module version: %w", err)
+	}
+	return components, nil
+}

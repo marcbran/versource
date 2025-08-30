@@ -61,6 +61,14 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, a.loadData()
 		case "r":
 			return a, a.loadData()
+		case "j", "down":
+			if a.table.Cursor() < len(a.table.Rows())-1 {
+				a.table.SetCursor(a.table.Cursor() + 1)
+			}
+		case "k", "up":
+			if a.table.Cursor() > 0 {
+				a.table.SetCursor(a.table.Cursor() - 1)
+			}
 		}
 	case dataLoadedMsg:
 		a.loading = false
@@ -216,7 +224,7 @@ func createTable(columns []table.Column, rows []table.Row, width int, height int
 	)
 	t.SetStyles(table.Styles{
 		Header:   lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Background(lipgloss.Color("8")),
-		Selected: lipgloss.NewStyle().Foreground(lipgloss.Color("170")),
+		Selected: lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("4")),
 	})
 	return t
 }

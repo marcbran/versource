@@ -7,7 +7,7 @@ import (
 )
 
 type Page interface {
-	Open(app *App, params map[string]string) tea.Cmd
+	Open(params map[string]string) tea.Cmd
 	Links(params map[string]string) map[string]string
 }
 
@@ -34,12 +34,12 @@ func (r *Router) Match(path string) (Page, map[string]string) {
 	return nil, nil
 }
 
-func (r *Router) Open(app *App, path string) tea.Cmd {
+func (r *Router) Open(path string) tea.Cmd {
 	page, params := r.Match(path)
 	if page == nil {
 		return nil
 	}
-	return page.Open(app, params)
+	return page.Open(params)
 }
 
 func (r *Router) Links(path string) map[string]string {
@@ -50,10 +50,10 @@ func (r *Router) Links(path string) map[string]string {
 	return page.Links(params)
 }
 
-func (r *Router) OpenLink(app *App, view string, link string) tea.Cmd {
+func (r *Router) OpenLink(view string, link string) tea.Cmd {
 	links := r.Links(view)
 	if targetPath, ok := links[link]; ok {
-		return r.Open(app, targetPath)
+		return r.Open(targetPath)
 	}
 	return nil
 }

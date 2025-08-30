@@ -47,24 +47,25 @@ func NewApp(client *http.Client) *App {
 	ti := textinput.New()
 	ti.CharLimit = 100
 
-	router := NewRouter()
-	router.Register("modules", &ModulesPage{})
-	router.Register("modules/{moduleID}", &ModulePage{})
-	router.Register("modules/{moduleID}/moduleversions", &ModuleVersionsForModulePage{})
-	router.Register("moduleversions", &ModuleVersionsPage{})
-	router.Register("changesets", &ChangesetsPage{})
-	router.Register("components", &ComponentsPage{})
-	router.Register("plans", &PlansPage{})
-	router.Register("applies", &AppliesPage{})
-
-	return &App{
+	app := &App{
 		client:      client,
-		router:      router,
+		router:      NewRouter(),
 		currentView: "modules",
 		viewHistory: []string{},
 		table:       table.New(),
 		input:       ti,
 	}
+
+	app.router.Register("modules", &ModulesPage{app: app})
+	app.router.Register("modules/{moduleID}", &ModulePage{app: app})
+	app.router.Register("modules/{moduleID}/moduleversions", &ModuleVersionsForModulePage{app: app})
+	app.router.Register("moduleversions", &ModuleVersionsPage{app: app})
+	app.router.Register("changesets", &ChangesetsPage{app: app})
+	app.router.Register("components", &ComponentsPage{app: app})
+	app.router.Register("plans", &PlansPage{app: app})
+	app.router.Register("applies", &AppliesPage{app: app})
+
+	return app
 }
 
 func (a *App) Init() tea.Cmd {
@@ -129,11 +130,11 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				a.table.SetCursor(a.table.Cursor() - 1)
 			}
 		default:
-			cmd := a.router.OpenLink(a, a.cursorView(), msg.String())
+			cmd := a.router.OpenLink(a.cursorView(), msg.String())
 			if cmd != nil {
 				return a, cmd
 			}
-			cmd = a.router.OpenLink(a, a.currentView, msg.String())
+			cmd = a.router.OpenLink(a.currentView, msg.String())
 			if cmd != nil {
 				return a, cmd
 			}
@@ -393,7 +394,7 @@ func (a *App) executeCommand(command string) tea.Cmd {
 		case "back", "b":
 			return a.goBack()
 		default:
-			cmd := a.router.Open(a, command)
+			cmd := a.router.Open(command)
 			if cmd != nil {
 				return cmd()
 			}
@@ -406,7 +407,7 @@ func (a *App) refresh() tea.Cmd {
 	return func() tea.Msg {
 		page, params := a.router.Match(a.currentView)
 		if page != nil {
-			return page.Open(a, params)()
+			return page.Open(params)()
 		}
 		return nil
 	}
@@ -484,12 +485,14 @@ func titledBox(title, content string) string {
 	return lipgloss.JoinVertical(lipgloss.Left, top, body)
 }
 
-type ModulesPage struct{}
+type ModulesPage struct {
+	app *App
+}
 
-func (p *ModulesPage) Open(app *App, params map[string]string) tea.Cmd {
+func (p *ModulesPage) Open(params map[string]string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		resp, err := app.client.ListModules(ctx)
+		resp, err := p.app.client.ListModules(ctx)
 		if err != nil {
 			return errorMsg{err: err}
 		}
@@ -501,10 +504,14 @@ func (p *ModulesPage) Links(params map[string]string) map[string]string {
 	return map[string]string{}
 }
 
-type ModulePage struct{}
+type ModulePage struct {
+	app *App
+}
 
-func (p *ModulePage) Open(app *App, params map[string]string) tea.Cmd {
-	return nil
+func (p *ModulePage) Open(params map[string]string) tea.Cmd {
+	return func() tea.Msg {
+		return dataLoadedMsg{view: fmt.Sprintf("modules/%s", params["moduleID"]), data: nil}
+	}
 }
 
 func (p *ModulePage) Links(params map[string]string) map[string]string {
@@ -513,12 +520,14 @@ func (p *ModulePage) Links(params map[string]string) map[string]string {
 	}
 }
 
-type ModuleVersionsPage struct{}
+type ModuleVersionsPage struct {
+	app *App
+}
 
-func (p *ModuleVersionsPage) Open(app *App, params map[string]string) tea.Cmd {
+func (p *ModuleVersionsPage) Open(params map[string]string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		resp, err := app.client.ListModuleVersions(ctx)
+		resp, err := p.app.client.ListModuleVersions(ctx)
 		if err != nil {
 			return errorMsg{err: err}
 		}
@@ -530,9 +539,11 @@ func (p *ModuleVersionsPage) Links(params map[string]string) map[string]string {
 	return map[string]string{}
 }
 
-type ModuleVersionsForModulePage struct{}
+type ModuleVersionsForModulePage struct {
+	app *App
+}
 
-func (p *ModuleVersionsForModulePage) Open(app *App, params map[string]string) tea.Cmd {
+func (p *ModuleVersionsForModulePage) Open(params map[string]string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 		moduleID, exists := params["moduleID"]
@@ -544,7 +555,7 @@ func (p *ModuleVersionsForModulePage) Open(app *App, params map[string]string) t
 		if err != nil {
 			return errorMsg{err: err}
 		}
-		resp, err := app.client.ListModuleVersionsForModule(ctx, uint(moduleIDUint))
+		resp, err := p.app.client.ListModuleVersionsForModule(ctx, uint(moduleIDUint))
 		if err != nil {
 			return errorMsg{err: err}
 		}
@@ -558,12 +569,14 @@ func (p *ModuleVersionsForModulePage) Links(params map[string]string) map[string
 	}
 }
 
-type ChangesetsPage struct{}
+type ChangesetsPage struct {
+	app *App
+}
 
-func (p *ChangesetsPage) Open(app *App, params map[string]string) tea.Cmd {
+func (p *ChangesetsPage) Open(params map[string]string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		resp, err := app.client.ListChangesets(ctx)
+		resp, err := p.app.client.ListChangesets(ctx)
 		if err != nil {
 			return errorMsg{err: err}
 		}
@@ -575,12 +588,14 @@ func (p *ChangesetsPage) Links(params map[string]string) map[string]string {
 	return map[string]string{}
 }
 
-type ComponentsPage struct{}
+type ComponentsPage struct {
+	app *App
+}
 
-func (p *ComponentsPage) Open(app *App, params map[string]string) tea.Cmd {
+func (p *ComponentsPage) Open(params map[string]string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		resp, err := app.client.ListComponents(ctx)
+		resp, err := p.app.client.ListComponents(ctx)
 		if err != nil {
 			return errorMsg{err: err}
 		}
@@ -592,12 +607,14 @@ func (p *ComponentsPage) Links(params map[string]string) map[string]string {
 	return map[string]string{}
 }
 
-type PlansPage struct{}
+type PlansPage struct {
+	app *App
+}
 
-func (p *PlansPage) Open(app *App, params map[string]string) tea.Cmd {
+func (p *PlansPage) Open(params map[string]string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		resp, err := app.client.ListPlans(ctx)
+		resp, err := p.app.client.ListPlans(ctx)
 		if err != nil {
 			return errorMsg{err: err}
 		}
@@ -609,12 +626,14 @@ func (p *PlansPage) Links(params map[string]string) map[string]string {
 	return map[string]string{}
 }
 
-type AppliesPage struct{}
+type AppliesPage struct {
+	app *App
+}
 
-func (p *AppliesPage) Open(app *App, params map[string]string) tea.Cmd {
+func (p *AppliesPage) Open(params map[string]string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		resp, err := app.client.ListApplies(ctx)
+		resp, err := p.app.client.ListApplies(ctx)
 		if err != nil {
 			return errorMsg{err: err}
 		}

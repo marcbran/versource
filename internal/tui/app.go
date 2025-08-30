@@ -517,6 +517,7 @@ func (p *ModulePage) Open(params map[string]string) tea.Cmd {
 func (p *ModulePage) Links(params map[string]string) map[string]string {
 	return map[string]string{
 		"enter": fmt.Sprintf("modules/%s/moduleversions", params["moduleID"]),
+		"c":     fmt.Sprintf("components?module-id=%s", params["moduleID"]),
 	}
 }
 
@@ -536,7 +537,9 @@ func (p *ModuleVersionsPage) Open(params map[string]string) tea.Cmd {
 }
 
 func (p *ModuleVersionsPage) Links(params map[string]string) map[string]string {
-	return map[string]string{}
+	return map[string]string{
+		"c": fmt.Sprintf("components?module-version-id=%s", params["moduleVersionID"]),
+	}
 }
 
 type ModuleVersionsForModulePage struct {
@@ -566,6 +569,7 @@ func (p *ModuleVersionsForModulePage) Open(params map[string]string) tea.Cmd {
 func (p *ModuleVersionsForModulePage) Links(params map[string]string) map[string]string {
 	return map[string]string{
 		"m": "modules",
+		"c": fmt.Sprintf("components?module-version-id=%s", params["moduleVersionID"]),
 	}
 }
 

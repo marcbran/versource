@@ -59,8 +59,10 @@ func (r *Router) OpenLink(view string, link string) tea.Cmd {
 }
 
 func matchPath(routePath, actualPath string) map[string]string {
+	actualPathParts := strings.SplitN(actualPath, "?", 2)
+
 	routeParts := strings.Split(routePath, "/")
-	actualParts := strings.Split(actualPath, "/")
+	actualParts := strings.Split(actualPathParts[0], "/")
 
 	if len(routeParts) != len(actualParts) {
 		return nil
@@ -79,5 +81,30 @@ func matchPath(routePath, actualPath string) map[string]string {
 		}
 	}
 
+	if len(actualPathParts) > 1 {
+		actualQuery := actualPathParts[1]
+		actualQueryParams := parseQueryString(actualQuery)
+
+		for key, value := range actualQueryParams {
+			params[key] = value
+		}
+	}
+
+	return params
+}
+
+func parseQueryString(query string) map[string]string {
+	params := make(map[string]string)
+	if query == "" {
+		return params
+	}
+
+	pairs := strings.Split(query, "&")
+	for _, pair := range pairs {
+		kv := strings.SplitN(pair, "=", 2)
+		if len(kv) == 2 {
+			params[kv[0]] = kv[1]
+		}
+	}
 	return params
 }

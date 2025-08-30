@@ -53,12 +53,18 @@ func (a *App) Init() tea.Cmd {
 func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c":
+			return a, tea.Quit
+		}
+	}
+
 	if a.showInput {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			switch msg.String() {
-			case "q", "ctrl+c":
-				return a, tea.Quit
 			case "esc":
 				a.showInput = false
 				a.input.SetValue("")
@@ -84,15 +90,13 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.table = createTable(a.columns, a.rows, a.size, a.showInput)
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "q", "ctrl+c":
-			return a, tea.Quit
 		case ":":
 			a.showInput = true
 			a.input.Focus()
 			a.table = createTable(a.columns, a.rows, a.size, a.showInput)
 			return a, textinput.Blink
 		case "r":
-			return a, a.loadData(a.currentView)
+			return a, a.executeCommand("refresh")
 		case "j", "down":
 			if a.table.Cursor() < len(a.table.Rows())-1 {
 				a.table.SetCursor(a.table.Cursor() + 1)
@@ -443,8 +447,6 @@ func (a *App) executeCommand(command string) tea.Cmd {
 		switch command {
 		case "refresh", "r":
 			return a.loadData(a.currentView)()
-		case "quit", "q":
-			return tea.Quit
 		case "modules":
 			return a.loadData("modules")()
 		case "moduleversions":

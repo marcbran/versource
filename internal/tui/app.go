@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -17,6 +18,8 @@ type App struct {
 	currentTab int
 	tabs       []string
 	table      table.Model
+	width      int
+	height     int
 	loading    bool
 	err        error
 }
@@ -43,6 +46,9 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		a.width = msg.Width
+		a.height = msg.Height
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
@@ -59,8 +65,8 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case dataLoadedMsg:
 		a.loading = false
 		a.err = nil
-		columns, rows := a.getTable(msg.data)
-		a.updateTable(columns, rows)
+		columns, rows := getTable(msg.data)
+		a.table = createTable(columns, rows, a.width, a.height)
 	case errorMsg:
 		a.loading = false
 		a.err = msg.err
@@ -70,7 +76,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return a, cmd
 }
 
-func (a *App) getTable(data any) ([]table.Column, []table.Row) {
+func getTable(data any) ([]table.Column, []table.Row) {
 	switch d := data.(type) {
 	case []internal.Module:
 		return getModulesTable(d)
@@ -89,8 +95,8 @@ func (a *App) getTable(data any) ([]table.Column, []table.Row) {
 
 func getModulesTable(modules []internal.Module) ([]table.Column, []table.Row) {
 	columns := []table.Column{
-		{Title: "ID", Width: 5},
-		{Title: "Source", Width: 50},
+		{Title: "ID", Width: 1},
+		{Title: "Source", Width: 9},
 	}
 
 	var rows []table.Row
@@ -106,9 +112,9 @@ func getModulesTable(modules []internal.Module) ([]table.Column, []table.Row) {
 
 func getComponentsTable(components []internal.Component) ([]table.Column, []table.Row) {
 	columns := []table.Column{
-		{Title: "ID", Width: 5},
-		{Title: "Module", Width: 40},
-		{Title: "Version", Width: 15},
+		{Title: "ID", Width: 1},
+		{Title: "Module", Width: 7},
+		{Title: "Version", Width: 2},
 	}
 
 	var rows []table.Row
@@ -133,10 +139,10 @@ func getComponentsTable(components []internal.Component) ([]table.Column, []tabl
 
 func getPlansTable(plans []internal.Plan) ([]table.Column, []table.Row) {
 	columns := []table.Column{
-		{Title: "ID", Width: 5},
-		{Title: "Component", Width: 10},
-		{Title: "Changeset", Width: 15},
-		{Title: "State", Width: 12},
+		{Title: "ID", Width: 1},
+		{Title: "Component", Width: 1},
+		{Title: "Changeset", Width: 6},
+		{Title: "State", Width: 2},
 	}
 
 	var rows []table.Row
@@ -154,10 +160,10 @@ func getPlansTable(plans []internal.Plan) ([]table.Column, []table.Row) {
 
 func getAppliesTable(applies []internal.Apply) ([]table.Column, []table.Row) {
 	columns := []table.Column{
-		{Title: "ID", Width: 5},
-		{Title: "Plan", Width: 5},
-		{Title: "Changeset", Width: 15},
-		{Title: "State", Width: 12},
+		{Title: "ID", Width: 1},
+		{Title: "Plan", Width: 1},
+		{Title: "Changeset", Width: 6},
+		{Title: "State", Width: 2},
 	}
 
 	var rows []table.Row
@@ -175,9 +181,9 @@ func getAppliesTable(applies []internal.Apply) ([]table.Column, []table.Row) {
 
 func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []table.Row) {
 	columns := []table.Column{
-		{Title: "ID", Width: 5},
-		{Title: "Name", Width: 20},
-		{Title: "State", Width: 12},
+		{Title: "ID", Width: 1},
+		{Title: "Name", Width: 7},
+		{Title: "State", Width: 2},
 	}
 
 	var rows []table.Row
@@ -192,7 +198,7 @@ func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []tabl
 	return columns, rows
 }
 
-func (a *App) updateTable(columns []table.Column, rows []table.Row) {
+func createTable(columns []table.Column, rows []table.Row, width int, height int) table.Model {
 	if len(rows) == 0 {
 		placeholderRow := make(table.Row, len(columns))
 		for i := range placeholderRow {
@@ -202,12 +208,51 @@ func (a *App) updateTable(columns []table.Column, rows []table.Row) {
 		rows = append(rows, placeholderRow)
 	}
 
-	a.table.SetColumns(columns)
-	a.table.SetRows(rows)
-	a.table.SetStyles(table.Styles{
-		Header:   lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("240")),
-		Selected: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("170")),
+	adjustedColumns := adjustColumnWidths(columns, width)
+	t := table.New(
+		table.WithColumns(adjustedColumns),
+		table.WithRows(rows),
+		table.WithHeight(height-2),
+	)
+	t.SetStyles(table.Styles{
+		Header:   lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Background(lipgloss.Color("8")),
+		Selected: lipgloss.NewStyle().Foreground(lipgloss.Color("170")),
 	})
+	return t
+}
+
+func adjustColumnWidths(columns []table.Column, totalWidth int) []table.Column {
+	if totalWidth <= 0 {
+		return columns
+	}
+
+	totalWeight := 0
+	for _, col := range columns {
+		totalWeight += col.Width
+	}
+
+	if totalWeight == 0 {
+		return columns
+	}
+
+	borderSpace := 2
+	paddingSpace := 2
+	availableWidth := totalWidth - borderSpace - paddingSpace
+	adjusted := make([]table.Column, len(columns))
+	allocatedWidth := 0
+	for i, col := range columns {
+		adjusted[i] = col
+		if totalWeight > 0 {
+			adjusted[i].Width = max(1, (col.Width*availableWidth)/totalWeight)
+		}
+		allocatedWidth += adjusted[i].Width
+	}
+
+	if len(adjusted) > 0 && allocatedWidth < availableWidth {
+		adjusted[len(adjusted)-1].Width += availableWidth - allocatedWidth
+	}
+
+	return adjusted
 }
 
 func (a *App) loadData() tea.Cmd {
@@ -269,8 +314,31 @@ func (a *App) View() string {
 		return fmt.Sprintf("Error: %v\nPress 'r' to retry, 'q' to quit", a.err)
 	}
 
-	s := fmt.Sprintf("Versource TUI - %s\n\n", a.tabs[a.currentTab])
-	s += "Controls: tab/shift+tab to switch tabs, r to refresh, q to quit\n\n"
-	s += a.table.View()
-	return s
+	a.table.SetWidth(0)
+
+	tableView := a.table.View()
+
+	return titledBox(a.tabs[a.currentTab], tableView)
+}
+
+func titledBox(title, content string) string {
+	contentWidth := lipgloss.Width(content)
+	titleWidth := lipgloss.Width(title)
+	space := max(0, contentWidth-titleWidth)
+	left := space / 2
+	right := space - left
+
+	border := lipgloss.RoundedBorder()
+	top := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(border.TopLeft+strings.Repeat(border.Top, left)+" ") +
+		lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Render(title) + " " +
+		lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(strings.Repeat(border.Top, right)+border.TopRight)
+
+	body := lipgloss.NewStyle().
+		Border(border).
+		Padding(0, 1).
+		BorderForeground(lipgloss.Color("8")).
+		BorderTop(false).
+		Render(content)
+
+	return lipgloss.JoinVertical(lipgloss.Left, top, body)
 }

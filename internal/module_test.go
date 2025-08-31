@@ -1,17 +1,17 @@
 package internal
 
 import (
-	"net/url"
-	"strings"
 	"testing"
 )
 
 func TestCreateModuleWithVersion(t *testing.T) {
 	tests := []struct {
-		name    string
-		request CreateModuleRequest
-		wantErr bool
-		errMsg  string
+		name            string
+		request         CreateModuleRequest
+		expectedSource  string
+		expectedVersion string
+		wantErr         bool
+		errMsg          string
 	}{
 		{
 			name: "valid local module",
@@ -19,7 +19,9 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "./local/modules/test-module",
 				Version: "",
 			},
-			wantErr: false,
+			expectedSource:  "./local/modules/test-module",
+			expectedVersion: "",
+			wantErr:         false,
 		},
 		{
 			name: "valid registry module",
@@ -27,7 +29,9 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "hashicorp/consul/aws",
 				Version: "0.1.0",
 			},
-			wantErr: false,
+			expectedSource:  "hashicorp/consul/aws",
+			expectedVersion: "0.1.0",
+			wantErr:         false,
 		},
 		{
 			name: "valid github module",
@@ -35,7 +39,9 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "github.com/hashicorp/example?ref=v1.2.0",
 				Version: "",
 			},
-			wantErr: false,
+			expectedSource:  "github.com/hashicorp/example",
+			expectedVersion: "v1.2.0",
+			wantErr:         false,
 		},
 		{
 			name: "valid git module",
@@ -43,7 +49,9 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "git::https://example.com/network.git?ref=v1.2.0",
 				Version: "",
 			},
-			wantErr: false,
+			expectedSource:  "git::https://example.com/network.git",
+			expectedVersion: "v1.2.0",
+			wantErr:         false,
 		},
 		{
 			name: "valid bitbucket module",
@@ -51,7 +59,9 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "bitbucket.org/hashicorp/terraform-consul-aws?ref=v1.0.0",
 				Version: "",
 			},
-			wantErr: false,
+			expectedSource:  "bitbucket.org/hashicorp/terraform-consul-aws",
+			expectedVersion: "v1.0.0",
+			wantErr:         false,
 		},
 		{
 			name: "valid mercurial module",
@@ -59,7 +69,9 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "hg::http://example.com/vpc.hg?ref=v1.2.0",
 				Version: "",
 			},
-			wantErr: false,
+			expectedSource:  "hg::http://example.com/vpc.hg",
+			expectedVersion: "v1.2.0",
+			wantErr:         false,
 		},
 		{
 			name: "valid s3 module",
@@ -67,7 +79,9 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip?versionId=abc123",
 				Version: "",
 			},
-			wantErr: false,
+			expectedSource:  "s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip",
+			expectedVersion: "abc123",
+			wantErr:         false,
 		},
 		{
 			name: "valid gcs module",
@@ -75,7 +89,9 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "gcs::https://www.googleapis.com/storage/v1/modules/foomodule.zip?generation=123456789",
 				Version: "",
 			},
-			wantErr: false,
+			expectedSource:  "gcs::https://www.googleapis.com/storage/v1/modules/foomodule.zip",
+			expectedVersion: "123456789",
+			wantErr:         false,
 		},
 		{
 			name: "empty source",
@@ -83,8 +99,10 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "",
 				Version: "1.0.0",
 			},
-			wantErr: true,
-			errMsg:  "source is required",
+			expectedSource:  "",
+			expectedVersion: "",
+			wantErr:         true,
+			errMsg:          "source is required",
 		},
 		{
 			name: "local module with version should fail",
@@ -92,8 +110,10 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "./local/modules/test-module",
 				Version: "1.0.0",
 			},
-			wantErr: true,
-			errMsg:  "local paths do not support version parameter",
+			expectedSource:  "",
+			expectedVersion: "",
+			wantErr:         true,
+			errMsg:          "local paths do not support version parameter",
 		},
 		{
 			name: "registry module without version should fail",
@@ -101,8 +121,10 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "hashicorp/consul/aws",
 				Version: "",
 			},
-			wantErr: true,
-			errMsg:  "terraform registry sources require version parameter",
+			expectedSource:  "",
+			expectedVersion: "",
+			wantErr:         true,
+			errMsg:          "terraform registry sources require version parameter",
 		},
 		{
 			name: "github module without ref should fail",
@@ -110,8 +132,10 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "github.com/hashicorp/example",
 				Version: "",
 			},
-			wantErr: true,
-			errMsg:  "git/mercurial sources require ref parameter in source string",
+			expectedSource:  "",
+			expectedVersion: "",
+			wantErr:         true,
+			errMsg:          "git/mercurial sources require ref parameter in source string",
 		},
 		{
 			name: "github module with version should fail",
@@ -119,8 +143,10 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "github.com/hashicorp/example?ref=v1.2.0",
 				Version: "1.0.0",
 			},
-			wantErr: true,
-			errMsg:  "git/mercurial sources do not support version parameter, use ref parameter in source string",
+			expectedSource:  "",
+			expectedVersion: "",
+			wantErr:         true,
+			errMsg:          "git/mercurial sources do not support version parameter, use ref parameter in source string",
 		},
 		{
 			name: "s3 module without versionId should fail",
@@ -128,8 +154,10 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip",
 				Version: "",
 			},
-			wantErr: true,
-			errMsg:  "S3 sources require versionId parameter in source string",
+			expectedSource:  "",
+			expectedVersion: "",
+			wantErr:         true,
+			errMsg:          "S3 sources require versionId parameter in source string",
 		},
 		{
 			name: "s3 module with version should fail",
@@ -137,8 +165,10 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip?versionId=abc123",
 				Version: "1.0.0",
 			},
-			wantErr: true,
-			errMsg:  "S3 sources do not support version parameter, use versionId parameter in source string",
+			expectedSource:  "",
+			expectedVersion: "",
+			wantErr:         true,
+			errMsg:          "S3 sources do not support version parameter, use versionId parameter in source string",
 		},
 		{
 			name: "gcs module without generation should fail",
@@ -146,8 +176,10 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "gcs::https://www.googleapis.com/storage/v1/modules/foomodule.zip",
 				Version: "",
 			},
-			wantErr: true,
-			errMsg:  "GCS sources require generation parameter in source string",
+			expectedSource:  "",
+			expectedVersion: "",
+			wantErr:         true,
+			errMsg:          "GCS sources require generation parameter in source string",
 		},
 		{
 			name: "gcs module with version should fail",
@@ -155,8 +187,10 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "gcs::https://www.googleapis.com/storage/v1/modules/foomodule.zip?generation=123456789",
 				Version: "1.0.0",
 			},
-			wantErr: true,
-			errMsg:  "GCS sources do not support version parameter, use generation parameter in source string",
+			expectedSource:  "",
+			expectedVersion: "",
+			wantErr:         true,
+			errMsg:          "GCS sources do not support version parameter, use generation parameter in source string",
 		},
 		{
 			name: "http module should fail",
@@ -164,8 +198,10 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "https://example.com/vpc-module.zip",
 				Version: "",
 			},
-			wantErr: true,
-			errMsg:  "HTTP/HTTPS sources are not supported",
+			expectedSource:  "",
+			expectedVersion: "",
+			wantErr:         true,
+			errMsg:          "HTTP/HTTPS sources are not supported",
 		},
 		{
 			name: "unknown source type should fail",
@@ -173,8 +209,10 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				Source:  "unknown::source/type",
 				Version: "",
 			},
-			wantErr: true,
-			errMsg:  "unknown module source type",
+			expectedSource:  "",
+			expectedVersion: "",
+			wantErr:         true,
+			errMsg:          "unknown module source type",
 		},
 	}
 
@@ -208,24 +246,12 @@ func TestCreateModuleWithVersion(t *testing.T) {
 				return
 			}
 
-			if module.Source != tt.request.Source {
-				t.Errorf("createModuleWithVersion() module.Source = %v, want %v", module.Source, tt.request.Source)
+			if module.Source != tt.expectedSource {
+				t.Errorf("createModuleWithVersion() module.Source = %v, want %v", module.Source, tt.expectedSource)
 			}
 
-			expectedVersion := tt.request.Version
-			if strings.Contains(tt.request.Source, "?ref=") {
-				u, _ := url.Parse(tt.request.Source)
-				expectedVersion = u.Query().Get("ref")
-			} else if strings.Contains(tt.request.Source, "?versionId=") {
-				u, _ := url.Parse(strings.TrimPrefix(tt.request.Source, "s3::"))
-				expectedVersion = u.Query().Get("versionId")
-			} else if strings.Contains(tt.request.Source, "?generation=") {
-				u, _ := url.Parse(strings.TrimPrefix(tt.request.Source, "gcs::"))
-				expectedVersion = u.Query().Get("generation")
-			}
-
-			if moduleVersion.Version != expectedVersion {
-				t.Errorf("createModuleWithVersion() moduleVersion.Version = %v, want %v", moduleVersion.Version, expectedVersion)
+			if moduleVersion.Version != tt.expectedVersion {
+				t.Errorf("createModuleWithVersion() moduleVersion.Version = %v, want %v", moduleVersion.Version, tt.expectedVersion)
 			}
 
 			if moduleVersion.ModuleID != 0 {

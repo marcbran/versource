@@ -287,8 +287,13 @@ func createModuleWithVersion(request CreateModuleRequest) (*Module, *ModuleVersi
 		return nil, nil, err
 	}
 
+	cleanSource := request.Source
+	if extractedVersion != "" {
+		cleanSource = stripQueryParameters(request.Source)
+	}
+
 	module := &Module{
-		Source: request.Source,
+		Source: cleanSource,
 	}
 
 	version := request.Version
@@ -301,6 +306,35 @@ func createModuleWithVersion(request CreateModuleRequest) (*Module, *ModuleVersi
 	}
 
 	return module, moduleVersion, nil
+}
+
+func stripQueryParameters(source string) string {
+	if strings.HasPrefix(source, "s3::") {
+		urlPart := strings.TrimPrefix(source, "s3::")
+		u, err := url.Parse(urlPart)
+		if err != nil {
+			return source
+		}
+		u.RawQuery = ""
+		return "s3::" + u.String()
+	}
+
+	if strings.HasPrefix(source, "gcs::") {
+		urlPart := strings.TrimPrefix(source, "gcs::")
+		u, err := url.Parse(urlPart)
+		if err != nil {
+			return source
+		}
+		u.RawQuery = ""
+		return "gcs::" + u.String()
+	}
+
+	u, err := url.Parse(source)
+	if err != nil {
+		return source
+	}
+	u.RawQuery = ""
+	return u.String()
 }
 
 func extractVersionFromSource(source string) (string, error) {

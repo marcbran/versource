@@ -23,6 +23,7 @@ type ModuleRepo interface {
 	GetModuleBySource(ctx context.Context, source string) (*Module, error)
 	ListModules(ctx context.Context) ([]Module, error)
 	CreateModule(ctx context.Context, module *Module) error
+	DeleteModule(ctx context.Context, moduleID uint) error
 }
 
 type ModuleVersionRepo interface {
@@ -244,6 +245,70 @@ func (u *UpdateModule) Exec(ctx context.Context, req UpdateModuleRequest) (*Upda
 			ModuleID:  req.ModuleID,
 			VersionID: moduleVersion.ID,
 			Version:   moduleVersion.Version,
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+type DeleteModule struct {
+	moduleRepo    ModuleRepo
+	componentRepo ComponentRepo
+	tx            TransactionManager
+}
+
+func NewDeleteModule(moduleRepo ModuleRepo, componentRepo ComponentRepo, tx TransactionManager) *DeleteModule {
+	return &DeleteModule{
+		moduleRepo:    moduleRepo,
+		componentRepo: componentRepo,
+		tx:            tx,
+	}
+}
+
+type DeleteModuleRequest struct {
+	ModuleID uint `json:"module_id"`
+}
+
+type DeleteModuleResponse struct {
+	ModuleID uint `json:"module_id"`
+}
+
+func (d *DeleteModule) Exec(ctx context.Context, req DeleteModuleRequest) (*DeleteModuleResponse, error) {
+	if req.ModuleID == 0 {
+		return nil, UserErr("module_id is required")
+	}
+
+	var response *DeleteModuleResponse
+	err := d.tx.Do(ctx, "main", "delete module", func(ctx context.Context) error {
+		module, err := d.moduleRepo.GetModule(ctx, req.ModuleID)
+		if err != nil {
+			return InternalErrE("failed to get module", err)
+		}
+		if module == nil {
+			return UserErr("module not found")
+		}
+
+		components, err := d.componentRepo.ListComponentsByModule(ctx, req.ModuleID)
+		if err != nil {
+			return InternalErrE("failed to check module references", err)
+		}
+
+		if len(components) > 0 {
+			return UserErr("cannot delete module that is referenced by components")
+		}
+
+		err = d.moduleRepo.DeleteModule(ctx, req.ModuleID)
+		if err != nil {
+			return InternalErrE("failed to delete module", err)
+		}
+
+		response = &DeleteModuleResponse{
+			ModuleID: req.ModuleID,
 		}
 		return nil
 	})

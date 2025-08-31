@@ -1,4 +1,4 @@
-//go:build e2e && (all || datasets)
+//go:build e2e
 
 package tests
 

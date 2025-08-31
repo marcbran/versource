@@ -6,11 +6,11 @@ services:
     command: serve
     container_name: versource-e2e-server
     environment:
-      DB_HOST: dolt
-      DB_USER: versource
-      DB_PASSWORD: versource
-      DB_NAME: versource
-      HTTP_HOSTNAME: 0.0.0.0
+      VS_DATABASE_HOST: dolt
+      VS_DATABASE_USER: versource
+      VS_DATABASE_PASSWORD: versource
+      VS_DATABASE_NAME: versource
+      VS_HTTP_HOSTNAME: 0.0.0.0
     depends_on:
       dolt:
         condition: service_healthy
@@ -30,11 +30,10 @@ services:
     command: migrate
     container_name: versource-e2e-migrate
     environment:
-      DB_HOST: dolt
-      DB_USER: versource
-      DB_PASSWORD: versource
-      DB_NAME: versource
-      HTTP_HOSTNAME: 0.0.0.0
+      VS_DATABASE_HOST: dolt
+      VS_DATABASE_USER: versource
+      VS_DATABASE_PASSWORD: versource
+      VS_DATABASE_NAME: versource
     depends_on:
       dolt:
         condition: service_healthy
@@ -55,8 +54,8 @@ services:
     command: sh -c "while true; do sleep 1; done"
     container_name: versource-e2e-client
     environment:
-      HTTP_HOSTNAME: server
-      HTTP_PORT: 8080
+      VS_HTTP_HOSTNAME: server
+      VS_HTTP_PORT: 8080
     depends_on:
       server:
         condition: service_healthy

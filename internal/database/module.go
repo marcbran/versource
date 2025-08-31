@@ -56,6 +56,15 @@ func (r *GormModuleRepo) CreateModule(ctx context.Context, module *internal.Modu
 	return nil
 }
 
+func (r *GormModuleRepo) DeleteModule(ctx context.Context, moduleID uint) error {
+	db := getTxOrDb(ctx, r.db)
+	err := db.WithContext(ctx).Where("id = ?", moduleID).Delete(&internal.Module{}).Error
+	if err != nil {
+		return fmt.Errorf("failed to delete module: %w", err)
+	}
+	return nil
+}
+
 type GormModuleVersionRepo struct {
 	db *gorm.DB
 }

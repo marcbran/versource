@@ -71,6 +71,7 @@ type Server struct {
 	runApply                    *internal.RunApply
 	createModule                *internal.CreateModule
 	updateModule                *internal.UpdateModule
+	deleteModule                *internal.DeleteModule
 	listModules                 *internal.ListModules
 	listModuleVersions          *internal.ListModuleVersions
 	listModuleVersionsForModule *internal.ListModuleVersionsForModule
@@ -119,6 +120,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		runApply:                    runApply,
 		createModule:                internal.NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
 		updateModule:                internal.NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
+		deleteModule:                internal.NewDeleteModule(moduleRepo, componentRepo, transactionManager),
 		listModules:                 internal.NewListModules(moduleRepo),
 		listModuleVersions:          internal.NewListModuleVersions(moduleVersionRepo),
 		listModuleVersionsForModule: internal.NewListModuleVersionsForModule(moduleVersionRepo),
@@ -153,6 +155,7 @@ func (s *Server) setupRoutes() {
 		r.Post("/changesets", s.handleCreateChangeset)
 		r.Post("/modules", s.handleCreateModule)
 		r.Put("/modules/{moduleID}", s.handleUpdateModule)
+		r.Delete("/modules/{moduleID}", s.handleDeleteModule)
 		r.Get("/modules/{moduleID}/versions", s.handleListModuleVersionsForModule)
 		r.Route("/changesets/{changesetName}", func(r chi.Router) {
 			r.Post("/components", s.handleCreateComponent)
@@ -217,6 +220,27 @@ func (s *Server) handleUpdateModule(w http.ResponseWriter, r *http.Request) {
 	req.ModuleID = uint(moduleID)
 
 	resp, err := s.updateModule.Exec(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
+func (s *Server) handleDeleteModule(w http.ResponseWriter, r *http.Request) {
+	moduleIDStr := chi.URLParam(r, "moduleID")
+	moduleID, err := strconv.ParseUint(moduleIDStr, 10, 32)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid module ID"))
+		return
+	}
+
+	req := internal.DeleteModuleRequest{
+		ModuleID: uint(moduleID),
+	}
+
+	resp, err := s.deleteModule.Exec(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return

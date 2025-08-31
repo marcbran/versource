@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"testing"
@@ -55,8 +56,16 @@ func (s *Stage) the_command_has_failed() *Stage {
 
 func runDockerCompose(args ...string) error {
 	cmd := exec.Command("docker", append([]string{"compose"}, args...)...)
+
 	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
+
+	if os.Getenv("VS_LOG") == "DEBUG" {
+		fmt.Printf("DEBUG: Executing docker compose: %v\n", args)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = io.MultiWriter(os.Stderr, &stderr)
+	} else {
+		cmd.Stderr = &stderr
+	}
 
 	err := cmd.Run()
 	if err != nil {

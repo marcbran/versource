@@ -10,7 +10,7 @@ import (
 
 func (s *Stage) a_module_has_been_created(source, version string) *Stage {
 	s.a_module_is_created(source, version)
-	return s.the_module_is_created_successfully()
+	return s.the_module_creation_has_succeeded()
 }
 
 func (s *Stage) a_module_is_created(source, version string) *Stage {
@@ -29,7 +29,7 @@ func (s *Stage) a_module_is_created(source, version string) *Stage {
 	return s
 }
 
-func (s *Stage) the_module_is_created_successfully() *Stage {
+func (s *Stage) the_module_creation_has_succeeded() *Stage {
 	if s.LastExitCode != 0 {
 		fmt.Println(s.LastError)
 	}
@@ -47,7 +47,7 @@ func (s *Stage) a_module_is_updated(moduleID int, version string) *Stage {
 	return s.execCommand(args...)
 }
 
-func (s *Stage) the_module_is_updated_successfully() *Stage {
+func (s *Stage) the_module_update_has_succeeded() *Stage {
 	if s.LastExitCode != 0 {
 		fmt.Println(s.LastError)
 	}
@@ -56,6 +56,29 @@ func (s *Stage) the_module_is_updated_successfully() *Stage {
 }
 
 func (s *Stage) the_module_update_has_failed() *Stage {
+	assert.Equal(s.t, 1, s.LastExitCode)
+	return s
+}
+
+func (s *Stage) the_module_is_deleted() *Stage {
+	args := []string{"module", "delete", s.ModuleID}
+	return s.execCommand(args...)
+}
+
+func (s *Stage) a_module_is_deleted(moduleID string) *Stage {
+	args := []string{"module", "delete", moduleID}
+	return s.execCommand(args...)
+}
+
+func (s *Stage) the_module_deletion_has_succeeded() *Stage {
+	if s.LastExitCode != 0 {
+		fmt.Println(s.LastError)
+	}
+	assert.Equal(s.t, 0, s.LastExitCode)
+	return s
+}
+
+func (s *Stage) the_module_deletion_has_failed() *Stage {
 	assert.Equal(s.t, 1, s.LastExitCode)
 	return s
 }

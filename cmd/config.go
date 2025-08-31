@@ -29,15 +29,14 @@ func LoadConfig(cmd *cobra.Command) (*internal.Config, error) {
 		}
 	}
 
-	configKey, err := cmd.Flags().GetString("config")
+	configKeyFlag, err := cmd.Flags().GetString("config")
 	if err != nil {
 		return nil, err
 	}
-	if configKey == "" {
-		configKey = os.Getenv("VS_CONFIG")
-	}
-	if configKey == "" {
-		configKey = "default"
+	configKeyEnv := os.Getenv("VS_CONFIG")
+	configKey := configKeyFlag
+	if configKeyFlag == "default" && configKeyEnv != "" {
+		configKey = configKeyEnv
 	}
 	if sub := v.Sub(configKey); sub != nil {
 		v = sub

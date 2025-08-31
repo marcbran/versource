@@ -99,6 +99,34 @@ var moduleUpdateCmd = &cobra.Command{
 	},
 }
 
+var moduleDeleteCmd = &cobra.Command{
+	Use:   "delete [module-id]",
+	Short: "Delete a module",
+	Long:  `Delete a module (only if not referenced by any components)`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		moduleIDStr := args[0]
+		moduleID, err := strconv.ParseUint(moduleIDStr, 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid module ID: %w", err)
+		}
+
+		config, err := LoadConfig(cmd)
+		if err != nil {
+			return err
+		}
+
+		client := http.NewClient(config)
+
+		_, err = client.DeleteModule(cmd.Context(), uint(moduleID))
+		if err != nil {
+			return err
+		}
+
+		return formatOutput(nil, "Module deleted successfully\n")
+	},
+}
+
 func init() {
 	moduleCreateCmd.Flags().String("source", "", "Module source")
 	moduleCreateCmd.Flags().String("version", "", "Module version (optional for some source types)")
@@ -109,4 +137,5 @@ func init() {
 
 	moduleCmd.AddCommand(moduleCreateCmd)
 	moduleCmd.AddCommand(moduleUpdateCmd)
+	moduleCmd.AddCommand(moduleDeleteCmd)
 }

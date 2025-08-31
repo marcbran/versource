@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"gorm.io/datatypes"
 )
@@ -107,8 +108,17 @@ func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) 
 		return nil, UserErr("changeset is required")
 	}
 
+	ensureChangesetReq := EnsureChangesetRequest{
+		Name: req.Changeset,
+	}
+
+	_, err := c.ensureChangeset.Exec(ctx, ensureChangesetReq)
+	if err != nil {
+		return nil, InternalErrE("failed to ensure changeset", err)
+	}
+
 	var response *CreateComponentResponse
-	err := c.tx.Do(ctx, req.Changeset, "create component", func(ctx context.Context) error {
+	err = c.tx.Do(ctx, req.Changeset, "create component", func(ctx context.Context) error {
 		latestVersion, err := c.moduleVersionRepo.GetLatestModuleVersion(ctx, req.ModuleID)
 		if err != nil {
 			return InternalErrE("failed to get latest module version", err)
@@ -148,16 +158,7 @@ func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) 
 	})
 
 	if err != nil {
-		return nil, err
-	}
-
-	ensureChangesetReq := EnsureChangesetRequest{
-		Name: req.Changeset,
-	}
-
-	_, err = c.ensureChangeset.Exec(ctx, ensureChangesetReq)
-	if err != nil {
-		return nil, InternalErrE("failed to ensure changeset", err)
+		return nil, fmt.Errorf("failed to create component: %w", err)
 	}
 
 	planReq := CreatePlanRequest{
@@ -257,7 +258,7 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to update component: %w", err)
 	}
 
 	return response, nil

@@ -127,13 +127,3 @@ services:
       interval: 5s
       timeout: 5s
       retries: 3
-
-  dolt-workbench:
-    image: dolthub/dolt-workbench:latest
-    container_name: versource-e2e-dolt-workbench
-    ports:
-      - "3000:3000"
-      - "9002:9002"
-    volumes:
-      - ./datasets:/datasets
-      - ./workbench:/app/graphql-server/store

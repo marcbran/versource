@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/marcbran/versource/internal"
@@ -29,15 +30,6 @@ func getTxOrDb(ctx context.Context, db *gorm.DB) *gorm.DB {
 	return db
 }
 
-func (tm *GormTransactionManager) Checkout(ctx context.Context, branch string, fn func(ctx context.Context) error) error {
-	err := ensureBranch(tm.db, branch)
-	if err != nil {
-		return fmt.Errorf("failed to ensure branch %s: %w", branch, err)
-	}
-
-	return fn(ctx)
-}
-
 func (tm *GormTransactionManager) Do(ctx context.Context, branch, message string, fn func(ctx context.Context) error) error {
 	return tm.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		err := ensureBranch(tx, branch)
@@ -59,14 +51,23 @@ func (tm *GormTransactionManager) Do(ctx context.Context, branch, message string
 	})
 }
 
+func (tm *GormTransactionManager) Checkout(ctx context.Context, branch string, fn func(ctx context.Context) error) error {
+	err := ensureBranch(tm.db, branch)
+	if err != nil {
+		return fmt.Errorf("failed to ensure branch %s: %w", branch, err)
+	}
+
+	return fn(ctx)
+}
+
 func ensureBranch(tx *gorm.DB, branch string) error {
-	var activeBranch string
+	var activeBranch sql.NullString
 	err := tx.Raw("SELECT active_branch()").Scan(&activeBranch).Error
 	if err != nil {
 		return fmt.Errorf("failed to get active branch: %w", err)
 	}
 
-	if activeBranch == branch {
+	if activeBranch.Valid && activeBranch.String == branch {
 		return nil
 	}
 
@@ -115,28 +116,27 @@ func commitChanges(tx *gorm.DB, message string) error {
 	return nil
 }
 
-func (tm *GormTransactionManager) GetMergeBase(ctx context.Context, source, branch string) (string, error) {
+func (tm *GormTransactionManager) HasBranch(ctx context.Context, branch string) (bool, error) {
 	tx := getTxOrDb(ctx, tm.db)
 
-	var mergeBase string
-	err := tx.Raw("SELECT DOLT_MERGE_BASE(?, ?)", branch, source).Scan(&mergeBase).Error
+	var count int64
+	err := tx.Raw("SELECT COUNT(*) FROM dolt_branches WHERE name = ?", branch).Scan(&count).Error
 	if err != nil {
-		return "", fmt.Errorf("failed to get merge base: %w", err)
+		return false, fmt.Errorf("failed to check if branch exists: %w", err)
 	}
 
-	return mergeBase, nil
+	return count > 0, nil
 }
 
-func (tm *GormTransactionManager) GetHead(ctx context.Context) (string, error) {
+func (tm *GormTransactionManager) CreateBranch(ctx context.Context, branch string) error {
 	tx := getTxOrDb(ctx, tm.db)
 
-	var head string
-	err := tx.Raw("SELECT DOLT_HASHOF('HEAD')").Scan(&head).Error
+	err := tx.Exec("CALL DOLT_BRANCH(?, ?)", branch, internal.MainBranch).Error
 	if err != nil {
-		return "", fmt.Errorf("failed to get head: %w", err)
+		return fmt.Errorf("failed to create branch %s: %w", branch, err)
 	}
 
-	return head, nil
+	return nil
 }
 
 func (tm *GormTransactionManager) MergeBranch(ctx context.Context, branch string) error {
@@ -161,14 +161,26 @@ func (tm *GormTransactionManager) DeleteBranch(ctx context.Context, branch strin
 	return nil
 }
 
-func (tm *GormTransactionManager) BranchExists(ctx context.Context, branch string) (bool, error) {
+func (tm *GormTransactionManager) GetMergeBase(ctx context.Context, source, branch string) (string, error) {
 	tx := getTxOrDb(ctx, tm.db)
 
-	var count int64
-	err := tx.Raw("SELECT COUNT(*) FROM dolt_branches WHERE name = ?", branch).Scan(&count).Error
+	var mergeBase string
+	err := tx.Raw("SELECT DOLT_MERGE_BASE(?, ?)", branch, source).Scan(&mergeBase).Error
 	if err != nil {
-		return false, fmt.Errorf("failed to check if branch exists: %w", err)
+		return "", fmt.Errorf("failed to get merge base: %w", err)
 	}
 
-	return count > 0, nil
+	return mergeBase, nil
+}
+
+func (tm *GormTransactionManager) GetHead(ctx context.Context) (string, error) {
+	tx := getTxOrDb(ctx, tm.db)
+
+	var head string
+	err := tx.Raw("SELECT DOLT_HASHOF('HEAD')").Scan(&head).Error
+	if err != nil {
+		return "", fmt.Errorf("failed to get head: %w", err)
+	}
+
+	return head, nil
 }

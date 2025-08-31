@@ -10,25 +10,33 @@ import (
 type ChangesetState string
 
 const (
-	ChangesetStateDraft      ChangesetState = "Draft"
-	ChangesetStateValidating ChangesetState = "Validating"
-	ChangesetStateValid      ChangesetState = "Valid"
-	ChangesetStateInvalid    ChangesetState = "Invalid"
-	ChangesetStateApplying   ChangesetState = "Applying"
-	ChangesetStateApplied    ChangesetState = "Applied"
-	ChangesetStateFailed     ChangesetState = "Failed"
+	ChangesetStateOpen   ChangesetState = "Open"
+	ChangesetStateClosed ChangesetState = "Closed"
+	ChangesetStateMerged ChangesetState = "Merged"
+)
+
+type ChangesetReviewState string
+
+const (
+	ChangesetReviewStateDraft    ChangesetReviewState = "Draft"
+	ChangesetReviewStatePending  ChangesetReviewState = "Pending"
+	ChangesetReviewStateApproved ChangesetReviewState = "Approved"
+	ChangesetReviewStateRejected ChangesetReviewState = "Rejected"
 )
 
 type Changeset struct {
-	ID    uint           `gorm:"primarykey"`
-	Name  string         `gorm:"index"`
-	State ChangesetState `gorm:"default:Draft"`
+	ID          uint                 `gorm:"primarykey"`
+	Name        string               `gorm:"index"`
+	State       ChangesetState       `gorm:"default:Open"`
+	ReviewState ChangesetReviewState `gorm:"default:Draft"`
 }
 
 type ChangesetRepo interface {
 	GetChangeset(ctx context.Context, changesetID uint) (*Changeset, error)
 	GetChangesetByName(ctx context.Context, name string) (*Changeset, error)
+	GetOpenChangesetByName(ctx context.Context, name string) (*Changeset, error)
 	ListChangesets(ctx context.Context) ([]Changeset, error)
+	HasOpenChangesetWithName(ctx context.Context, name string) (bool, error)
 	CreateChangeset(ctx context.Context, changeset *Changeset) error
 	UpdateChangesetState(ctx context.Context, changesetID uint, state ChangesetState) error
 }
@@ -94,22 +102,22 @@ func (c *CreateChangeset) Exec(ctx context.Context, req CreateChangesetRequest) 
 		return nil, UserErr("name is required")
 	}
 
-	branchExists, err := c.tx.BranchExists(ctx, req.Name)
-	if err != nil {
-		return nil, InternalErrE("failed to check if branch exists", err)
-	}
-	if branchExists {
-		return nil, UserErr(fmt.Sprintf("changeset with name '%s' already exists", req.Name))
-	}
-
 	var response *CreateChangesetResponse
-	err = c.tx.Do(ctx, req.Name, "create changeset", func(ctx context.Context) error {
-		changeset := &Changeset{
-			Name:  req.Name,
-			State: ChangesetStateDraft,
+	err := c.tx.Do(ctx, MainBranch, "create changeset", func(ctx context.Context) error {
+		hasOpenChangesets, err := c.changesetRepo.HasOpenChangesetWithName(ctx, req.Name)
+		if err != nil {
+			return InternalErrE("failed to check for open changesets", err)
+		}
+		if hasOpenChangesets {
+			return UserErr("cannot create changeset: there are open changesets on main")
 		}
 
-		err := c.changesetRepo.CreateChangeset(ctx, changeset)
+		changeset := &Changeset{
+			Name:  req.Name,
+			State: ChangesetStateOpen,
+		}
+
+		err = c.changesetRepo.CreateChangeset(ctx, changeset)
 		if err != nil {
 			return InternalErrE("failed to create changeset", err)
 		}
@@ -124,21 +132,28 @@ func (c *CreateChangeset) Exec(ctx context.Context, req CreateChangesetRequest) 
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create changeset: %w", err)
+	}
+
+	err = c.tx.CreateBranch(ctx, req.Name)
+	if err != nil {
+		return nil, InternalErrE("failed to create changeset branch", err)
 	}
 
 	return response, nil
 }
 
 type EnsureChangeset struct {
-	changesetRepo ChangesetRepo
-	tx            TransactionManager
+	changesetRepo   ChangesetRepo
+	createChangeset *CreateChangeset
+	tx              TransactionManager
 }
 
 func NewEnsureChangeset(changesetRepo ChangesetRepo, tx TransactionManager) *EnsureChangeset {
 	return &EnsureChangeset{
-		changesetRepo: changesetRepo,
-		tx:            tx,
+		changesetRepo:   changesetRepo,
+		createChangeset: NewCreateChangeset(changesetRepo, tx),
+		tx:              tx,
 	}
 }
 
@@ -157,42 +172,36 @@ func (e *EnsureChangeset) Exec(ctx context.Context, req EnsureChangesetRequest) 
 		return nil, UserErr("name is required")
 	}
 
-	var response *EnsureChangesetResponse
-	err := e.tx.Do(ctx, req.Name, "ensure changeset", func(ctx context.Context) error {
-		existingChangeset, err := e.changesetRepo.GetChangesetByName(ctx, req.Name)
-		if err == nil {
-			response = &EnsureChangesetResponse{
-				ID:    existingChangeset.ID,
-				Name:  existingChangeset.Name,
-				State: existingChangeset.State,
-			}
-			return nil
-		}
-
-		changeset := &Changeset{
-			Name:  req.Name,
-			State: ChangesetStateDraft,
-		}
-
-		err = e.changesetRepo.CreateChangeset(ctx, changeset)
+	var existingChangeset *Changeset
+	err := e.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+		var err error
+		existingChangeset, err = e.changesetRepo.GetOpenChangesetByName(ctx, req.Name)
 		if err != nil {
-			return InternalErrE("failed to create changeset", err)
+			return InternalErrE("failed to get changeset", err)
 		}
-
-		response = &EnsureChangesetResponse{
-			ID:    changeset.ID,
-			Name:  changeset.Name,
-			State: changeset.State,
-		}
-
 		return nil
 	})
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get changeset: %w", err)
+	}
+	if existingChangeset != nil {
+		return &EnsureChangesetResponse{
+			ID:    existingChangeset.ID,
+			Name:  existingChangeset.Name,
+			State: existingChangeset.State,
+		}, nil
 	}
 
-	return response, nil
+	createResp, err := e.createChangeset.Exec(ctx, CreateChangesetRequest(req))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create changeset: %w", err)
+	}
+
+	return &EnsureChangesetResponse{
+		ID:    createResp.ID,
+		Name:  createResp.Name,
+		State: createResp.State,
+	}, nil
 }
 
 type MergeChangeset struct {
@@ -243,7 +252,7 @@ func (m *MergeChangeset) Exec(ctx context.Context, req MergeChangesetRequest) (*
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to merge changeset: %w", err)
 	}
 
 	err = m.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
@@ -257,11 +266,18 @@ func (m *MergeChangeset) Exec(ctx context.Context, req MergeChangesetRequest) (*
 			return InternalErrE("failed to delete changeset branch", err)
 		}
 
+		err = m.changesetRepo.UpdateChangesetState(ctx, response.ID, ChangesetStateMerged)
+		if err != nil {
+			return InternalErrE("failed to update changeset state to merged", err)
+		}
+
+		response.State = ChangesetStateMerged
+
 		return nil
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to merge changeset: %w", err)
 	}
 
 	if m.applyWorker != nil {

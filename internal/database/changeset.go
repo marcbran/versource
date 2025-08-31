@@ -37,6 +37,19 @@ func (r *GormChangesetRepo) GetChangesetByName(ctx context.Context, name string)
 	return &changeset, nil
 }
 
+func (r *GormChangesetRepo) GetOpenChangesetByName(ctx context.Context, name string) (*internal.Changeset, error) {
+	db := getTxOrDb(ctx, r.db)
+	var changeset internal.Changeset
+	err := db.WithContext(ctx).Where("state = ? AND name = ?", internal.ChangesetStateOpen, name).First(&changeset).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get open changeset by name: %w", err)
+	}
+	return &changeset, nil
+}
+
 func (r *GormChangesetRepo) ListChangesets(ctx context.Context) ([]internal.Changeset, error) {
 	db := getTxOrDb(ctx, r.db)
 	var changesets []internal.Changeset
@@ -45,6 +58,16 @@ func (r *GormChangesetRepo) ListChangesets(ctx context.Context) ([]internal.Chan
 		return nil, fmt.Errorf("failed to list changesets: %w", err)
 	}
 	return changesets, nil
+}
+
+func (r *GormChangesetRepo) HasOpenChangesetWithName(ctx context.Context, name string) (bool, error) {
+	db := getTxOrDb(ctx, r.db)
+	var count int64
+	err := db.WithContext(ctx).Model(&internal.Changeset{}).Where("state = ? AND name = ?", internal.ChangesetStateOpen, name).Count(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check for open changesets: %w", err)
+	}
+	return count > 0, nil
 }
 
 func (r *GormChangesetRepo) CreateChangeset(ctx context.Context, changeset *internal.Changeset) error {

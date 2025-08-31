@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http"
+	"github.com/marcbran/versource/internal/http/client"
 	"github.com/spf13/cobra"
 )
 
@@ -61,7 +61,7 @@ var componentCreateCmd = &cobra.Command{
 			return err
 		}
 
-		client := http.NewClient(config)
+		client := client.NewClient(config)
 
 		req := internal.CreateComponentRequest{
 			ModuleID:  uint(moduleID),
@@ -128,7 +128,7 @@ var componentUpdateCmd = &cobra.Command{
 			return err
 		}
 
-		client := http.NewClient(config)
+		client := client.NewClient(config)
 
 		req := internal.UpdateComponentRequest{
 			ComponentID: uint(componentID),

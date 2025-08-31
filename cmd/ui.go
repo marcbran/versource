@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/marcbran/versource/internal/http"
+	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +19,7 @@ var uiCmd = &cobra.Command{
 			return err
 		}
 
-		client := http.NewClient(config)
+		client := client.NewClient(config)
 		app := tui.NewApp(client)
 
 		p := tea.NewProgram(app, tea.WithAltScreen())

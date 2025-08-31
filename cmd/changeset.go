@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http"
+	"github.com/marcbran/versource/internal/http/client"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +33,7 @@ var changesetCreateCmd = &cobra.Command{
 			return err
 		}
 
-		client := http.NewClient(config)
+		client := client.NewClient(config)
 
 		req := internal.CreateChangesetRequest{
 			Name: name,
@@ -64,7 +64,7 @@ var changesetMergeCmd = &cobra.Command{
 			return err
 		}
 
-		client := http.NewClient(config)
+		client := client.NewClient(config)
 
 		req := internal.MergeChangesetRequest{
 			ChangesetName: changesetName,

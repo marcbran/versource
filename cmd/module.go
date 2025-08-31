@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http"
+	"github.com/marcbran/versource/internal/http/client"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +39,7 @@ var moduleCreateCmd = &cobra.Command{
 			return err
 		}
 
-		client := http.NewClient(config)
+		client := client.NewClient(config)
 
 		req := internal.CreateModuleRequest{
 			Source:  source,
@@ -84,7 +84,7 @@ var moduleUpdateCmd = &cobra.Command{
 			return err
 		}
 
-		client := http.NewClient(config)
+		client := client.NewClient(config)
 
 		req := internal.UpdateModuleRequest{
 			Version: version,
@@ -116,7 +116,7 @@ var moduleDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		client := http.NewClient(config)
+		client := client.NewClient(config)
 
 		_, err = client.DeleteModule(cmd.Context(), uint(moduleID))
 		if err != nil {

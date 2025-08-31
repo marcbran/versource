@@ -226,6 +226,7 @@ func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []tabl
 		{Title: "ID", Width: 1},
 		{Title: "Name", Width: 7},
 		{Title: "State", Width: 2},
+		{Title: "Review", Width: 2},
 	}
 
 	var rows []table.Row
@@ -235,6 +236,7 @@ func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []tabl
 			strconv.FormatUint(uint64(changeset.ID), 10),
 			changeset.Name,
 			string(changeset.State),
+			string(changeset.ReviewState),
 		})
 		ids = append(ids, strconv.FormatUint(uint64(changeset.ID), 10))
 	}

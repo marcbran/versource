@@ -36,11 +36,13 @@ type ModuleVersionRepo interface {
 
 type ListModules struct {
 	moduleRepo ModuleRepo
+	tx         TransactionManager
 }
 
-func NewListModules(moduleRepo ModuleRepo) *ListModules {
+func NewListModules(moduleRepo ModuleRepo, tx TransactionManager) *ListModules {
 	return &ListModules{
 		moduleRepo: moduleRepo,
+		tx:         tx,
 	}
 }
 
@@ -51,7 +53,12 @@ type ListModulesResponse struct {
 }
 
 func (l *ListModules) Exec(ctx context.Context, req ListModulesRequest) (*ListModulesResponse, error) {
-	modules, err := l.moduleRepo.ListModules(ctx)
+	var modules []Module
+	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+		var err error
+		modules, err = l.moduleRepo.ListModules(ctx)
+		return err
+	})
 	if err != nil {
 		return nil, InternalErrE("failed to list modules", err)
 	}
@@ -63,11 +70,13 @@ func (l *ListModules) Exec(ctx context.Context, req ListModulesRequest) (*ListMo
 
 type ListModuleVersions struct {
 	moduleVersionRepo ModuleVersionRepo
+	tx                TransactionManager
 }
 
-func NewListModuleVersions(moduleVersionRepo ModuleVersionRepo) *ListModuleVersions {
+func NewListModuleVersions(moduleVersionRepo ModuleVersionRepo, tx TransactionManager) *ListModuleVersions {
 	return &ListModuleVersions{
 		moduleVersionRepo: moduleVersionRepo,
+		tx:                tx,
 	}
 }
 
@@ -78,7 +87,12 @@ type ListModuleVersionsResponse struct {
 }
 
 func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error) {
-	moduleVersions, err := l.moduleVersionRepo.ListModuleVersions(ctx)
+	var moduleVersions []ModuleVersion
+	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+		var err error
+		moduleVersions, err = l.moduleVersionRepo.ListModuleVersions(ctx)
+		return err
+	})
 	if err != nil {
 		return nil, InternalErrE("failed to list module versions", err)
 	}
@@ -90,11 +104,13 @@ func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsReq
 
 type ListModuleVersionsForModule struct {
 	moduleVersionRepo ModuleVersionRepo
+	tx                TransactionManager
 }
 
-func NewListModuleVersionsForModule(moduleVersionRepo ModuleVersionRepo) *ListModuleVersionsForModule {
+func NewListModuleVersionsForModule(moduleVersionRepo ModuleVersionRepo, tx TransactionManager) *ListModuleVersionsForModule {
 	return &ListModuleVersionsForModule{
 		moduleVersionRepo: moduleVersionRepo,
+		tx:                tx,
 	}
 }
 
@@ -107,7 +123,12 @@ type ListModuleVersionsForModuleResponse struct {
 }
 
 func (l *ListModuleVersionsForModule) Exec(ctx context.Context, req ListModuleVersionsForModuleRequest) (*ListModuleVersionsForModuleResponse, error) {
-	moduleVersions, err := l.moduleVersionRepo.ListModuleVersionsForModule(ctx, req.ModuleID)
+	var moduleVersions []ModuleVersion
+	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+		var err error
+		moduleVersions, err = l.moduleVersionRepo.ListModuleVersionsForModule(ctx, req.ModuleID)
+		return err
+	})
 	if err != nil {
 		return nil, InternalErrE("failed to list module versions for module", err)
 	}

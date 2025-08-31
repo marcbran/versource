@@ -242,11 +242,13 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 type ListApplies struct {
 	applyRepo ApplyRepo
+	tx        TransactionManager
 }
 
-func NewListApplies(applyRepo ApplyRepo) *ListApplies {
+func NewListApplies(applyRepo ApplyRepo, tx TransactionManager) *ListApplies {
 	return &ListApplies{
 		applyRepo: applyRepo,
+		tx:        tx,
 	}
 }
 
@@ -257,7 +259,12 @@ type ListAppliesResponse struct {
 }
 
 func (l *ListApplies) Exec(ctx context.Context, req ListAppliesRequest) (*ListAppliesResponse, error) {
-	applies, err := l.applyRepo.ListApplies(ctx)
+	var applies []Apply
+	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+		var err error
+		applies, err = l.applyRepo.ListApplies(ctx)
+		return err
+	})
 	if err != nil {
 		return nil, InternalErrE("failed to list applies", err)
 	}

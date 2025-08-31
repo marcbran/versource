@@ -25,11 +25,13 @@ type ComponentRepo interface {
 
 type ListComponents struct {
 	componentRepo ComponentRepo
+	tx            TransactionManager
 }
 
-func NewListComponents(componentRepo ComponentRepo) *ListComponents {
+func NewListComponents(componentRepo ComponentRepo, tx TransactionManager) *ListComponents {
 	return &ListComponents{
 		componentRepo: componentRepo,
+		tx:            tx,
 	}
 }
 
@@ -44,16 +46,19 @@ type ListComponentsResponse struct {
 
 func (l *ListComponents) Exec(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error) {
 	var components []Component
-	var err error
+	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+		var err error
 
-	if req.ModuleVersionID != nil {
-		components, err = l.componentRepo.ListComponentsByModuleVersion(ctx, *req.ModuleVersionID)
-	} else if req.ModuleID != nil {
-		components, err = l.componentRepo.ListComponentsByModule(ctx, *req.ModuleID)
-	} else {
-		components, err = l.componentRepo.ListComponents(ctx)
-	}
+		if req.ModuleVersionID != nil {
+			components, err = l.componentRepo.ListComponentsByModuleVersion(ctx, *req.ModuleVersionID)
+		} else if req.ModuleID != nil {
+			components, err = l.componentRepo.ListComponentsByModule(ctx, *req.ModuleID)
+		} else {
+			components, err = l.componentRepo.ListComponents(ctx)
+		}
 
+		return err
+	})
 	if err != nil {
 		return nil, InternalErrE("failed to list components", err)
 	}

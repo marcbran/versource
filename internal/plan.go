@@ -36,11 +36,13 @@ type PlanStore interface {
 
 type ListPlans struct {
 	planRepo PlanRepo
+	tx       TransactionManager
 }
 
-func NewListPlans(planRepo PlanRepo) *ListPlans {
+func NewListPlans(planRepo PlanRepo, tx TransactionManager) *ListPlans {
 	return &ListPlans{
 		planRepo: planRepo,
+		tx:       tx,
 	}
 }
 
@@ -51,7 +53,12 @@ type ListPlansResponse struct {
 }
 
 func (l *ListPlans) Exec(ctx context.Context, req ListPlansRequest) (*ListPlansResponse, error) {
-	plans, err := l.planRepo.ListPlans(ctx)
+	var plans []Plan
+	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+		var err error
+		plans, err = l.planRepo.ListPlans(ctx)
+		return err
+	})
 	if err != nil {
 		return nil, InternalErrE("failed to list plans", err)
 	}

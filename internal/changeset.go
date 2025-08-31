@@ -35,11 +35,13 @@ type ChangesetRepo interface {
 
 type ListChangesets struct {
 	changesetRepo ChangesetRepo
+	tx            TransactionManager
 }
 
-func NewListChangesets(changesetRepo ChangesetRepo) *ListChangesets {
+func NewListChangesets(changesetRepo ChangesetRepo, tx TransactionManager) *ListChangesets {
 	return &ListChangesets{
 		changesetRepo: changesetRepo,
+		tx:            tx,
 	}
 }
 
@@ -50,7 +52,12 @@ type ListChangesetsResponse struct {
 }
 
 func (l *ListChangesets) Exec(ctx context.Context, req ListChangesetsRequest) (*ListChangesetsResponse, error) {
-	changesets, err := l.changesetRepo.ListChangesets(ctx)
+	var changesets []Changeset
+	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+		var err error
+		changesets, err = l.changesetRepo.ListChangesets(ctx)
+		return err
+	})
 	if err != nil {
 		return nil, InternalErrE("failed to list changesets", err)
 	}

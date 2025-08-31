@@ -7,6 +7,7 @@ type Config struct {
 }
 
 type HttpConfig struct {
+	Scheme   string
 	Hostname string
 	Port     string
 }

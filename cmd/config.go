@@ -80,10 +80,12 @@ func LoadTerraformConfig(v *viper.Viper) *internal.TerraformConfig {
 }
 
 func LoadHttpConfig(v *viper.Viper) *internal.HttpConfig {
+	v.SetDefault("http.scheme", "http")
 	v.SetDefault("http.hostname", "localhost")
 	v.SetDefault("http.port", "8080")
 
 	return &internal.HttpConfig{
+		Scheme:   v.GetString("http.scheme"),
 		Hostname: v.GetString("http.hostname"),
 		Port:     v.GetString("http.port"),
 	}

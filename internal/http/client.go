@@ -17,9 +17,9 @@ type Client struct {
 }
 
 func NewClient(config *internal.Config) *Client {
-	baseURL := fmt.Sprintf("http://%s:%s", config.HTTP.Hostname, config.HTTP.Port)
+	baseURL := fmt.Sprintf("%s://%s:%s", config.HTTP.Scheme, config.HTTP.Hostname, config.HTTP.Port)
 	if config.HTTP.Hostname == "" {
-		baseURL = fmt.Sprintf("http://localhost:%s", config.HTTP.Port)
+		baseURL = fmt.Sprintf("%s://localhost:%s", config.HTTP.Scheme, config.HTTP.Port)
 	}
 
 	return &Client{

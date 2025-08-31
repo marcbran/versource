@@ -46,7 +46,7 @@ type ListComponentsResponse struct {
 
 func (l *ListComponents) Exec(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error) {
 	var components []Component
-	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
 
 		if req.ModuleVersionID != nil {

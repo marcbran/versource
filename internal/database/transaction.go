@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/marcbran/versource/internal"
 	"gorm.io/gorm"
 )
 
@@ -76,7 +77,7 @@ func ensureBranch(tx *gorm.DB, branch string) error {
 	}
 
 	if count == 0 {
-		err = tx.Exec("CALL DOLT_BRANCH(?, ?)", branch, "main").Error
+		err = tx.Exec("CALL DOLT_BRANCH(?, ?)", branch, internal.MainBranch).Error
 		if err != nil {
 			return fmt.Errorf("failed to create branch %s: %w", branch, err)
 		}

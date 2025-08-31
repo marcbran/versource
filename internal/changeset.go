@@ -53,7 +53,7 @@ type ListChangesetsResponse struct {
 
 func (l *ListChangesets) Exec(ctx context.Context, req ListChangesetsRequest) (*ListChangesetsResponse, error) {
 	var changesets []Changeset
-	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
 		changesets, err = l.changesetRepo.ListChangesets(ctx)
 		return err
@@ -246,7 +246,7 @@ func (m *MergeChangeset) Exec(ctx context.Context, req MergeChangesetRequest) (*
 		return nil, err
 	}
 
-	err = m.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+	err = m.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		err := m.tx.MergeBranch(ctx, req.ChangesetName)
 		if err != nil {
 			return InternalErrE("failed to merge changeset branch", err)

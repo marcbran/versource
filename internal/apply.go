@@ -99,7 +99,7 @@ func NewRunApply(config *Config, applyRepo ApplyRepo, stateRepo StateRepo, resou
 func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	var apply *Apply
 
-	err := a.tx.Do(ctx, "main", "start apply", func(ctx context.Context) error {
+	err := a.tx.Do(ctx, MainBranch, "start apply", func(ctx context.Context) error {
 		var err error
 		apply, err = a.applyRepo.GetApply(ctx, applyID)
 		if err != nil {
@@ -134,7 +134,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	err = tf.Init(ctx)
 	if err != nil {
-		stateErr := a.tx.Do(ctx, "main", "fail apply", func(ctx context.Context) error {
+		stateErr := a.tx.Do(ctx, MainBranch, "fail apply", func(ctx context.Context) error {
 			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
 		})
 		if stateErr != nil {
@@ -145,7 +145,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	planPath, err := a.planStore.LoadPlan(ctx, apply.PlanID)
 	if err != nil {
-		stateErr := a.tx.Do(ctx, "main", "fail apply", func(ctx context.Context) error {
+		stateErr := a.tx.Do(ctx, MainBranch, "fail apply", func(ctx context.Context) error {
 			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
 		})
 		if stateErr != nil {
@@ -158,7 +158,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	err = tf.Apply(ctx, tfexec.DirOrPlan(planPath))
 	if err != nil {
-		stateErr := a.tx.Do(ctx, "main", "fail apply", func(ctx context.Context) error {
+		stateErr := a.tx.Do(ctx, MainBranch, "fail apply", func(ctx context.Context) error {
 			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
 		})
 		if stateErr != nil {
@@ -202,7 +202,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 		}
 	}
 
-	err = a.tx.Do(ctx, "main", "complete apply", func(ctx context.Context) error {
+	err = a.tx.Do(ctx, MainBranch, "complete apply", func(ctx context.Context) error {
 		err := a.stateRepo.UpsertState(ctx, &state)
 		if err != nil {
 			stateErr := a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
@@ -260,7 +260,7 @@ type ListAppliesResponse struct {
 
 func (l *ListApplies) Exec(ctx context.Context, req ListAppliesRequest) (*ListAppliesResponse, error) {
 	var applies []Apply
-	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
 		applies, err = l.applyRepo.ListApplies(ctx)
 		return err

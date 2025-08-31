@@ -54,7 +54,7 @@ type ListModulesResponse struct {
 
 func (l *ListModules) Exec(ctx context.Context, req ListModulesRequest) (*ListModulesResponse, error) {
 	var modules []Module
-	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
 		modules, err = l.moduleRepo.ListModules(ctx)
 		return err
@@ -88,7 +88,7 @@ type ListModuleVersionsResponse struct {
 
 func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error) {
 	var moduleVersions []ModuleVersion
-	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
 		moduleVersions, err = l.moduleVersionRepo.ListModuleVersions(ctx)
 		return err
@@ -124,7 +124,7 @@ type ListModuleVersionsForModuleResponse struct {
 
 func (l *ListModuleVersionsForModule) Exec(ctx context.Context, req ListModuleVersionsForModuleRequest) (*ListModuleVersionsForModuleResponse, error) {
 	var moduleVersions []ModuleVersion
-	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
 		moduleVersions, err = l.moduleVersionRepo.ListModuleVersionsForModule(ctx, req.ModuleID)
 		return err
@@ -171,7 +171,7 @@ func (c *CreateModule) Exec(ctx context.Context, req CreateModuleRequest) (*Crea
 	}
 
 	var response *CreateModuleResponse
-	err = c.tx.Do(ctx, "main", "create module", func(ctx context.Context) error {
+	err = c.tx.Do(ctx, MainBranch, "create module", func(ctx context.Context) error {
 		err := c.moduleRepo.CreateModule(ctx, module)
 		if err != nil {
 			return InternalErrE("failed to create module", err)
@@ -231,7 +231,7 @@ func (u *UpdateModule) Exec(ctx context.Context, req UpdateModuleRequest) (*Upda
 	}
 
 	var response *UpdateModuleResponse
-	err := u.tx.Do(ctx, "main", "update module", func(ctx context.Context) error {
+	err := u.tx.Do(ctx, MainBranch, "update module", func(ctx context.Context) error {
 		module, err := u.moduleRepo.GetModule(ctx, req.ModuleID)
 		if err != nil {
 			return InternalErrE("failed to get module", err)
@@ -305,7 +305,7 @@ func (d *DeleteModule) Exec(ctx context.Context, req DeleteModuleRequest) (*Dele
 	}
 
 	var response *DeleteModuleResponse
-	err := d.tx.Do(ctx, "main", "delete module", func(ctx context.Context) error {
+	err := d.tx.Do(ctx, MainBranch, "delete module", func(ctx context.Context) error {
 		module, err := d.moduleRepo.GetModule(ctx, req.ModuleID)
 		if err != nil {
 			return InternalErrE("failed to get module", err)

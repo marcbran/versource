@@ -54,7 +54,7 @@ type ListPlansResponse struct {
 
 func (l *ListPlans) Exec(ctx context.Context, req ListPlansRequest) (*ListPlansResponse, error) {
 	var plans []Plan
-	err := l.tx.Checkout(ctx, "main", func(ctx context.Context) error {
+	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
 		plans, err = l.planRepo.ListPlans(ctx)
 		return err
@@ -117,7 +117,7 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 			return UserErrE("component not found", err)
 		}
 
-		mergeBase, err := c.tx.GetMergeBase(ctx, "main", req.Changeset)
+		mergeBase, err := c.tx.GetMergeBase(ctx, MainBranch, req.Changeset)
 		if err != nil {
 			return InternalErrE("failed to get merge base", err)
 		}

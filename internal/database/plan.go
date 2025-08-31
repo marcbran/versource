@@ -43,7 +43,7 @@ func (r *GormPlanRepo) GetQueuedPlans(ctx context.Context) ([]internal.RunPlanRe
 	for i, plan := range plans {
 		requests[i] = internal.RunPlanRequest{
 			PlanID: plan.ID,
-			Branch: "main", // TODO: get branch for plan
+			Branch: internal.MainBranch, // TODO: get branch for plan
 		}
 	}
 	return requests, nil

@@ -61,6 +61,10 @@ func NewApp(client *http.Client) *App {
 	app.router.Register("modules/{moduleID}/moduleversions", &ModuleVersionsForModulePage{app: app})
 	app.router.Register("moduleversions", &ModuleVersionsPage{app: app})
 	app.router.Register("changesets", &ChangesetsPage{app: app})
+	app.router.Register("changesets/{changesetName}", &ChangesetPage{app: app})
+	app.router.Register("changesets/{changesetName}/components", &ChangesetComponentsPage{app: app})
+	app.router.Register("changesets/{changesetName}/plans", &ChangesetPlansPage{app: app})
+	app.router.Register("changesets/{changesetName}/applies", &ChangesetAppliesPage{app: app})
 	app.router.Register("components", &ComponentsPage{app: app})
 	app.router.Register("plans", &PlansPage{app: app})
 	app.router.Register("applies", &AppliesPage{app: app})
@@ -593,6 +597,26 @@ func (p *ChangesetsPage) Links(params map[string]string) map[string]string {
 	return map[string]string{}
 }
 
+type ChangesetPage struct {
+	app *App
+}
+
+func (p *ChangesetPage) Open(params map[string]string) tea.Cmd {
+	return func() tea.Msg {
+		return dataLoadedMsg{view: fmt.Sprintf("changesets/%s", params["changesetName"]), data: nil}
+	}
+}
+
+func (p *ChangesetPage) Links(params map[string]string) map[string]string {
+	changesetName := params["changesetName"]
+	return map[string]string{
+		"enter": fmt.Sprintf("changesets/%s/components", changesetName),
+		"c":     fmt.Sprintf("changesets/%s/components", changesetName),
+		"p":     fmt.Sprintf("changesets/%s/plans", changesetName),
+		"a":     fmt.Sprintf("changesets/%s/applies", changesetName),
+	}
+}
+
 type ComponentsPage struct {
 	app *App
 }
@@ -683,4 +707,87 @@ func (p *AppliesPage) Open(params map[string]string) tea.Cmd {
 
 func (p *AppliesPage) Links(params map[string]string) map[string]string {
 	return map[string]string{}
+}
+
+type ChangesetComponentsPage struct {
+	app *App
+}
+
+func (p *ChangesetComponentsPage) Open(params map[string]string) tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		changesetName := params["changesetName"]
+
+		req := internal.ListComponentsRequest{}
+
+		resp, err := p.app.client.ListComponents(ctx, req)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+
+		view := fmt.Sprintf("changesets/%s/components", changesetName)
+		return dataLoadedMsg{view: view, data: resp.Components}
+	}
+}
+
+func (p *ChangesetComponentsPage) Links(params map[string]string) map[string]string {
+	changesetName := params["changesetName"]
+	return map[string]string{
+		"p": fmt.Sprintf("changesets/%s/plans", changesetName),
+		"a": fmt.Sprintf("changesets/%s/applies", changesetName),
+	}
+}
+
+type ChangesetPlansPage struct {
+	app *App
+}
+
+func (p *ChangesetPlansPage) Open(params map[string]string) tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		changesetName := params["changesetName"]
+
+		resp, err := p.app.client.ListPlans(ctx)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+
+		view := fmt.Sprintf("changesets/%s/plans", changesetName)
+		return dataLoadedMsg{view: view, data: resp.Plans}
+	}
+}
+
+func (p *ChangesetPlansPage) Links(params map[string]string) map[string]string {
+	changesetName := params["changesetName"]
+	return map[string]string{
+		"c": fmt.Sprintf("changesets/%s/components", changesetName),
+		"a": fmt.Sprintf("changesets/%s/applies", changesetName),
+	}
+}
+
+type ChangesetAppliesPage struct {
+	app *App
+}
+
+func (p *ChangesetAppliesPage) Open(params map[string]string) tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		changesetName := params["changesetName"]
+
+		resp, err := p.app.client.ListApplies(ctx)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+
+		view := fmt.Sprintf("changesets/%s/applies", changesetName)
+		return dataLoadedMsg{view: view, data: resp.Applies}
+	}
+}
+
+func (p *ChangesetAppliesPage) Links(params map[string]string) map[string]string {
+	changesetName := params["changesetName"]
+	return map[string]string{
+		"c": fmt.Sprintf("changesets/%s/components", changesetName),
+		"p": fmt.Sprintf("changesets/%s/plans", changesetName),
+	}
 }

@@ -37,8 +37,9 @@ func NewListComponents(componentRepo ComponentRepo, tx TransactionManager) *List
 }
 
 type ListComponentsRequest struct {
-	ModuleID        *uint `json:"module_id,omitempty"`
-	ModuleVersionID *uint `json:"module_version_id,omitempty"`
+	ModuleID        *uint   `json:"module_id,omitempty"`
+	ModuleVersionID *uint   `json:"module_version_id,omitempty"`
+	Changeset       *string `json:"changeset,omitempty"`
 }
 
 type ListComponentsResponse struct {
@@ -47,7 +48,13 @@ type ListComponentsResponse struct {
 
 func (l *ListComponents) Exec(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error) {
 	var components []Component
-	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+
+	branch := MainBranch
+	if req.Changeset != nil {
+		branch = *req.Changeset
+	}
+
+	err := l.tx.Checkout(ctx, branch, func(ctx context.Context) error {
 		var err error
 
 		if req.ModuleVersionID != nil {

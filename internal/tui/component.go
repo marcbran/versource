@@ -103,7 +103,9 @@ func (p *ChangesetComponentsPage) Open(params map[string]string) tea.Cmd {
 		ctx := context.Background()
 		changesetName := params["changesetName"]
 
-		req := internal.ListComponentsRequest{}
+		req := internal.ListComponentsRequest{
+			Changeset: &changesetName,
+		}
 
 		resp, err := p.app.client.ListComponents(ctx, req)
 		if err != nil {

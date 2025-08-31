@@ -13,6 +13,10 @@ import (
 func (s *Server) handleListComponents(w http.ResponseWriter, r *http.Request) {
 	req := internal.ListComponentsRequest{}
 
+	if changesetName := chi.URLParam(r, "changesetName"); changesetName != "" {
+		req.Changeset = &changesetName
+	}
+
 	if moduleIDStr := r.URL.Query().Get("module-id"); moduleIDStr != "" {
 		moduleID, err := strconv.ParseUint(moduleIDStr, 10, 32)
 		if err != nil {

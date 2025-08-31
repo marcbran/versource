@@ -13,7 +13,12 @@ import (
 )
 
 func (c *Client) ListComponents(ctx context.Context, req internal.ListComponentsRequest) (*internal.ListComponentsResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/components", c.baseURL)
+	var url string
+	if req.Changeset != nil {
+		url = fmt.Sprintf("%s/api/v1/changesets/%s/components", c.baseURL, *req.Changeset)
+	} else {
+		url = fmt.Sprintf("%s/api/v1/components", c.baseURL)
+	}
 
 	params := make([]string, 0)
 	if req.ModuleID != nil {

@@ -18,6 +18,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "text", "Output format (text or json)")
+	rootCmd.PersistentFlags().String("config", "default", "Configuration key to use (defaults to 'default')")
 	rootCmd.AddCommand(changesetCmd)
 	rootCmd.AddCommand(componentCmd)
 	rootCmd.AddCommand(moduleCmd)

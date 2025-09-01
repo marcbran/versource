@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/internal/http/client"
 )
 
 func getComponentsTable(components []internal.Component) ([]table.Column, []table.Row, []string) {
@@ -41,42 +42,54 @@ func getComponentsTable(components []internal.Component) ([]table.Column, []tabl
 }
 
 type ComponentsPage struct {
-	app *App
+	client          *client.Client
+	moduleID        string
+	moduleVersionID string
 }
 
-func (p *ComponentsPage) Open(params map[string]string) tea.Cmd {
+func NewComponentsPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return &ComponentsPage{
+			client:          client,
+			moduleID:        params["module-id"],
+			moduleVersionID: params["module-version-id"],
+		}
+	}
+}
+
+func (p *ComponentsPage) Open() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
 		req := internal.ListComponentsRequest{}
 
-		if moduleIDStr, ok := params["module-id"]; ok {
-			if moduleID, err := strconv.ParseUint(moduleIDStr, 10, 32); err == nil {
+		if p.moduleID != "" {
+			if moduleID, err := strconv.ParseUint(p.moduleID, 10, 32); err == nil {
 				moduleIDUint := uint(moduleID)
 				req.ModuleID = &moduleIDUint
 			}
 		}
 
-		if moduleVersionIDStr, ok := params["module-version-id"]; ok {
-			if moduleVersionID, err := strconv.ParseUint(moduleVersionIDStr, 10, 32); err == nil {
+		if p.moduleVersionID != "" {
+			if moduleVersionID, err := strconv.ParseUint(p.moduleVersionID, 10, 32); err == nil {
 				moduleVersionIDUint := uint(moduleVersionID)
 				req.ModuleVersionID = &moduleVersionIDUint
 			}
 		}
 
-		resp, err := p.app.client.ListComponents(ctx, req)
+		resp, err := p.client.ListComponents(ctx, req)
 		if err != nil {
 			return errorMsg{err: err}
 		}
 
 		view := "components"
-		if len(params) > 0 {
+		if p.moduleID != "" || p.moduleVersionID != "" {
 			queryParts := make([]string, 0)
-			if moduleIDStr, ok := params["module-id"]; ok {
-				queryParts = append(queryParts, fmt.Sprintf("module-id=%s", moduleIDStr))
+			if p.moduleID != "" {
+				queryParts = append(queryParts, fmt.Sprintf("module-id=%s", p.moduleID))
 			}
-			if moduleVersionIDStr, ok := params["module-version-id"]; ok {
-				queryParts = append(queryParts, fmt.Sprintf("module-version-id=%s", moduleVersionIDStr))
+			if p.moduleVersionID != "" {
+				queryParts = append(queryParts, fmt.Sprintf("module-version-id=%s", p.moduleVersionID))
 			}
 			if len(queryParts) > 0 {
 				view = fmt.Sprintf("components?%s", strings.Join(queryParts, "&"))
@@ -87,7 +100,7 @@ func (p *ComponentsPage) Open(params map[string]string) tea.Cmd {
 	}
 }
 
-func (p *ComponentsPage) Links(params map[string]string) map[string]string {
+func (p *ComponentsPage) Links() map[string]string {
 	return map[string]string{
 		"m": "modules",
 		"v": "moduleversions",
@@ -95,32 +108,40 @@ func (p *ComponentsPage) Links(params map[string]string) map[string]string {
 }
 
 type ChangesetComponentsPage struct {
-	app *App
+	client        *client.Client
+	changesetName string
 }
 
-func (p *ChangesetComponentsPage) Open(params map[string]string) tea.Cmd {
+func NewChangesetComponentsPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return &ChangesetComponentsPage{
+			client:        client,
+			changesetName: params["changesetName"],
+		}
+	}
+}
+
+func (p *ChangesetComponentsPage) Open() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		changesetName := params["changesetName"]
 
 		req := internal.ListComponentsRequest{
-			Changeset: &changesetName,
+			Changeset: &p.changesetName,
 		}
 
-		resp, err := p.app.client.ListComponents(ctx, req)
+		resp, err := p.client.ListComponents(ctx, req)
 		if err != nil {
 			return errorMsg{err: err}
 		}
 
-		view := fmt.Sprintf("changesets/%s/components", changesetName)
+		view := fmt.Sprintf("changesets/%s/components", p.changesetName)
 		return dataLoadedMsg{view: view, data: resp.Components}
 	}
 }
 
-func (p *ChangesetComponentsPage) Links(params map[string]string) map[string]string {
-	changesetName := params["changesetName"]
+func (p *ChangesetComponentsPage) Links() map[string]string {
 	return map[string]string{
-		"p": fmt.Sprintf("changesets/%s/plans", changesetName),
-		"a": fmt.Sprintf("changesets/%s/applies", changesetName),
+		"p": fmt.Sprintf("changesets/%s/plans", p.changesetName),
+		"a": fmt.Sprintf("changesets/%s/applies", p.changesetName),
 	}
 }

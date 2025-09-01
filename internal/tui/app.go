@@ -13,19 +13,36 @@ import (
 )
 
 type App struct {
-	client      *client.Client
-	router      *Router
+	client *client.Client
+	router *Router
+
+	loading bool
+	err     error
+
+	input     textinput.Model
+	showInput bool
+
+	size Rect
+
 	currentView string
 	viewHistory []string
-	table       table.Model
-	columns     []table.Column
-	rows        []table.Row
-	rowIds      []string
-	size        Rect
-	loading     bool
-	err         error
-	input       textinput.Model
-	showInput   bool
+
+	table   table.Model
+	columns []table.Column
+	rows    []table.Row
+	rowIds  []string
+}
+
+func (a *App) contentSize() Rect {
+	contentWidth := a.size.Width - 4
+	contentHeight := a.size.Height - 2
+	if a.showInput {
+		contentHeight -= 3
+	}
+	return Rect{
+		Width:  contentWidth,
+		Height: contentHeight,
+	}
 }
 
 func (a *App) cursorView() string {
@@ -42,30 +59,33 @@ type Rect struct {
 }
 
 func NewApp(client *client.Client) *App {
-	ti := textinput.New()
-	ti.CharLimit = 100
+	input := textinput.New()
+	input.CharLimit = 100
 
 	app := &App{
-		client:      client,
-		router:      NewRouter(),
+		client: client,
+		router: NewRouter(),
+
+		input: input,
+
 		currentView: "modules",
 		viewHistory: []string{},
-		table:       table.New(),
-		input:       ti,
+
+		table: table.New(),
 	}
 
-	app.router.Register("modules", &ModulesPage{app: app})
-	app.router.Register("modules/{moduleID}", &ModulePage{app: app})
-	app.router.Register("modules/{moduleID}/moduleversions", &ModuleVersionsForModulePage{app: app})
-	app.router.Register("moduleversions", &ModuleVersionsPage{app: app})
-	app.router.Register("changesets", &ChangesetsPage{app: app})
-	app.router.Register("changesets/{changesetName}", &ChangesetPage{app: app})
-	app.router.Register("changesets/{changesetName}/components", &ChangesetComponentsPage{app: app})
-	app.router.Register("changesets/{changesetName}/plans", &ChangesetPlansPage{app: app})
-	app.router.Register("changesets/{changesetName}/applies", &ChangesetAppliesPage{app: app})
-	app.router.Register("components", &ComponentsPage{app: app})
-	app.router.Register("plans", &PlansPage{app: app})
-	app.router.Register("applies", &AppliesPage{app: app})
+	app.router.Register("modules", NewModulesPage(client))
+	app.router.Register("modules/{moduleID}", NewModulePage(client))
+	app.router.Register("modules/{moduleID}/moduleversions", NewModuleVersionsForModulePage(client))
+	app.router.Register("moduleversions", NewModuleVersionsPage(client))
+	app.router.Register("changesets", NewChangesetsPage(client))
+	app.router.Register("changesets/{changesetName}", NewChangesetPage(client))
+	app.router.Register("changesets/{changesetName}/components", NewChangesetComponentsPage(client))
+	app.router.Register("changesets/{changesetName}/plans", NewChangesetPlansPage(client))
+	app.router.Register("changesets/{changesetName}/applies", NewChangesetAppliesPage(client))
+	app.router.Register("components", NewComponentsPage(client))
+	app.router.Register("plans", NewPlansPage(client))
+	app.router.Register("applies", NewAppliesPage(client))
 
 	return app
 }
@@ -92,13 +112,13 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				a.showInput = false
 				a.input.SetValue("")
-				a.table = createTable(a.columns, a.rows, a.size, a.showInput)
+				a.table = newTable(a.columns, a.rows, a.contentSize())
 				return a, nil
 			case "enter":
 				command := a.input.Value()
 				a.showInput = false
 				a.input.SetValue("")
-				a.table = createTable(a.columns, a.rows, a.size, a.showInput)
+				a.table = newTable(a.columns, a.rows, a.contentSize())
 				return a, a.executeCommand(command)
 			}
 		}
@@ -111,13 +131,13 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.size.Width = msg.Width
 		a.size.Height = msg.Height
 		a.input.Width = msg.Width - 7
-		a.table = createTable(a.columns, a.rows, a.size, a.showInput)
+		a.table = newTable(a.columns, a.rows, a.contentSize())
 	case tea.KeyMsg:
 		switch msg.String() {
 		case ":":
 			a.showInput = true
 			a.input.Focus()
-			a.table = createTable(a.columns, a.rows, a.size, a.showInput)
+			a.table = newTable(a.columns, a.rows, a.contentSize())
 			return a, textinput.Blink
 		case "r":
 			return a, a.refresh()
@@ -150,7 +170,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		a.currentView = msg.view
 		a.columns, a.rows, a.rowIds = getTable(msg.data)
-		a.table = createTable(a.columns, a.rows, a.size, a.showInput)
+		a.table = newTable(a.columns, a.rows, a.contentSize())
 	case errorMsg:
 		a.loading = false
 		a.err = msg.err
@@ -179,7 +199,7 @@ func getTable(data any) ([]table.Column, []table.Row, []string) {
 	}
 }
 
-func createTable(columns []table.Column, rows []table.Row, size Rect, showInput bool) table.Model {
+func newTable(columns []table.Column, rows []table.Row, size Rect) table.Model {
 	if len(rows) == 0 {
 		placeholderRow := make(table.Row, len(columns))
 		for i := range placeholderRow {
@@ -193,15 +213,11 @@ func createTable(columns []table.Column, rows []table.Row, size Rect, showInput 
 
 	adjustedColumns := adjustColumnWidths(columns, size.Width)
 
-	tableHeight := size.Height - 2
-	if showInput {
-		tableHeight -= 3
-	}
-
 	t := table.New(
 		table.WithColumns(adjustedColumns),
 		table.WithRows(rows),
-		table.WithHeight(tableHeight),
+		table.WithWidth(size.Width),
+		table.WithHeight(size.Height),
 	)
 	t.SetStyles(table.Styles{
 		Header:   lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Background(lipgloss.Color("8")),
@@ -224,21 +240,18 @@ func adjustColumnWidths(columns []table.Column, totalWidth int) []table.Column {
 		return columns
 	}
 
-	borderSpace := 2
-	paddingSpace := 2
-	availableWidth := totalWidth - borderSpace - paddingSpace
 	adjusted := make([]table.Column, len(columns))
 	allocatedWidth := 0
 	for i, col := range columns {
 		adjusted[i] = col
 		if totalWeight > 0 {
-			adjusted[i].Width = max(1, (col.Width*availableWidth)/totalWeight)
+			adjusted[i].Width = max(1, (col.Width*totalWidth)/totalWeight)
 		}
 		allocatedWidth += adjusted[i].Width
 	}
 
-	if len(adjusted) > 0 && allocatedWidth < availableWidth {
-		adjusted[len(adjusted)-1].Width += availableWidth - allocatedWidth
+	if len(adjusted) > 0 && allocatedWidth < totalWidth {
+		adjusted[len(adjusted)-1].Width += totalWidth - allocatedWidth
 	}
 
 	return adjusted
@@ -267,9 +280,9 @@ func (a *App) executeCommand(command string) tea.Cmd {
 
 func (a *App) refresh() tea.Cmd {
 	return func() tea.Msg {
-		page, params := a.router.Match(a.currentView)
-		if page != nil {
-			return page.Open(params)()
+		cmd := a.router.Open(a.currentView)
+		if cmd != nil {
+			return cmd()
 		}
 		return nil
 	}
@@ -298,14 +311,12 @@ type errorMsg struct {
 
 func (a *App) View() string {
 	if a.loading {
-		return "Loading...\nPress 'q' to quit, 'r' to refresh, ':' to enter commands"
+		return "Loading...\nPress 'r' to refresh, 'esc' to go back, 'ctrl+c' to quit, ':' to enter commands"
 	}
 
 	if a.err != nil {
-		return fmt.Sprintf("Error: %v\nPress 'r' to retry, 'q' to quit", a.err)
+		return fmt.Sprintf("Error: %v\nPress 'r' to refresh, 'esc' to go back, 'ctrl+c' to quit, ':' to enter commands", a.err)
 	}
-
-	a.table.SetWidth(0)
 
 	tableView := a.table.View()
 

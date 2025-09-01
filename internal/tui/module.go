@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/internal/http/client"
 )
 
 func getModulesTable(modules []internal.Module) ([]table.Column, []table.Row, []string) {
@@ -55,13 +56,19 @@ func getModuleVersionsTable(moduleVersions []internal.ModuleVersion) ([]table.Co
 }
 
 type ModulesPage struct {
-	app *App
+	client *client.Client
 }
 
-func (p *ModulesPage) Open(params map[string]string) tea.Cmd {
+func NewModulesPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return &ModulesPage{client: client}
+	}
+}
+
+func (p *ModulesPage) Open() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		resp, err := p.app.client.ListModules(ctx)
+		resp, err := p.client.ListModules(ctx)
 		if err != nil {
 			return errorMsg{err: err}
 		}
@@ -69,35 +76,49 @@ func (p *ModulesPage) Open(params map[string]string) tea.Cmd {
 	}
 }
 
-func (p *ModulesPage) Links(params map[string]string) map[string]string {
+func (p *ModulesPage) Links() map[string]string {
 	return map[string]string{}
 }
 
 type ModulePage struct {
-	app *App
+	client   *client.Client
+	moduleID string
 }
 
-func (p *ModulePage) Open(params map[string]string) tea.Cmd {
-	return func() tea.Msg {
-		return dataLoadedMsg{view: fmt.Sprintf("modules/%s", params["moduleID"]), data: nil}
+func NewModulePage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return &ModulePage{client: client, moduleID: params["moduleID"]}
 	}
 }
 
-func (p *ModulePage) Links(params map[string]string) map[string]string {
+func (p *ModulePage) Open() tea.Cmd {
+	return func() tea.Msg {
+		return dataLoadedMsg{view: fmt.Sprintf("modules/%s", p.moduleID), data: nil}
+	}
+}
+
+func (p *ModulePage) Links() map[string]string {
 	return map[string]string{
-		"enter": fmt.Sprintf("modules/%s/moduleversions", params["moduleID"]),
-		"c":     fmt.Sprintf("components?module-id=%s", params["moduleID"]),
+		"enter": fmt.Sprintf("modules/%s/moduleversions", p.moduleID),
+		"c":     fmt.Sprintf("components?module-id=%s", p.moduleID),
 	}
 }
 
 type ModuleVersionsPage struct {
-	app *App
+	client          *client.Client
+	moduleVersionID string
 }
 
-func (p *ModuleVersionsPage) Open(params map[string]string) tea.Cmd {
+func NewModuleVersionsPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return &ModuleVersionsPage{client: client, moduleVersionID: params["moduleVersionID"]}
+	}
+}
+
+func (p *ModuleVersionsPage) Open() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		resp, err := p.app.client.ListModuleVersions(ctx)
+		resp, err := p.client.ListModuleVersions(ctx)
 		if err != nil {
 			return errorMsg{err: err}
 		}
@@ -105,37 +126,40 @@ func (p *ModuleVersionsPage) Open(params map[string]string) tea.Cmd {
 	}
 }
 
-func (p *ModuleVersionsPage) Links(params map[string]string) map[string]string {
+func (p *ModuleVersionsPage) Links() map[string]string {
 	return map[string]string{
-		"c": fmt.Sprintf("components?module-version-id=%s", params["moduleVersionID"]),
+		"c": fmt.Sprintf("components?module-version-id=%s", p.moduleVersionID),
 	}
 }
 
 type ModuleVersionsForModulePage struct {
-	app *App
+	client   *client.Client
+	moduleID string
 }
 
-func (p *ModuleVersionsForModulePage) Open(params map[string]string) tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		moduleID, exists := params["moduleID"]
-		if !exists {
-			return errorMsg{err: fmt.Errorf("moduleID parameter required")}
-		}
-
-		moduleIDUint, err := strconv.ParseUint(moduleID, 10, 32)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		resp, err := p.app.client.ListModuleVersionsForModule(ctx, uint(moduleIDUint))
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		return dataLoadedMsg{view: fmt.Sprintf("modules/%s/moduleversions", moduleID), data: resp.ModuleVersions}
+func NewModuleVersionsForModulePage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return &ModuleVersionsForModulePage{client: client, moduleID: params["moduleID"]}
 	}
 }
 
-func (p *ModuleVersionsForModulePage) Links(params map[string]string) map[string]string {
+func (p *ModuleVersionsForModulePage) Open() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+
+		moduleIDUint, err := strconv.ParseUint(p.moduleID, 10, 32)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+		resp, err := p.client.ListModuleVersionsForModule(ctx, uint(moduleIDUint))
+		if err != nil {
+			return errorMsg{err: err}
+		}
+		return dataLoadedMsg{view: fmt.Sprintf("modules/%s/moduleversions", p.moduleID), data: resp.ModuleVersions}
+	}
+}
+
+func (p *ModuleVersionsForModulePage) Links() map[string]string {
 	return map[string]string{
 		"m": "modules",
 	}

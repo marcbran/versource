@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/internal/http/client"
 )
 
 func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []table.Row, []string) {
@@ -34,13 +35,19 @@ func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []tabl
 }
 
 type ChangesetsPage struct {
-	app *App
+	client *client.Client
 }
 
-func (p *ChangesetsPage) Open(params map[string]string) tea.Cmd {
+func NewChangesetsPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return &ChangesetsPage{client: client}
+	}
+}
+
+func (p *ChangesetsPage) Open() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		resp, err := p.app.client.ListChangesets(ctx)
+		resp, err := p.client.ListChangesets(ctx)
 		if err != nil {
 			return errorMsg{err: err}
 		}
@@ -48,26 +55,35 @@ func (p *ChangesetsPage) Open(params map[string]string) tea.Cmd {
 	}
 }
 
-func (p *ChangesetsPage) Links(params map[string]string) map[string]string {
+func (p *ChangesetsPage) Links() map[string]string {
 	return map[string]string{}
 }
 
 type ChangesetPage struct {
-	app *App
+	client        *client.Client
+	changesetName string
 }
 
-func (p *ChangesetPage) Open(params map[string]string) tea.Cmd {
-	return func() tea.Msg {
-		return dataLoadedMsg{view: fmt.Sprintf("changesets/%s", params["changesetName"]), data: nil}
+func NewChangesetPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return &ChangesetPage{
+			client:        client,
+			changesetName: params["changesetName"],
+		}
 	}
 }
 
-func (p *ChangesetPage) Links(params map[string]string) map[string]string {
-	changesetName := params["changesetName"]
+func (p *ChangesetPage) Open() tea.Cmd {
+	return func() tea.Msg {
+		view := fmt.Sprintf("changesets/%s", p.changesetName)
+		return dataLoadedMsg{view: view, data: nil}
+	}
+}
+
+func (p *ChangesetPage) Links() map[string]string {
 	return map[string]string{
-		"enter": fmt.Sprintf("changesets/%s/components", changesetName),
-		"c":     fmt.Sprintf("changesets/%s/components", changesetName),
-		"p":     fmt.Sprintf("changesets/%s/plans", changesetName),
-		"a":     fmt.Sprintf("changesets/%s/applies", changesetName),
+		"c": fmt.Sprintf("changesets/%s/components", p.changesetName),
+		"p": fmt.Sprintf("changesets/%s/plans", p.changesetName),
+		"a": fmt.Sprintf("changesets/%s/applies", p.changesetName),
 	}
 }

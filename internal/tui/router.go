@@ -7,47 +7,47 @@ import (
 )
 
 type Page interface {
-	Open(params map[string]string) tea.Cmd
-	Links(params map[string]string) map[string]string
+	Open() tea.Cmd
+	Links() map[string]string
 }
 
 type Router struct {
-	routes map[string]Page
+	routes map[string]func(map[string]string) Page
 }
 
 func NewRouter() *Router {
 	return &Router{
-		routes: make(map[string]Page),
+		routes: make(map[string]func(map[string]string) Page),
 	}
 }
 
-func (r *Router) Register(path string, page Page) {
+func (r *Router) Register(path string, page func(map[string]string) Page) {
 	r.routes[path] = page
 }
 
-func (r *Router) Match(path string) (Page, map[string]string) {
+func (r *Router) Match(path string) Page {
 	for routePath, page := range r.routes {
 		if params := matchPath(routePath, path); params != nil {
-			return page, params
+			return page(params)
 		}
 	}
-	return nil, nil
+	return nil
 }
 
 func (r *Router) Open(path string) tea.Cmd {
-	page, params := r.Match(path)
+	page := r.Match(path)
 	if page == nil {
 		return nil
 	}
-	return page.Open(params)
+	return page.Open()
 }
 
 func (r *Router) Links(path string) map[string]string {
-	page, params := r.Match(path)
+	page := r.Match(path)
 	if page == nil {
 		return nil
 	}
-	return page.Links(params)
+	return page.Links()
 }
 
 func (r *Router) OpenLink(view string, link string) tea.Cmd {

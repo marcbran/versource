@@ -11,26 +11,90 @@ import (
 	"github.com/marcbran/versource/internal/http/client"
 )
 
-func getModulesTable(modules []internal.Module) ([]table.Column, []table.Row, []string) {
+type ModulesTableData struct {
+	client *client.Client
+}
+
+func NewModulesPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return NewDataTable(&ModulesTableData{client: client})
+	}
+}
+
+func (p *ModulesTableData) LoadData() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		resp, err := p.client.ListModules(ctx)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+		return dataLoadedMsg{data: resp.Modules}
+	}
+}
+
+func (p *ModulesTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
+	modules, ok := data.([]internal.Module)
+	if !ok {
+		return nil, nil, nil
+	}
+
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Source", Width: 9},
 	}
 
 	var rows []table.Row
-	var ids []string
+	var elems []any
 	for _, module := range modules {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(module.ID), 10),
 			module.Source,
 		})
-		ids = append(ids, strconv.FormatUint(uint64(module.ID), 10))
+		elems = append(elems, module)
 	}
 
-	return columns, rows, ids
+	return columns, rows, elems
 }
 
-func getModuleVersionsTable(moduleVersions []internal.ModuleVersion) ([]table.Column, []table.Row, []string) {
+func (p *ModulesTableData) Links(elem any) map[string]string {
+	module, ok := elem.(internal.Module)
+	if !ok {
+		return map[string]string{}
+	}
+	return map[string]string{
+		"enter": fmt.Sprintf("modules/%d/moduleversions", module.ID),
+		"c":     fmt.Sprintf("components?module-id=%d", module.ID),
+	}
+}
+
+type ModuleVersionsTableData struct {
+	client          *client.Client
+	moduleVersionID string
+}
+
+func NewModuleVersionsPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return NewDataTable(&ModuleVersionsTableData{client: client, moduleVersionID: params["moduleVersionID"]})
+	}
+}
+
+func (p *ModuleVersionsTableData) LoadData() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		resp, err := p.client.ListModuleVersions(ctx)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+		return dataLoadedMsg{data: resp.ModuleVersions}
+	}
+}
+
+func (p *ModuleVersionsTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
+	moduleVersions, ok := data.([]internal.ModuleVersion)
+	if !ok {
+		return nil, nil, nil
+	}
+
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Module", Width: 7},
@@ -38,7 +102,7 @@ func getModuleVersionsTable(moduleVersions []internal.ModuleVersion) ([]table.Co
 	}
 
 	var rows []table.Row
-	var ids []string
+	var elems []any
 	for _, moduleVersion := range moduleVersions {
 		source := ""
 		if moduleVersion.Module.Source != "" {
@@ -49,101 +113,34 @@ func getModuleVersionsTable(moduleVersions []internal.ModuleVersion) ([]table.Co
 			source,
 			moduleVersion.Version,
 		})
-		ids = append(ids, strconv.FormatUint(uint64(moduleVersion.ID), 10))
+		elems = append(elems, moduleVersion)
 	}
 
-	return columns, rows, ids
+	return columns, rows, elems
 }
 
-type ModulesPage struct {
-	client *client.Client
-}
-
-func NewModulesPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return &ModulesPage{client: client}
+func (p *ModuleVersionsTableData) Links(elem any) map[string]string {
+	moduleVersion, ok := elem.(internal.ModuleVersion)
+	if !ok {
+		return map[string]string{}
 	}
-}
-
-func (p *ModulesPage) Open() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		resp, err := p.client.ListModules(ctx)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		return dataLoadedMsg{view: "modules", data: resp.Modules}
-	}
-}
-
-func (p *ModulesPage) Links() map[string]string {
-	return map[string]string{}
-}
-
-type ModulePage struct {
-	client   *client.Client
-	moduleID string
-}
-
-func NewModulePage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return &ModulePage{client: client, moduleID: params["moduleID"]}
-	}
-}
-
-func (p *ModulePage) Open() tea.Cmd {
-	return func() tea.Msg {
-		return dataLoadedMsg{view: fmt.Sprintf("modules/%s", p.moduleID), data: nil}
-	}
-}
-
-func (p *ModulePage) Links() map[string]string {
 	return map[string]string{
-		"enter": fmt.Sprintf("modules/%s/moduleversions", p.moduleID),
-		"c":     fmt.Sprintf("components?module-id=%s", p.moduleID),
+		"c": fmt.Sprintf("components?module-version-id=%d", moduleVersion.ID),
 	}
 }
 
-type ModuleVersionsPage struct {
-	client          *client.Client
-	moduleVersionID string
-}
-
-func NewModuleVersionsPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return &ModuleVersionsPage{client: client, moduleVersionID: params["moduleVersionID"]}
-	}
-}
-
-func (p *ModuleVersionsPage) Open() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		resp, err := p.client.ListModuleVersions(ctx)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		return dataLoadedMsg{view: "moduleversions", data: resp.ModuleVersions}
-	}
-}
-
-func (p *ModuleVersionsPage) Links() map[string]string {
-	return map[string]string{
-		"c": fmt.Sprintf("components?module-version-id=%s", p.moduleVersionID),
-	}
-}
-
-type ModuleVersionsForModulePage struct {
+type ModuleVersionsForModuleTableData struct {
 	client   *client.Client
 	moduleID string
 }
 
 func NewModuleVersionsForModulePage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		return &ModuleVersionsForModulePage{client: client, moduleID: params["moduleID"]}
+		return NewDataTable(&ModuleVersionsForModuleTableData{client: client, moduleID: params["moduleID"]})
 	}
 }
 
-func (p *ModuleVersionsForModulePage) Open() tea.Cmd {
+func (p *ModuleVersionsForModuleTableData) LoadData() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
@@ -155,12 +152,46 @@ func (p *ModuleVersionsForModulePage) Open() tea.Cmd {
 		if err != nil {
 			return errorMsg{err: err}
 		}
-		return dataLoadedMsg{view: fmt.Sprintf("modules/%s/moduleversions", p.moduleID), data: resp.ModuleVersions}
+		return dataLoadedMsg{data: resp.ModuleVersions}
 	}
 }
 
-func (p *ModuleVersionsForModulePage) Links() map[string]string {
+func (p *ModuleVersionsForModuleTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
+	moduleVersions, ok := data.([]internal.ModuleVersion)
+	if !ok {
+		return nil, nil, nil
+	}
+
+	columns := []table.Column{
+		{Title: "ID", Width: 1},
+		{Title: "Module", Width: 7},
+		{Title: "Version", Width: 2},
+	}
+
+	var rows []table.Row
+	var elems []any
+	for _, moduleVersion := range moduleVersions {
+		source := ""
+		if moduleVersion.Module.Source != "" {
+			source = moduleVersion.Module.Source
+		}
+		rows = append(rows, table.Row{
+			strconv.FormatUint(uint64(moduleVersion.ID), 10),
+			source,
+			moduleVersion.Version,
+		})
+		elems = append(elems, moduleVersion)
+	}
+
+	return columns, rows, elems
+}
+
+func (p *ModuleVersionsForModuleTableData) Links(elem any) map[string]string {
+	moduleVersion, ok := elem.(internal.ModuleVersion)
+	if !ok {
+		return map[string]string{}
+	}
 	return map[string]string{
-		"m": "modules",
+		"c": fmt.Sprintf("components?module-version-id=%d", moduleVersion.ID),
 	}
 }

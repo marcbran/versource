@@ -2,7 +2,6 @@ package tui
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -11,7 +10,33 @@ import (
 	"github.com/marcbran/versource/internal/http/client"
 )
 
-func getPlansTable(plans []internal.Plan) ([]table.Column, []table.Row, []string) {
+type PlansTableData struct {
+	client *client.Client
+}
+
+func NewPlansPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return NewDataTable(&PlansTableData{client: client})
+	}
+}
+
+func (p *PlansTableData) LoadData() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		resp, err := p.client.ListPlans(ctx)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+		return dataLoadedMsg{data: resp.Plans}
+	}
+}
+
+func (p *PlansTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
+	plans, ok := data.([]internal.Plan)
+	if !ok {
+		return nil, nil, nil
+	}
+
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Component", Width: 1},
@@ -20,7 +45,7 @@ func getPlansTable(plans []internal.Plan) ([]table.Column, []table.Row, []string
 	}
 
 	var rows []table.Row
-	var ids []string
+	var elems []any
 	for _, plan := range plans {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(plan.ID), 10),
@@ -28,55 +53,34 @@ func getPlansTable(plans []internal.Plan) ([]table.Column, []table.Row, []string
 			plan.Changeset.Name,
 			plan.State,
 		})
-		ids = append(ids, strconv.FormatUint(uint64(plan.ID), 10))
+		elems = append(elems, plan)
 	}
 
-	return columns, rows, ids
+	return columns, rows, elems
 }
 
-type PlansPage struct {
-	client *client.Client
-}
-
-func NewPlansPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return &PlansPage{client: client}
-	}
-}
-
-func (p *PlansPage) Open() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		resp, err := p.client.ListPlans(ctx)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		return dataLoadedMsg{view: "plans", data: resp.Plans}
-	}
-}
-
-func (p *PlansPage) Links() map[string]string {
+func (p *PlansTableData) Links(elem any) map[string]string {
 	return map[string]string{
 		"c": "components",
 		"a": "applies",
 	}
 }
 
-type ChangesetPlansPage struct {
+type ChangesetPlansTableData struct {
 	client        *client.Client
 	changesetName string
 }
 
 func NewChangesetPlansPage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		return &ChangesetPlansPage{
+		return NewDataTable(&ChangesetPlansTableData{
 			client:        client,
 			changesetName: params["changesetName"],
-		}
+		})
 	}
 }
 
-func (p *ChangesetPlansPage) Open() tea.Cmd {
+func (p *ChangesetPlansTableData) LoadData() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
@@ -85,14 +89,38 @@ func (p *ChangesetPlansPage) Open() tea.Cmd {
 			return errorMsg{err: err}
 		}
 
-		view := fmt.Sprintf("changesets/%s/plans", p.changesetName)
-		return dataLoadedMsg{view: view, data: resp.Plans}
+		return dataLoadedMsg{data: resp.Plans}
 	}
 }
 
-func (p *ChangesetPlansPage) Links() map[string]string {
-	return map[string]string{
-		"c": fmt.Sprintf("changesets/%s/components", p.changesetName),
-		"a": fmt.Sprintf("changesets/%s/applies", p.changesetName),
+func (p *ChangesetPlansTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
+	plans, ok := data.([]internal.Plan)
+	if !ok {
+		return nil, nil, nil
 	}
+
+	columns := []table.Column{
+		{Title: "ID", Width: 1},
+		{Title: "Component", Width: 1},
+		{Title: "Changeset", Width: 6},
+		{Title: "State", Width: 2},
+	}
+
+	var rows []table.Row
+	var elems []any
+	for _, plan := range plans {
+		rows = append(rows, table.Row{
+			strconv.FormatUint(uint64(plan.ID), 10),
+			strconv.FormatUint(uint64(plan.ComponentID), 10),
+			plan.Changeset.Name,
+			plan.State,
+		})
+		elems = append(elems, plan)
+	}
+
+	return columns, rows, elems
+}
+
+func (p *ChangesetPlansTableData) Links(elem any) map[string]string {
+	return map[string]string{}
 }

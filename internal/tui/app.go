@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 )
 
@@ -24,13 +22,8 @@ type App struct {
 
 	size Rect
 
-	currentView string
-	viewHistory []string
-
-	table   table.Model
-	columns []table.Column
-	rows    []table.Row
-	rowIds  []string
+	currentRoute Route
+	routeHistory []Route
 }
 
 func (a *App) contentSize() Rect {
@@ -45,12 +38,29 @@ func (a *App) contentSize() Rect {
 	}
 }
 
-func (a *App) cursorView() string {
-	if len(a.rowIds) == 0 || a.table.Cursor() < 0 || a.table.Cursor() >= len(a.rowIds) {
-		return ""
+type IndexPage struct{}
+
+func (p *IndexPage) Init() tea.Cmd {
+	return nil
+}
+
+func (p *IndexPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	return p, nil
+}
+
+func (p *IndexPage) View() string {
+	return ""
+}
+
+func (p *IndexPage) Resize(size Rect) {}
+
+func (p *IndexPage) Links() map[string]string {
+	return map[string]string{
+		"m": "modules",
+		"c": "changesets",
+		"p": "plans",
+		"a": "applies",
 	}
-	selectedId := a.rowIds[a.table.Cursor()]
-	return fmt.Sprintf("%s/%s", a.currentView, selectedId)
 }
 
 type Rect struct {
@@ -66,20 +76,17 @@ func NewApp(client *client.Client) *App {
 		client: client,
 		router: NewRouter(),
 
+		loading: true,
+
 		input: input,
 
-		currentView: "modules",
-		viewHistory: []string{},
-
-		table: table.New(),
+		currentRoute: Route{Path: "", Page: &IndexPage{}},
 	}
 
 	app.router.Register("modules", NewModulesPage(client))
-	app.router.Register("modules/{moduleID}", NewModulePage(client))
 	app.router.Register("modules/{moduleID}/moduleversions", NewModuleVersionsForModulePage(client))
 	app.router.Register("moduleversions", NewModuleVersionsPage(client))
 	app.router.Register("changesets", NewChangesetsPage(client))
-	app.router.Register("changesets/{changesetName}", NewChangesetPage(client))
 	app.router.Register("changesets/{changesetName}/components", NewChangesetComponentsPage(client))
 	app.router.Register("changesets/{changesetName}/plans", NewChangesetPlansPage(client))
 	app.router.Register("changesets/{changesetName}/applies", NewChangesetAppliesPage(client))
@@ -91,7 +98,7 @@ func NewApp(client *client.Client) *App {
 }
 
 func (a *App) Init() tea.Cmd {
-	return a.refresh()
+	return a.router.Open("modules")
 }
 
 func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -112,13 +119,13 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				a.showInput = false
 				a.input.SetValue("")
-				a.table = newTable(a.columns, a.rows, a.contentSize())
+				a.currentRoute.Page.Resize(a.contentSize())
 				return a, nil
 			case "enter":
 				command := a.input.Value()
 				a.showInput = false
 				a.input.SetValue("")
-				a.table = newTable(a.columns, a.rows, a.contentSize())
+				a.currentRoute.Page.Resize(a.contentSize())
 				return a, a.executeCommand(command)
 			}
 		}
@@ -131,130 +138,42 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.size.Width = msg.Width
 		a.size.Height = msg.Height
 		a.input.Width = msg.Width - 7
-		a.table = newTable(a.columns, a.rows, a.contentSize())
+		a.currentRoute.Page.Resize(a.contentSize())
 	case tea.KeyMsg:
 		switch msg.String() {
 		case ":":
 			a.showInput = true
 			a.input.Focus()
-			a.table = newTable(a.columns, a.rows, a.contentSize())
+			a.currentRoute.Page.Resize(a.contentSize())
 			return a, textinput.Blink
 		case "r":
 			return a, a.refresh()
 		case "esc":
 			return a, a.goBack()
-		case "j", "down":
-			if a.table.Cursor() < len(a.table.Rows())-1 {
-				a.table.SetCursor(a.table.Cursor() + 1)
-			}
-		case "k", "up":
-			if a.table.Cursor() > 0 {
-				a.table.SetCursor(a.table.Cursor() - 1)
-			}
 		default:
-			cmd := a.router.OpenLink(a.cursorView(), msg.String())
-			if cmd != nil {
-				return a, cmd
+			if link, ok := a.currentRoute.Page.Links()[msg.String()]; ok {
+				return a, a.router.Open(link)
 			}
-			cmd = a.router.OpenLink(a.currentView, msg.String())
-			if cmd != nil {
-				return a, cmd
-			}
-			return a, nil
 		}
+	case routeOpenedMsg:
+		if a.currentRoute.Path != msg.route.Path {
+			a.routeHistory = append(a.routeHistory, a.currentRoute)
+		}
+		a.currentRoute = msg.route
+		a.currentRoute.Page.Resize(a.contentSize())
 	case dataLoadedMsg:
 		a.loading = false
 		a.err = nil
-		if a.currentView != msg.view {
-			a.viewHistory = append(a.viewHistory, a.currentView)
-		}
-		a.currentView = msg.view
-		a.columns, a.rows, a.rowIds = getTable(msg.data)
-		a.table = newTable(a.columns, a.rows, a.contentSize())
 	case errorMsg:
 		a.loading = false
 		a.err = msg.err
 	}
 
-	a.table, cmd = a.table.Update(msg)
+	page, cmd := a.currentRoute.Page.Update(msg)
+	if p, ok := page.(Page); ok {
+		a.currentRoute.Page = p
+	}
 	return a, cmd
-}
-
-func getTable(data any) ([]table.Column, []table.Row, []string) {
-	switch d := data.(type) {
-	case []internal.Module:
-		return getModulesTable(d)
-	case []internal.ModuleVersion:
-		return getModuleVersionsTable(d)
-	case []internal.Changeset:
-		return getChangesetsTable(d)
-	case []internal.Component:
-		return getComponentsTable(d)
-	case []internal.Plan:
-		return getPlansTable(d)
-	case []internal.Apply:
-		return getAppliesTable(d)
-	default:
-		return []table.Column{}, []table.Row{}, []string{}
-	}
-}
-
-func newTable(columns []table.Column, rows []table.Row, size Rect) table.Model {
-	if len(rows) == 0 {
-		placeholderRow := make(table.Row, len(columns))
-		for i := range placeholderRow {
-			placeholderRow[i] = ""
-		}
-		if len(columns) > 0 {
-			placeholderRow[0] = "No data"
-		}
-		rows = append(rows, placeholderRow)
-	}
-
-	adjustedColumns := adjustColumnWidths(columns, size.Width)
-
-	t := table.New(
-		table.WithColumns(adjustedColumns),
-		table.WithRows(rows),
-		table.WithWidth(size.Width),
-		table.WithHeight(size.Height),
-	)
-	t.SetStyles(table.Styles{
-		Header:   lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Background(lipgloss.Color("8")),
-		Selected: lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("4")),
-	})
-	return t
-}
-
-func adjustColumnWidths(columns []table.Column, totalWidth int) []table.Column {
-	if totalWidth <= 0 {
-		return columns
-	}
-
-	totalWeight := 0
-	for _, col := range columns {
-		totalWeight += col.Width
-	}
-
-	if totalWeight == 0 {
-		return columns
-	}
-
-	adjusted := make([]table.Column, len(columns))
-	allocatedWidth := 0
-	for i, col := range columns {
-		adjusted[i] = col
-		if totalWeight > 0 {
-			adjusted[i].Width = max(1, (col.Width*totalWidth)/totalWeight)
-		}
-		allocatedWidth += adjusted[i].Width
-	}
-
-	if len(adjusted) > 0 && allocatedWidth < totalWidth {
-		adjusted[len(adjusted)-1].Width += totalWidth - allocatedWidth
-	}
-
-	return adjusted
 }
 
 func (a *App) executeCommand(command string) tea.Cmd {
@@ -280,7 +199,7 @@ func (a *App) executeCommand(command string) tea.Cmd {
 
 func (a *App) refresh() tea.Cmd {
 	return func() tea.Msg {
-		cmd := a.router.Open(a.currentView)
+		cmd := a.router.Open(a.currentRoute.Path)
 		if cmd != nil {
 			return cmd()
 		}
@@ -290,19 +209,14 @@ func (a *App) refresh() tea.Cmd {
 
 func (a *App) goBack() tea.Cmd {
 	return func() tea.Msg {
-		if len(a.viewHistory) > 0 {
-			previousView := a.viewHistory[len(a.viewHistory)-1]
-			a.viewHistory = a.viewHistory[:len(a.viewHistory)-1]
-			a.currentView = previousView
+		if len(a.routeHistory) > 0 {
+			previousRoute := a.routeHistory[len(a.routeHistory)-1]
+			a.routeHistory = a.routeHistory[:len(a.routeHistory)-1]
+			a.currentRoute = previousRoute
 			return a.refresh()()
 		}
 		return nil
 	}
-}
-
-type dataLoadedMsg struct {
-	view string
-	data any
 }
 
 type errorMsg struct {
@@ -318,9 +232,7 @@ func (a *App) View() string {
 		return fmt.Sprintf("Error: %v\nPress 'r' to refresh, 'esc' to go back, 'ctrl+c' to quit, ':' to enter commands", a.err)
 	}
 
-	tableView := a.table.View()
-
-	content := titledBox(a.currentView, tableView)
+	content := titledBox(a.currentRoute.Path, a.currentRoute.Page.View())
 
 	if a.showInput {
 		inputView := a.input.View()

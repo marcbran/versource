@@ -6,8 +6,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type Route struct {
+	Path string
+	Page Page
+}
+
 type Page interface {
-	Open() tea.Cmd
+	tea.Model
+	Resize(size Rect)
 	Links() map[string]string
 }
 
@@ -39,23 +45,20 @@ func (r *Router) Open(path string) tea.Cmd {
 	if page == nil {
 		return nil
 	}
-	return page.Open()
+	return tea.Sequence(
+		func() tea.Msg {
+			return routeOpenedMsg{route: Route{Path: path, Page: page}}
+		},
+		page.Init(),
+	)
 }
 
-func (r *Router) Links(path string) map[string]string {
-	page := r.Match(path)
-	if page == nil {
-		return nil
-	}
-	return page.Links()
+type routeOpenedMsg struct {
+	route Route
 }
 
-func (r *Router) OpenLink(view string, link string) tea.Cmd {
-	links := r.Links(view)
-	if targetPath, ok := links[link]; ok {
-		return r.Open(targetPath)
-	}
-	return nil
+type dataLoadedMsg struct {
+	data any
 }
 
 func matchPath(routePath, actualPath string) map[string]string {

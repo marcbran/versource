@@ -11,7 +11,33 @@ import (
 	"github.com/marcbran/versource/internal/http/client"
 )
 
-func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []table.Row, []string) {
+type ChangesetsTableData struct {
+	client *client.Client
+}
+
+func NewChangesetsPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return NewDataTable(&ChangesetsTableData{client: client})
+	}
+}
+
+func (p *ChangesetsTableData) LoadData() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		resp, err := p.client.ListChangesets(ctx)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+		return dataLoadedMsg{data: resp.Changesets}
+	}
+}
+
+func (p *ChangesetsTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
+	changesets, ok := data.([]internal.Changeset)
+	if !ok {
+		return nil, nil, nil
+	}
+
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Name", Width: 7},
@@ -20,7 +46,7 @@ func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []tabl
 	}
 
 	var rows []table.Row
-	var ids []string
+	var elems []any
 	for _, changeset := range changesets {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(changeset.ID), 10),
@@ -28,62 +54,21 @@ func getChangesetsTable(changesets []internal.Changeset) ([]table.Column, []tabl
 			string(changeset.State),
 			string(changeset.ReviewState),
 		})
-		ids = append(ids, strconv.FormatUint(uint64(changeset.ID), 10))
+		elems = append(elems, changeset)
 	}
 
-	return columns, rows, ids
+	return columns, rows, elems
 }
 
-type ChangesetsPage struct {
-	client *client.Client
-}
-
-func NewChangesetsPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return &ChangesetsPage{client: client}
+func (p *ChangesetsTableData) Links(elem any) map[string]string {
+	changeset, ok := elem.(internal.Changeset)
+	if !ok {
+		return map[string]string{}
 	}
-}
-
-func (p *ChangesetsPage) Open() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		resp, err := p.client.ListChangesets(ctx)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		return dataLoadedMsg{view: "changesets", data: resp.Changesets}
-	}
-}
-
-func (p *ChangesetsPage) Links() map[string]string {
-	return map[string]string{}
-}
-
-type ChangesetPage struct {
-	client        *client.Client
-	changesetName string
-}
-
-func NewChangesetPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return &ChangesetPage{
-			client:        client,
-			changesetName: params["changesetName"],
-		}
-	}
-}
-
-func (p *ChangesetPage) Open() tea.Cmd {
-	return func() tea.Msg {
-		view := fmt.Sprintf("changesets/%s", p.changesetName)
-		return dataLoadedMsg{view: view, data: nil}
-	}
-}
-
-func (p *ChangesetPage) Links() map[string]string {
 	return map[string]string{
-		"c": fmt.Sprintf("changesets/%s/components", p.changesetName),
-		"p": fmt.Sprintf("changesets/%s/plans", p.changesetName),
-		"a": fmt.Sprintf("changesets/%s/applies", p.changesetName),
+		"enter": fmt.Sprintf("changesets/%s/components", changeset.Name),
+		"c": fmt.Sprintf("changesets/%s/components", changeset.Name),
+		"p": fmt.Sprintf("changesets/%s/plans", changeset.Name),
+		"a": fmt.Sprintf("changesets/%s/applies", changeset.Name),
 	}
 }

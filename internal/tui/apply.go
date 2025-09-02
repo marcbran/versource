@@ -2,7 +2,6 @@ package tui
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -11,7 +10,33 @@ import (
 	"github.com/marcbran/versource/internal/http/client"
 )
 
-func getAppliesTable(applies []internal.Apply) ([]table.Column, []table.Row, []string) {
+type AppliesTableData struct {
+	client *client.Client
+}
+
+func NewAppliesPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return NewDataTable(&AppliesTableData{client: client})
+	}
+}
+
+func (p *AppliesTableData) LoadData() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		resp, err := p.client.ListApplies(ctx)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+		return dataLoadedMsg{data: resp.Applies}
+	}
+}
+
+func (p *AppliesTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
+	applies, ok := data.([]internal.Apply)
+	if !ok {
+		return nil, nil, nil
+	}
+
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Plan", Width: 1},
@@ -20,7 +45,7 @@ func getAppliesTable(applies []internal.Apply) ([]table.Column, []table.Row, []s
 	}
 
 	var rows []table.Row
-	var ids []string
+	var elems []any
 	for _, apply := range applies {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(apply.ID), 10),
@@ -28,55 +53,32 @@ func getAppliesTable(applies []internal.Apply) ([]table.Column, []table.Row, []s
 			apply.Changeset.Name,
 			apply.State,
 		})
-		ids = append(ids, strconv.FormatUint(uint64(apply.ID), 10))
+		elems = append(elems, apply)
 	}
 
-	return columns, rows, ids
+	return columns, rows, elems
 }
 
-type AppliesPage struct {
-	client *client.Client
+func (p *AppliesTableData) Links(elem any) map[string]string {
+	return map[string]string{}
 }
 
-func NewAppliesPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return &AppliesPage{client: client}
-	}
-}
-
-func (p *AppliesPage) Open() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		resp, err := p.client.ListApplies(ctx)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		return dataLoadedMsg{view: "applies", data: resp.Applies}
-	}
-}
-
-func (p *AppliesPage) Links() map[string]string {
-	return map[string]string{
-		"c": "components",
-		"p": "plans",
-	}
-}
-
-type ChangesetAppliesPage struct {
+type ChangesetAppliesTableData struct {
+	AppliesTableData
 	client        *client.Client
 	changesetName string
 }
 
 func NewChangesetAppliesPage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		return &ChangesetAppliesPage{
+		return NewDataTable(&ChangesetAppliesTableData{
 			client:        client,
 			changesetName: params["changesetName"],
-		}
+		})
 	}
 }
 
-func (p *ChangesetAppliesPage) Open() tea.Cmd {
+func (p *ChangesetAppliesTableData) LoadData() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
@@ -85,14 +87,10 @@ func (p *ChangesetAppliesPage) Open() tea.Cmd {
 			return errorMsg{err: err}
 		}
 
-		view := fmt.Sprintf("changesets/%s/applies", p.changesetName)
-		return dataLoadedMsg{view: view, data: resp.Applies}
+		return dataLoadedMsg{data: resp.Applies}
 	}
 }
 
-func (p *ChangesetAppliesPage) Links() map[string]string {
-	return map[string]string{
-		"c": fmt.Sprintf("changesets/%s/components", p.changesetName),
-		"p": fmt.Sprintf("changesets/%s/plans", p.changesetName),
-	}
+func (p *ChangesetAppliesTableData) Links(elem any) map[string]string {
+	return map[string]string{}
 }

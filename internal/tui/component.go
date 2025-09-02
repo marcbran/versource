@@ -2,9 +2,7 @@ package tui
 
 import (
 	"context"
-	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,36 +10,7 @@ import (
 	"github.com/marcbran/versource/internal/http/client"
 )
 
-func getComponentsTable(components []internal.Component) ([]table.Column, []table.Row, []string) {
-	columns := []table.Column{
-		{Title: "ID", Width: 1},
-		{Title: "Module", Width: 7},
-		{Title: "Version", Width: 2},
-	}
-
-	var rows []table.Row
-	var ids []string
-	for _, component := range components {
-		source := ""
-		version := ""
-		if component.ModuleVersion.Module.Source != "" {
-			source = component.ModuleVersion.Module.Source
-		}
-		if component.ModuleVersion.Version != "" {
-			version = component.ModuleVersion.Version
-		}
-		rows = append(rows, table.Row{
-			strconv.FormatUint(uint64(component.ID), 10),
-			source,
-			version,
-		})
-		ids = append(ids, strconv.FormatUint(uint64(component.ID), 10))
-	}
-
-	return columns, rows, ids
-}
-
-type ComponentsPage struct {
+type ComponentsTableData struct {
 	client          *client.Client
 	moduleID        string
 	moduleVersionID string
@@ -49,15 +18,15 @@ type ComponentsPage struct {
 
 func NewComponentsPage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		return &ComponentsPage{
+		return NewDataTable(&ComponentsTableData{
 			client:          client,
 			moduleID:        params["module-id"],
 			moduleVersionID: params["module-version-id"],
-		}
+		})
 	}
 }
 
-func (p *ComponentsPage) Open() tea.Cmd {
+func (p *ComponentsTableData) LoadData() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
@@ -82,46 +51,63 @@ func (p *ComponentsPage) Open() tea.Cmd {
 			return errorMsg{err: err}
 		}
 
-		view := "components"
-		if p.moduleID != "" || p.moduleVersionID != "" {
-			queryParts := make([]string, 0)
-			if p.moduleID != "" {
-				queryParts = append(queryParts, fmt.Sprintf("module-id=%s", p.moduleID))
-			}
-			if p.moduleVersionID != "" {
-				queryParts = append(queryParts, fmt.Sprintf("module-version-id=%s", p.moduleVersionID))
-			}
-			if len(queryParts) > 0 {
-				view = fmt.Sprintf("components?%s", strings.Join(queryParts, "&"))
-			}
+		return dataLoadedMsg{data: resp.Components}
+	}
+}
+
+func (p *ComponentsTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
+	components, ok := data.([]internal.Component)
+	if !ok {
+		return nil, nil, nil
+	}
+
+	columns := []table.Column{
+		{Title: "ID", Width: 1},
+		{Title: "Module", Width: 7},
+		{Title: "Version", Width: 2},
+	}
+
+	var rows []table.Row
+	var elems []any
+	for _, component := range components {
+		source := ""
+		version := ""
+		if component.ModuleVersion.Module.Source != "" {
+			source = component.ModuleVersion.Module.Source
 		}
-
-		return dataLoadedMsg{view: view, data: resp.Components}
+		if component.ModuleVersion.Version != "" {
+			version = component.ModuleVersion.Version
+		}
+		rows = append(rows, table.Row{
+			strconv.FormatUint(uint64(component.ID), 10),
+			source,
+			version,
+		})
+		elems = append(elems, component)
 	}
+
+	return columns, rows, elems
 }
 
-func (p *ComponentsPage) Links() map[string]string {
-	return map[string]string{
-		"m": "modules",
-		"v": "moduleversions",
-	}
+func (p *ComponentsTableData) Links(elem any) map[string]string {
+	return map[string]string{}
 }
 
-type ChangesetComponentsPage struct {
+type ChangesetComponentsTableData struct {
 	client        *client.Client
 	changesetName string
 }
 
 func NewChangesetComponentsPage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		return &ChangesetComponentsPage{
+		return NewDataTable(&ChangesetComponentsTableData{
 			client:        client,
 			changesetName: params["changesetName"],
-		}
+		})
 	}
 }
 
-func (p *ChangesetComponentsPage) Open() tea.Cmd {
+func (p *ChangesetComponentsTableData) LoadData() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
@@ -134,14 +120,44 @@ func (p *ChangesetComponentsPage) Open() tea.Cmd {
 			return errorMsg{err: err}
 		}
 
-		view := fmt.Sprintf("changesets/%s/components", p.changesetName)
-		return dataLoadedMsg{view: view, data: resp.Components}
+		return dataLoadedMsg{data: resp.Components}
 	}
 }
 
-func (p *ChangesetComponentsPage) Links() map[string]string {
-	return map[string]string{
-		"p": fmt.Sprintf("changesets/%s/plans", p.changesetName),
-		"a": fmt.Sprintf("changesets/%s/applies", p.changesetName),
+func (p *ChangesetComponentsTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
+	components, ok := data.([]internal.Component)
+	if !ok {
+		return nil, nil, nil
 	}
+
+	columns := []table.Column{
+		{Title: "ID", Width: 1},
+		{Title: "Module", Width: 7},
+		{Title: "Version", Width: 2},
+	}
+
+	var rows []table.Row
+	var elems []any
+	for _, component := range components {
+		source := ""
+		version := ""
+		if component.ModuleVersion.Module.Source != "" {
+			source = component.ModuleVersion.Module.Source
+		}
+		if component.ModuleVersion.Version != "" {
+			version = component.ModuleVersion.Version
+		}
+		rows = append(rows, table.Row{
+			strconv.FormatUint(uint64(component.ID), 10),
+			source,
+			version,
+		})
+		elems = append(elems, component)
+	}
+
+	return columns, rows, elems
+}
+
+func (p *ChangesetComponentsTableData) Links(elem any) map[string]string {
+	return map[string]string{}
 }

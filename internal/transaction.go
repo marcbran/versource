@@ -16,3 +16,17 @@ type TransactionManager interface {
 	GetMergeBase(ctx context.Context, source, branch string) (string, error)
 	GetHead(ctx context.Context) (string, error)
 }
+
+func IsValidCommitHash(hash string) bool {
+	if len(hash) != 32 {
+		return false
+	}
+
+	for _, char := range hash {
+		if (char < '0' || char > '9') && (char < 'a' || char > 'z') {
+			return false
+		}
+	}
+
+	return true
+}

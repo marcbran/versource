@@ -15,6 +15,20 @@ type Component struct {
 	Variables       datatypes.JSON `gorm:"type:jsonb"`
 }
 
+type ComponentDiff struct {
+	FromComponent Component
+	ToComponent   Component
+	DiffType      DiffType
+}
+
+type DiffType string
+
+const (
+	DiffTypeAdded    DiffType = "added"
+	DiffTypeRemoved  DiffType = "removed"
+	DiffTypeModified DiffType = "modified"
+)
+
 type ComponentRepo interface {
 	GetComponent(ctx context.Context, componentID uint) (*Component, error)
 	ListComponents(ctx context.Context) ([]Component, error)
@@ -22,6 +36,10 @@ type ComponentRepo interface {
 	ListComponentsByModuleVersion(ctx context.Context, moduleVersionID uint) ([]Component, error)
 	CreateComponent(ctx context.Context, component *Component) error
 	UpdateComponent(ctx context.Context, component *Component) error
+}
+
+type ComponentDiffRepo interface {
+	ListComponentDiffs(ctx context.Context, fromCommit, toCommit string) ([]ComponentDiff, error)
 }
 
 type ListComponents struct {
@@ -269,4 +287,61 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 	}
 
 	return response, nil
+}
+
+type ListComponentDiffs struct {
+	componentDiffRepo ComponentDiffRepo
+	tx                TransactionManager
+}
+
+func NewListComponentDiffs(componentDiffRepo ComponentDiffRepo, tx TransactionManager) *ListComponentDiffs {
+	return &ListComponentDiffs{
+		componentDiffRepo: componentDiffRepo,
+		tx:                tx,
+	}
+}
+
+type ListComponentDiffsRequest struct {
+	Changeset string `json:"changeset"`
+}
+
+type ListComponentDiffsResponse struct {
+	Diffs []ComponentDiff `json:"diffs"`
+}
+
+func (l *ListComponentDiffs) Exec(ctx context.Context, req ListComponentDiffsRequest) (*ListComponentDiffsResponse, error) {
+	if req.Changeset == "" {
+		return nil, UserErr("changeset is required")
+	}
+
+	var diffs []ComponentDiff
+	err := l.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
+		mergeBase, err := l.tx.GetMergeBase(ctx, MainBranch, req.Changeset)
+		if err != nil {
+			return InternalErrE("failed to get merge base", err)
+		}
+
+		head, err := l.tx.GetHead(ctx)
+		if err != nil {
+			return InternalErrE("failed to get head", err)
+		}
+
+		if !IsValidCommitHash(mergeBase) {
+			return InternalErrE("invalid merge base commit hash", fmt.Errorf("merge base '%s' is not a valid commit hash", mergeBase))
+		}
+
+		if !IsValidCommitHash(head) {
+			return InternalErrE("invalid head commit hash", fmt.Errorf("head '%s' is not a valid commit hash", head))
+		}
+
+		diffs, err = l.componentDiffRepo.ListComponentDiffs(ctx, mergeBase, head)
+		return err
+	})
+	if err != nil {
+		return nil, InternalErrE("failed to list component diffs", err)
+	}
+
+	return &ListComponentDiffsResponse{
+		Diffs: diffs,
+	}, nil
 }

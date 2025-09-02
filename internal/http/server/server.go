@@ -72,6 +72,7 @@ type Server struct {
 	listComponents              *internal.ListComponents
 	createComponent             *internal.CreateComponent
 	updateComponent             *internal.UpdateComponent
+	listComponentDiffs          *internal.ListComponentDiffs
 	listPlans                   *internal.ListPlans
 	createPlan                  *internal.CreatePlan
 	runPlan                     *internal.RunPlan
@@ -88,6 +89,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 	}
 
 	componentRepo := database.NewGormComponentRepo(db)
+	componentDiffRepo := database.NewGormComponentDiffRepo(db)
 	stateRepo := database.NewGormStateRepo(db)
 	resourceRepo := database.NewGormResourceRepo(db)
 	planRepo := database.NewGormPlanRepo(db)
@@ -121,6 +123,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		listComponents:              internal.NewListComponents(componentRepo, transactionManager),
 		createComponent:             internal.NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
 		updateComponent:             internal.NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, transactionManager),
+		listComponentDiffs:          internal.NewListComponentDiffs(componentDiffRepo, transactionManager),
 		listPlans:                   internal.NewListPlans(planRepo, transactionManager),
 		createPlan:                  createPlan,
 		runPlan:                     runPlan,
@@ -158,6 +161,7 @@ func (s *Server) setupRoutes() {
 		r.Route("/changesets/{changesetName}", func(r chi.Router) {
 			r.Get("/components", s.handleListComponents)
 			r.Post("/components", s.handleCreateComponent)
+			r.Get("/components/diffs", s.handleListComponentDiffs)
 			r.Route("/components/{componentID}", func(r chi.Router) {
 				r.Patch("/", s.handleUpdateComponent)
 				r.Post("/plans", s.handleCreatePlan)

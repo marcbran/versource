@@ -66,9 +66,9 @@ func (p *ChangesetsTableData) Links(elem any) map[string]string {
 		return map[string]string{}
 	}
 	return map[string]string{
-		"enter": fmt.Sprintf("changesets/%s/components", changeset.Name),
-		"c": fmt.Sprintf("changesets/%s/components", changeset.Name),
-		"p": fmt.Sprintf("changesets/%s/plans", changeset.Name),
-		"a": fmt.Sprintf("changesets/%s/applies", changeset.Name),
+		"enter": fmt.Sprintf("changesets/%s/components/diffs", changeset.Name),
+		"c":     fmt.Sprintf("changesets/%s/components", changeset.Name),
+		"p":     fmt.Sprintf("changesets/%s/plans", changeset.Name),
+		"a":     fmt.Sprintf("changesets/%s/applies", changeset.Name),
 	}
 }

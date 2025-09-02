@@ -88,6 +88,7 @@ func NewApp(client *client.Client) *App {
 	app.router.Register("moduleversions", NewModuleVersionsPage(client))
 	app.router.Register("changesets", NewChangesetsPage(client))
 	app.router.Register("changesets/{changesetName}/components", NewChangesetComponentsPage(client))
+	app.router.Register("changesets/{changesetName}/components/diffs", NewComponentDiffsPage(client))
 	app.router.Register("changesets/{changesetName}/plans", NewChangesetPlansPage(client))
 	app.router.Register("changesets/{changesetName}/applies", NewChangesetAppliesPage(client))
 	app.router.Register("components", NewComponentsPage(client))

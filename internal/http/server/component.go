@@ -103,3 +103,23 @@ func (s *Server) handleUpdateComponent(w http.ResponseWriter, r *http.Request) {
 
 	returnSuccess(w, resp)
 }
+
+func (s *Server) handleListComponentDiffs(w http.ResponseWriter, r *http.Request) {
+	changeset := chi.URLParam(r, "changesetName")
+	if changeset == "" {
+		returnBadRequest(w, fmt.Errorf("changeset name is required"))
+		return
+	}
+
+	req := internal.ListComponentDiffsRequest{
+		Changeset: changeset,
+	}
+
+	resp, err := s.listComponentDiffs.Exec(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}

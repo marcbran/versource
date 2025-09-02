@@ -1,4 +1,4 @@
-package internal
+package tfexec
 
 import (
 	"encoding/json"

@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -14,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/database"
+	"github.com/marcbran/versource/internal/infra/tfexec"
 	"github.com/marcbran/versource/internal/store/file"
 	log "github.com/sirupsen/logrus"
 )
@@ -78,6 +81,8 @@ type Server struct {
 	runPlan                     *internal.RunPlan
 	runApply                    *internal.RunApply
 	listApplies                 *internal.ListApplies
+	getPlanLog                  *internal.GetPlanLog
+	getApplyLog                 *internal.GetApplyLog
 	planWorker                  *internal.PlanWorker
 	applyWorker                 *internal.ApplyWorker
 }
@@ -94,18 +99,22 @@ func NewServer(config *internal.Config) (*Server, error) {
 	resourceRepo := database.NewGormResourceRepo(db)
 	planRepo := database.NewGormPlanRepo(db)
 	planStore := file.NewPlanStore(config.Terraform.WorkDir)
+	logStore := file.NewLogStore(config.Terraform.WorkDir)
 	applyRepo := database.NewGormApplyRepo(db)
 	changesetRepo := database.NewGormChangesetRepo(db)
 	moduleRepo := database.NewGormModuleRepo(db)
 	moduleVersionRepo := database.NewGormModuleVersionRepo(db)
 	transactionManager := database.NewGormTransactionManager(db)
 
-	runApply := internal.NewRunApply(config, applyRepo, stateRepo, resourceRepo, planStore, transactionManager)
-	applyWorker := internal.NewApplyWorker(runApply, applyRepo)
+	newExecutor := tfexec.NewExecutor
 
-	runPlan := internal.NewRunPlan(config, planRepo, planStore, applyRepo, transactionManager)
+	runApply := internal.NewRunApply(config, applyRepo, stateRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor)
+	applyWorker := internal.NewApplyWorker(runApply, applyRepo)
+	runPlan := internal.NewRunPlan(config, planRepo, planStore, logStore, applyRepo, transactionManager, newExecutor)
 	planWorker := internal.NewPlanWorker(runPlan, planRepo)
 	createPlan := internal.NewCreatePlan(componentRepo, planRepo, changesetRepo, transactionManager, planWorker)
+	getPlanLog := internal.NewGetPlanLog(logStore)
+	getApplyLog := internal.NewGetApplyLog(logStore)
 	ensureChangeset := internal.NewEnsureChangeset(changesetRepo, transactionManager)
 
 	s := &Server{
@@ -129,6 +138,8 @@ func NewServer(config *internal.Config) (*Server, error) {
 		runPlan:                     runPlan,
 		runApply:                    runApply,
 		listApplies:                 internal.NewListApplies(applyRepo, transactionManager),
+		getPlanLog:                  getPlanLog,
+		getApplyLog:                 getApplyLog,
 		planWorker:                  planWorker,
 		applyWorker:                 applyWorker,
 	}
@@ -151,8 +162,14 @@ func (s *Server) setupRoutes() {
 		r.Get("/module-versions", s.handleListModuleVersions)
 		r.Get("/components", s.handleListComponents)
 		r.Get("/plans", s.handleListPlans)
+		r.Route("/plans/{planID}", func(r chi.Router) {
+			r.Get("/logs", s.handleGetPlanLog)
+		})
 		r.Get("/applies", s.handleListApplies)
 		r.Get("/changesets", s.handleListChangesets)
+		r.Route("/applies/{applyID}", func(r chi.Router) {
+			r.Get("/logs", s.handleGetApplyLog)
+		})
 		r.Post("/changesets", s.handleCreateChangeset)
 		r.Post("/modules", s.handleCreateModule)
 		r.Put("/modules/{moduleID}", s.handleUpdateModule)
@@ -218,4 +235,48 @@ func returnJSON(w http.ResponseWriter, data any) {
 	if encodeErr != nil {
 		log.WithError(encodeErr).Warn("Failed to encode JSON response")
 	}
+}
+
+func (s *Server) handleGetPlanLog(w http.ResponseWriter, r *http.Request) {
+	planIDStr := chi.URLParam(r, "planID")
+
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid plan ID: %s", planIDStr))
+		return
+	}
+
+	req := internal.GetPlanLogRequest{
+		PlanID: uint(planID),
+	}
+
+	response, err := s.getPlanLog.Exec(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, response)
+}
+
+func (s *Server) handleGetApplyLog(w http.ResponseWriter, r *http.Request) {
+	applyIDStr := chi.URLParam(r, "applyID")
+
+	applyID, err := strconv.ParseUint(applyIDStr, 10, 32)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid apply ID: %s", applyIDStr))
+		return
+	}
+
+	req := internal.GetApplyLogRequest{
+		ApplyID: uint(applyID),
+	}
+
+	response, err := s.getApplyLog.Exec(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, response)
 }

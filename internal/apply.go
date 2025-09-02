@@ -2,12 +2,10 @@ package internal
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"io"
 	"time"
 
-	"github.com/hashicorp/terraform-exec/tfexec"
-	tfjson "github.com/hashicorp/terraform-json"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/datatypes"
 )
@@ -82,17 +80,21 @@ type RunApply struct {
 	stateRepo    StateRepo
 	resourceRepo ResourceRepo
 	planStore    PlanStore
+	logStore     LogStore
 	tx           TransactionManager
+	newExecutor  NewExecutor
 }
 
-func NewRunApply(config *Config, applyRepo ApplyRepo, stateRepo StateRepo, resourceRepo ResourceRepo, planStore PlanStore, tx TransactionManager) *RunApply {
+func NewRunApply(config *Config, applyRepo ApplyRepo, stateRepo StateRepo, resourceRepo ResourceRepo, planStore PlanStore, logStore LogStore, tx TransactionManager, newExecutor NewExecutor) *RunApply {
 	return &RunApply{
 		config:       config,
 		applyRepo:    applyRepo,
 		stateRepo:    stateRepo,
 		resourceRepo: resourceRepo,
 		planStore:    planStore,
+		logStore:     logStore,
 		tx:           tx,
+		newExecutor:  newExecutor,
 	}
 }
 
@@ -124,15 +126,21 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	component := &apply.Plan.Component
 	workDir := a.config.Terraform.WorkDir
-	tf, cleanup, err := NewTerraformFromComponent(ctx, component, workDir)
+	executor, err := a.newExecutor(component, workDir)
 	if err != nil {
-		return fmt.Errorf("failed to create terraform from component: %w", err)
+		return fmt.Errorf("failed to create executor: %w", err)
 	}
-	defer cleanup()
+	defer executor.Close()
 
 	log.Info("Created dynamic component config in temp directory")
 
-	err = tf.Init(ctx)
+	logWriter, err := a.logStore.NewLogWriter("apply", applyID)
+	if err != nil {
+		return fmt.Errorf("failed to create log writer: %w", err)
+	}
+	defer logWriter.Close()
+
+	err = executor.Init(ctx, logWriter)
 	if err != nil {
 		stateErr := a.tx.Do(ctx, MainBranch, "fail apply", func(ctx context.Context) error {
 			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
@@ -156,7 +164,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	log.WithField("plan_path", planPath).Info("Loaded plan")
 
-	err = tf.Apply(ctx, tfexec.DirOrPlan(planPath))
+	state, resources, err := executor.Apply(ctx, planPath, logWriter)
 	if err != nil {
 		stateErr := a.tx.Do(ctx, MainBranch, "fail apply", func(ctx context.Context) error {
 			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
@@ -169,40 +177,9 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	log.Info("Terraform apply completed successfully")
 
-	tfState, err := tf.Show(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get terraform state: %w", err)
-	}
-
-	output := make(map[string]any)
-	for name, out := range tfState.Values.Outputs {
-		if out == nil {
-			continue
-		}
-		if out.Sensitive {
-			continue
-		}
-		output[name] = out.Value
-	}
-	jsonOutput, err := json.Marshal(output)
-	if err != nil {
-		return fmt.Errorf("failed to marshal output: %w", err)
-	}
-
-	state := State{
-		ComponentID: component.ID,
-		Output:      datatypes.JSON(jsonOutput),
-	}
-
-	var resources []Resource
-	if tfState.Values != nil && tfState.Values.RootModule != nil {
-		resources, err = extractResources(tfState.Values.RootModule)
-		if err != nil {
-			return fmt.Errorf("failed to extract resources: %w", err)
-		}
-	}
-
 	err = a.tx.Do(ctx, MainBranch, "complete apply", func(ctx context.Context) error {
+		state.ComponentID = component.ID
+
 		err := a.stateRepo.UpsertState(ctx, &state)
 		if err != nil {
 			stateErr := a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
@@ -238,6 +215,39 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	})
 
 	return err
+}
+
+type GetApplyLog struct {
+	logStore LogStore
+}
+
+func NewGetApplyLog(logStore LogStore) *GetApplyLog {
+	return &GetApplyLog{
+		logStore: logStore,
+	}
+}
+
+type GetApplyLogRequest struct {
+	ApplyID uint `json:"apply_id"`
+}
+
+type GetApplyLogResponse struct {
+	Content io.ReadCloser `json:"content"`
+}
+
+func (g *GetApplyLog) Exec(ctx context.Context, req GetApplyLogRequest) (*GetApplyLogResponse, error) {
+	if req.ApplyID == 0 {
+		return nil, UserErr("apply ID is required")
+	}
+
+	reader, err := g.logStore.LoadLog(ctx, "apply", req.ApplyID)
+	if err != nil {
+		return nil, InternalErrE("failed to load apply log", err)
+	}
+
+	return &GetApplyLogResponse{
+		Content: reader,
+	}, nil
 }
 
 type ListApplies struct {
@@ -341,43 +351,4 @@ func (aw *ApplyWorker) processQueuedApplies(ctx context.Context) {
 	for _, applyID := range applyIDs {
 		aw.runApplyInBackground(ctx, applyID)
 	}
-}
-
-func extractResources(module *tfjson.StateModule) ([]Resource, error) {
-	var resources []Resource
-
-	for _, tfResource := range module.Resources {
-		var count *int
-		var forEach *string
-		switch index := tfResource.Index.(type) {
-		case int:
-			count = &index
-		case string:
-			forEach = &index
-		}
-		jsonAttributes, err := json.Marshal(tfResource.AttributeValues)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal attributes: %w", err)
-		}
-		resource := Resource{
-			Address:      tfResource.Address,
-			Mode:         ResourceMode(tfResource.Mode),
-			ProviderName: tfResource.ProviderName,
-			Count:        count,
-			ForEach:      forEach,
-			Type:         tfResource.Type,
-			Attributes:   datatypes.JSON(jsonAttributes),
-		}
-		resources = append(resources, resource)
-	}
-
-	for _, childModule := range module.ChildModules {
-		childResources, err := extractResources(childModule)
-		if err != nil {
-			return nil, fmt.Errorf("failed to extract resources: %w", err)
-		}
-		resources = append(resources, childResources...)
-	}
-
-	return resources, nil
 }

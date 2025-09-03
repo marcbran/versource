@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/marcbran/versource/internal"
 )
 
 type PlanStore struct {
@@ -17,7 +19,7 @@ func NewPlanStore(workDir string) *PlanStore {
 	}
 }
 
-func (s *PlanStore) StorePlan(ctx context.Context, planID uint, planFilePath string) error {
+func (s *PlanStore) StorePlan(ctx context.Context, planID uint, planPath internal.PlanPath) error {
 	plansDir := filepath.Join(s.workDir, "plans")
 	err := os.MkdirAll(plansDir, 0755)
 	if err != nil {
@@ -26,7 +28,7 @@ func (s *PlanStore) StorePlan(ctx context.Context, planID uint, planFilePath str
 
 	targetPath := filepath.Join(plansDir, fmt.Sprintf("%d.tfplan", planID))
 
-	sourceFile, err := os.Open(planFilePath)
+	sourceFile, err := os.Open(string(planPath))
 	if err != nil {
 		return fmt.Errorf("failed to open source plan file: %w", err)
 	}
@@ -46,7 +48,7 @@ func (s *PlanStore) StorePlan(ctx context.Context, planID uint, planFilePath str
 	return nil
 }
 
-func (s *PlanStore) LoadPlan(ctx context.Context, planID uint) (string, error) {
+func (s *PlanStore) LoadPlan(ctx context.Context, planID uint) (internal.PlanPath, error) {
 	planPath := filepath.Join(s.workDir, "plans", fmt.Sprintf("%d.tfplan", planID))
 
 	_, err := os.Stat(planPath)
@@ -76,5 +78,5 @@ func (s *PlanStore) LoadPlan(ctx context.Context, planID uint) (string, error) {
 		return "", fmt.Errorf("failed to copy plan file: %w", err)
 	}
 
-	return tempFile.Name(), nil
+	return internal.PlanPath(tempFile.Name()), nil
 }

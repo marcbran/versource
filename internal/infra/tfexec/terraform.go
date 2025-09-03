@@ -1,13 +1,11 @@
-package internal
+package tfexec
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 
-	"github.com/hashicorp/terraform-exec/tfexec"
+	"github.com/marcbran/versource/internal"
 )
 
 type TerraformModule struct {
@@ -30,7 +28,7 @@ type TerraformBackendLocal struct {
 
 type TerraformStack []any
 
-func NewTerraformStackFromComponent(component *Component, workDir string) (TerraformStack, error) {
+func NewTerraformStackFromComponent(component *internal.Component, workDir string) (TerraformStack, error) {
 	terraformModule := TerraformModule{
 		Source: component.ModuleVersion.Module.Source,
 	}
@@ -107,56 +105,4 @@ func (tc TerraformStack) AddBackend(name string, backend TerraformBackend) Terra
 		Terraform: backendConfig,
 	}
 	return append(tc, container)
-}
-
-func NewTerraformFromComponent(ctx context.Context, component *Component, workDir string) (*tfexec.Terraform, func(), error) {
-	terraformStack, err := NewTerraformStackFromComponent(component, workDir)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to convert component to terraform stack: %w", err)
-	}
-
-	tempDir, err := os.MkdirTemp("", "versource-*")
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create temp directory: %w", err)
-	}
-
-	modulesDir := filepath.Join(workDir, "modules")
-	if _, err := os.Stat(modulesDir); err == nil {
-		absModulesDir, err := filepath.Abs(modulesDir)
-		if err != nil {
-			os.RemoveAll(tempDir)
-			return nil, nil, fmt.Errorf("failed to get absolute path for modules directory: %w", err)
-		}
-		modulesLink := filepath.Join(tempDir, "modules")
-		err = os.Symlink(absModulesDir, modulesLink)
-		if err != nil {
-			os.RemoveAll(tempDir)
-			return nil, nil, fmt.Errorf("failed to create modules symlink: %w", err)
-		}
-	}
-
-	mainJSONPath := filepath.Join(tempDir, "main.tf.json")
-	jsonData, err := json.MarshalIndent(terraformStack, "", "  ")
-	if err != nil {
-		os.RemoveAll(tempDir)
-		return nil, nil, fmt.Errorf("failed to marshal stack config: %w", err)
-	}
-
-	err = os.WriteFile(mainJSONPath, jsonData, 0644)
-	if err != nil {
-		os.RemoveAll(tempDir)
-		return nil, nil, fmt.Errorf("failed to write stack config: %w", err)
-	}
-
-	tf, err := tfexec.NewTerraform(tempDir, "terraform")
-	if err != nil {
-		os.RemoveAll(tempDir)
-		return nil, nil, fmt.Errorf("failed to create terraform instance: %w", err)
-	}
-
-	cleanup := func() {
-		os.RemoveAll(tempDir)
-	}
-
-	return tf, cleanup, nil
 }

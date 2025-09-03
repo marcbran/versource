@@ -3,10 +3,9 @@ package internal
 import (
 	"context"
 	"fmt"
-	"os"
+	"io"
 	"time"
 
-	"github.com/hashicorp/terraform-exec/tfexec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,8 +29,8 @@ type PlanRepo interface {
 }
 
 type PlanStore interface {
-	StorePlan(ctx context.Context, planID uint, planFilePath string) error
-	LoadPlan(ctx context.Context, planID uint) (string, error)
+	StorePlan(ctx context.Context, planID uint, planPath PlanPath) error
+	LoadPlan(ctx context.Context, planID uint) (PlanPath, error)
 }
 
 type ListPlans struct {
@@ -46,7 +45,9 @@ func NewListPlans(planRepo PlanRepo, tx TransactionManager) *ListPlans {
 	}
 }
 
-type ListPlansRequest struct{}
+type ListPlansRequest struct {
+	Changeset *string `json:"changeset"`
+}
 
 type ListPlansResponse struct {
 	Plans []Plan `json:"plans"`
@@ -54,7 +55,13 @@ type ListPlansResponse struct {
 
 func (l *ListPlans) Exec(ctx context.Context, req ListPlansRequest) (*ListPlansResponse, error) {
 	var plans []Plan
-	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+
+	branch := MainBranch
+	if req.Changeset != nil {
+		branch = *req.Changeset
+	}
+
+	err := l.tx.Checkout(ctx, branch, func(ctx context.Context) error {
 		var err error
 		plans, err = l.planRepo.ListPlans(ctx)
 		return err
@@ -164,20 +171,24 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 }
 
 type RunPlan struct {
-	config    *Config
-	planRepo  PlanRepo
-	planStore PlanStore
-	applyRepo ApplyRepo
-	tx        TransactionManager
+	config      *Config
+	planRepo    PlanRepo
+	planStore   PlanStore
+	logStore    LogStore
+	applyRepo   ApplyRepo
+	tx          TransactionManager
+	newExecutor NewExecutor
 }
 
-func NewRunPlan(config *Config, planRepo PlanRepo, planStore PlanStore, applyRepo ApplyRepo, tx TransactionManager) *RunPlan {
+func NewRunPlan(config *Config, planRepo PlanRepo, planStore PlanStore, logStore LogStore, applyRepo ApplyRepo, tx TransactionManager, newExecutor NewExecutor) *RunPlan {
 	return &RunPlan{
-		config:    config,
-		planRepo:  planRepo,
-		planStore: planStore,
-		applyRepo: applyRepo,
-		tx:        tx,
+		config:      config,
+		planRepo:    planRepo,
+		planStore:   planStore,
+		logStore:    logStore,
+		applyRepo:   applyRepo,
+		tx:          tx,
+		newExecutor: newExecutor,
 	}
 }
 
@@ -214,45 +225,44 @@ func (r *RunPlan) Exec(ctx context.Context, req RunPlanRequest) error {
 
 	component := &plan.Component
 	workDir := r.config.Terraform.WorkDir
-	tf, cleanup, err := NewTerraformFromComponent(ctx, component, workDir)
+
+	executor, err := r.newExecutor(component, workDir)
 	if err != nil {
-		return fmt.Errorf("failed to create terraform from component: %w", err)
+		return fmt.Errorf("failed to create executor: %w", err)
 	}
-	defer cleanup()
+	defer executor.Close()
 
 	log.Info("Created dynamic component config in temp directory")
 
-	err = tf.Init(ctx)
+	logWriter, err := r.logStore.NewLogWriter("plan", req.PlanID)
+	if err != nil {
+		return fmt.Errorf("failed to create log writer: %w", err)
+	}
+	defer logWriter.Close()
+
+	err = executor.Init(ctx, logWriter)
 	if err != nil {
 		stateErr := r.tx.Do(ctx, req.Branch, "fail plan", func(ctx context.Context) error {
 			return r.planRepo.UpdatePlanState(ctx, req.PlanID, TaskStateFailed)
 		})
 		if stateErr != nil {
-			return fmt.Errorf("failed to initialize terraform: %w, and failed to update plan state: %w", err, stateErr)
+			return fmt.Errorf("failed to initialize executor: %w, and failed to update plan state: %w", err, stateErr)
 		}
-		return fmt.Errorf("failed to initialize terraform: %w", err)
+		return fmt.Errorf("failed to initialize executor: %w", err)
 	}
 
-	tempFile, err := os.CreateTemp("", "plan-*.tfplan")
+	planPath, err := executor.Plan(ctx, logWriter)
 	if err != nil {
-		return fmt.Errorf("failed to create temp plan file: %w", err)
-	}
-	defer tempFile.Close()
-
-	planPath := tempFile.Name()
-	_, err = tf.Plan(ctx, tfexec.Out(planPath))
-	if err != nil {
-		os.Remove(planPath)
 		stateErr := r.tx.Do(ctx, req.Branch, "fail plan", func(ctx context.Context) error {
 			return r.planRepo.UpdatePlanState(ctx, req.PlanID, TaskStateFailed)
 		})
 		if stateErr != nil {
-			return fmt.Errorf("failed to plan terraform: %w, and failed to update plan state: %w", err, stateErr)
+			return fmt.Errorf("failed to plan executor: %w, and failed to update plan state: %w", err, stateErr)
 		}
-		return fmt.Errorf("failed to plan terraform: %w", err)
+		return fmt.Errorf("failed to plan executor: %w", err)
 	}
 
-	err = r.planStore.StorePlan(ctx, req.PlanID, planPath)
+	err = r.planStore.StorePlan(ctx, req.PlanID, PlanPath(planPath))
 	if err != nil {
 		stateErr := r.tx.Do(ctx, req.Branch, "fail plan", func(ctx context.Context) error {
 			return r.planRepo.UpdatePlanState(ctx, req.PlanID, TaskStateFailed)
@@ -289,6 +299,39 @@ func (r *RunPlan) Exec(ctx context.Context, req RunPlanRequest) error {
 	})
 
 	return err
+}
+
+type GetPlanLog struct {
+	logStore LogStore
+}
+
+func NewGetPlanLog(logStore LogStore) *GetPlanLog {
+	return &GetPlanLog{
+		logStore: logStore,
+	}
+}
+
+type GetPlanLogRequest struct {
+	PlanID uint `json:"plan_id"`
+}
+
+type GetPlanLogResponse struct {
+	Content io.ReadCloser
+}
+
+func (g *GetPlanLog) Exec(ctx context.Context, req GetPlanLogRequest) (*GetPlanLogResponse, error) {
+	if req.PlanID == 0 {
+		return nil, UserErr("plan ID is required")
+	}
+
+	reader, err := g.logStore.LoadLog(ctx, "plan", req.PlanID)
+	if err != nil {
+		return nil, InternalErrE("failed to load plan log", err)
+	}
+
+	return &GetPlanLogResponse{
+		Content: reader,
+	}, nil
 }
 
 type PlanWorker struct {

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/marcbran/versource/internal/http"
+	"github.com/marcbran/versource/internal/http/server"
 	"github.com/spf13/cobra"
 )
 
@@ -15,6 +15,6 @@ var serveCmd = &cobra.Command{
 			return err
 		}
 
-		return http.Serve(cmd.Context(), config)
+		return server.Serve(cmd.Context(), config)
 	},
 }

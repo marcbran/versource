@@ -6,13 +6,13 @@ import (
 	"fmt"
 )
 
-func (s *Stage) a_component_has_been_created(variables string) *Stage {
-	return s.a_component_is_created_for_the_module_and_changeset(variables).and().
+func (s *Stage) a_component_has_been_created(name, variables string) *Stage {
+	return s.a_component_is_created_for_the_module_and_changeset(name, variables).and().
 		the_component_creation_has_succeeded()
 }
 
-func (s *Stage) a_component_is_created_for_the_module(changeset, variables string) *Stage {
-	args := []string{"component", "create", "--changeset", changeset, "--module-id", s.ModuleID, "--variables", variables}
+func (s *Stage) a_component_is_created_for_the_module(changeset, name, variables string) *Stage {
+	args := []string{"component", "create", name, "--changeset", changeset, "--module-id", s.ModuleID, "--variables", variables}
 	s.execCommand(args...)
 	if s.LastOutputMap != nil {
 		if id, ok := s.LastOutputMap["id"]; ok {
@@ -24,8 +24,8 @@ func (s *Stage) a_component_is_created_for_the_module(changeset, variables strin
 	return s
 }
 
-func (s *Stage) a_component_is_created_for_the_module_and_changeset(variables string) *Stage {
-	args := []string{"component", "create", "--changeset", s.ChangesetName, "--module-id", s.ModuleID, "--variables", variables}
+func (s *Stage) a_component_is_created_for_the_module_and_changeset(name, variables string) *Stage {
+	args := []string{"component", "create", name, "--changeset", s.ChangesetName, "--module-id", s.ModuleID, "--variables", variables}
 	s.execCommand(args...)
 	if s.LastOutputMap != nil {
 		if id, ok := s.LastOutputMap["id"]; ok {

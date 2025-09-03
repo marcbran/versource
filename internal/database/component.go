@@ -98,11 +98,13 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, fromComm
 		SELECT
 			to_id,
 			to_module_version_id,
+			to_name,
 			to_variables,
 			to_commit,
 			to_commit_date,
 			from_id,
 			from_module_version_id,
+			from_name,
 			from_variables,
 			from_commit,
 			from_commit_date,
@@ -113,11 +115,13 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, fromComm
 	type rawDiff struct {
 		ToID                *uint          `json:"to_id"`
 		ToModuleVersionID   *uint          `json:"to_module_version_id"`
+		ToName              *string        `json:"to_name"`
 		ToVariables         datatypes.JSON `json:"to_variables"`
 		ToCommit            string         `json:"to_commit"`
 		ToCommitDate        string         `json:"to_commit_date"`
 		FromID              *uint          `json:"from_id"`
 		FromModuleVersionID *uint          `json:"from_module_version_id"`
+		FromName            *string        `json:"from_name"`
 		FromVariables       datatypes.JSON `json:"from_variables"`
 		FromCommit          string         `json:"from_commit"`
 		FromCommitDate      string         `json:"from_commit_date"`
@@ -140,6 +144,9 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, fromComm
 		if raw.FromModuleVersionID != nil {
 			fromComponent.ModuleVersionID = *raw.FromModuleVersionID
 		}
+		if raw.FromName != nil {
+			fromComponent.Name = *raw.FromName
+		}
 		fromComponent.Variables = raw.FromVariables
 
 		if raw.ToID != nil {
@@ -147,6 +154,9 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, fromComm
 		}
 		if raw.ToModuleVersionID != nil {
 			toComponent.ModuleVersionID = *raw.ToModuleVersionID
+		}
+		if raw.ToName != nil {
+			toComponent.Name = *raw.ToName
 		}
 		toComponent.Variables = raw.ToVariables
 

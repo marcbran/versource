@@ -105,7 +105,7 @@ func TestDeleteModuleWithNotYetMergedComponents(t *testing.T) {
 		a_blank_instance().and().
 		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
-		a_component_has_been_created(`{"key": "value"}`)
+		a_component_has_been_created("component1", `{"key": "value"}`)
 
 	when.
 		the_module_is_deleted()
@@ -121,7 +121,7 @@ func TestDeleteModuleWithComponents(t *testing.T) {
 		a_blank_instance().and().
 		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
-		a_component_has_been_created(`{"key": "value"}`).and().
+		a_component_has_been_created("component1", `{"key": "value"}`).and().
 		the_changeset_has_been_merged()
 
 	when.

@@ -64,6 +64,7 @@ func (p *ComponentsTableData) ResolveData(data any) ([]table.Column, []table.Row
 
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
+		{Title: "Name", Width: 3},
 		{Title: "Module", Width: 7},
 		{Title: "Version", Width: 2},
 	}
@@ -81,6 +82,7 @@ func (p *ComponentsTableData) ResolveData(data any) ([]table.Column, []table.Row
 		}
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(component.ID), 10),
+			component.Name,
 			source,
 			version,
 		})
@@ -133,6 +135,7 @@ func (p *ChangesetComponentsTableData) ResolveData(data any) ([]table.Column, []
 
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
+		{Title: "Name", Width: 3},
 		{Title: "Module", Width: 7},
 		{Title: "Version", Width: 2},
 	}
@@ -150,6 +153,7 @@ func (p *ChangesetComponentsTableData) ResolveData(data any) ([]table.Column, []
 		}
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(component.ID), 10),
+			component.Name,
 			source,
 			version,
 		})
@@ -205,6 +209,8 @@ func (p *ComponentDiffsTableData) ResolveData(data any) ([]table.Column, []table
 		{Title: "Type", Width: 8},
 		{Title: "From ID", Width: 8},
 		{Title: "To ID", Width: 8},
+		{Title: "From Name", Width: 10},
+		{Title: "To Name", Width: 10},
 		{Title: "From Module Version", Width: 15},
 		{Title: "To Module Version", Width: 15},
 		{Title: "From Variables", Width: 20},
@@ -248,6 +254,8 @@ func (p *ComponentDiffsTableData) ResolveData(data any) ([]table.Column, []table
 			string(diff.DiffType),
 			fromID,
 			toID,
+			diff.FromComponent.Name,
+			diff.ToComponent.Name,
 			fromModuleVersion,
 			toModuleVersion,
 			fromVariables,

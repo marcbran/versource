@@ -10,6 +10,7 @@ import (
 
 type Component struct {
 	ID              uint          `gorm:"primarykey"`
+	Name            string        `gorm:"not null;default:'';uniqueIndex"`
 	ModuleVersion   ModuleVersion `gorm:"foreignKey:ModuleVersionID"`
 	ModuleVersionID uint
 	Variables       datatypes.JSON `gorm:"type:jsonb"`
@@ -117,11 +118,13 @@ func NewCreateComponent(componentRepo ComponentRepo, moduleRepo ModuleRepo, modu
 type CreateComponentRequest struct {
 	Changeset string         `json:"changeset"`
 	ModuleID  uint           `json:"module_id"`
+	Name      string         `json:"name"`
 	Variables map[string]any `json:"variables"`
 }
 
 type CreateComponentResponse struct {
 	ID        uint           `json:"id"`
+	Name      string         `json:"name"`
 	Source    string         `json:"source"`
 	Version   string         `json:"version"`
 	Variables map[string]any `json:"variables"`
@@ -158,6 +161,7 @@ func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) 
 		}
 
 		component := &Component{
+			Name:            req.Name,
 			ModuleVersionID: latestVersion.ID,
 			Variables:       datatypes.JSON(variablesJSON),
 		}
@@ -175,6 +179,7 @@ func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) 
 
 		response = &CreateComponentResponse{
 			ID:        component.ID,
+			Name:      component.Name,
 			Source:    latestVersion.Module.Source,
 			Version:   latestVersion.Version,
 			Variables: variables,
@@ -226,6 +231,7 @@ type UpdateComponentRequest struct {
 
 type UpdateComponentResponse struct {
 	ID        uint           `json:"id"`
+	Name      string         `json:"name"`
 	Source    string         `json:"source"`
 	Version   string         `json:"version"`
 	Variables map[string]any `json:"variables"`
@@ -274,6 +280,7 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 
 		response = &UpdateComponentResponse{
 			ID:        component.ID,
+			Name:      component.Name,
 			Source:    component.ModuleVersion.Module.Source,
 			Version:   component.ModuleVersion.Version,
 			Variables: variables,

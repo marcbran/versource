@@ -16,6 +16,10 @@ type Executor interface {
 
 type PlanPath string
 
+type ModuleIngester interface {
+	IngestModuleWithVersion(request CreateModuleRequest) (*Module, *ModuleVersion, error)
+}
+
 type LogStore interface {
 	NewLogWriter(operationType string, operationID uint) (io.WriteCloser, error)
 	StoreLog(ctx context.Context, operationType string, operationID uint, r io.Reader) error

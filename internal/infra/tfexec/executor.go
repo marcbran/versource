@@ -18,7 +18,6 @@ type TerraformExecutor struct {
 	component *internal.Component
 	workdir   string
 	tf        *tfexec.Terraform
-	cleanup   func()
 	tempDir   string
 }
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/marcbran/versource/internal"
 )
@@ -29,21 +30,9 @@ type TerraformBackendLocal struct {
 type TerraformStack []any
 
 func NewTerraformStackFromComponent(component *internal.Component, workDir string) (TerraformStack, error) {
-	terraformModule := TerraformModule{
-		Source: component.ModuleVersion.Module.Source,
-	}
-
-	if component.ModuleVersion.Version != "" {
-		terraformModule.Version = component.ModuleVersion.Version
-	}
-
-	if component.Variables != nil {
-		var variables map[string]any
-		err := json.Unmarshal(component.Variables, &variables)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal component variables: %w", err)
-		}
-		terraformModule.Variables = variables
+	terraformModule, err := buildTerraformModule(component)
+	if err != nil {
+		return nil, err
 	}
 
 	statePath, err := filepath.Abs(filepath.Join(workDir, "states", fmt.Sprintf("%d.tfstate", component.ID)))
@@ -61,6 +50,68 @@ func NewTerraformStackFromComponent(component *internal.Component, workDir strin
 		})
 
 	return terraformStack, nil
+}
+
+func buildTerraformModule(component *internal.Component) (TerraformModule, error) {
+	source := component.ModuleVersion.Module.Source
+	version := component.ModuleVersion.Version
+
+	if strings.HasPrefix(source, "./") || strings.HasPrefix(source, "../") {
+		if version != "" {
+			return TerraformModule{}, fmt.Errorf("local paths do not support version parameter")
+		}
+	} else if strings.HasPrefix(source, "github.com/") || strings.HasPrefix(source, "bitbucket.org/") || strings.HasPrefix(source, "git::") || strings.HasPrefix(source, "hg::") {
+		if version != "" {
+			if strings.Contains(source, "?") {
+				source = source + "&ref=" + version
+			} else {
+				source = source + "?ref=" + version
+			}
+		}
+	} else if strings.HasPrefix(source, "s3::") {
+		if version != "" {
+			if strings.Contains(source, "?") {
+				source = source + "&versionId=" + version
+			} else {
+				source = source + "?versionId=" + version
+			}
+		}
+	} else if strings.HasPrefix(source, "gcs::") {
+		if version != "" {
+			if strings.Contains(source, "?") {
+				source = source + "&generation=" + version
+			} else {
+				source = source + "?generation=" + version
+			}
+		}
+	} else if !strings.Contains(source, "::") && !strings.Contains(source, "://") {
+		if version == "" {
+			return TerraformModule{}, fmt.Errorf("terraform registry sources require version parameter")
+		}
+	}
+
+	terraformModule := TerraformModule{
+		Source: source,
+	}
+
+	if version != "" && !strings.HasPrefix(source, "./") && !strings.HasPrefix(source, "../") {
+		if strings.HasPrefix(source, "github.com/") || strings.HasPrefix(source, "bitbucket.org/") || strings.HasPrefix(source, "git::") || strings.HasPrefix(source, "hg::") || strings.HasPrefix(source, "s3::") || strings.HasPrefix(source, "gcs::") {
+			terraformModule.Version = ""
+		} else {
+			terraformModule.Version = version
+		}
+	}
+
+	if component.Variables != nil {
+		var variables map[string]any
+		err := json.Unmarshal(component.Variables, &variables)
+		if err != nil {
+			return TerraformModule{}, fmt.Errorf("failed to unmarshal component variables: %w", err)
+		}
+		terraformModule.Variables = variables
+	}
+
+	return terraformModule, nil
 }
 
 func NewTerraformStack() TerraformStack {

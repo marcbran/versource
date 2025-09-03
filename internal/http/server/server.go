@@ -119,7 +119,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		config:                      config,
 		router:                      chi.NewRouter(),
 		listModules:                 internal.NewListModules(moduleRepo, transactionManager),
-		createModule:                internal.NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
+		createModule:                internal.NewCreateModule(moduleRepo, moduleVersionRepo, tfexec.NewModuleIngester(), transactionManager),
 		updateModule:                internal.NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
 		deleteModule:                internal.NewDeleteModule(moduleRepo, componentRepo, transactionManager),
 		listModuleVersions:          internal.NewListModuleVersions(moduleVersionRepo, transactionManager),

@@ -1,13 +1,15 @@
-package internal
+package tfexec
 
 import (
 	"testing"
+
+	"github.com/marcbran/versource/internal"
 )
 
-func TestCreateModuleWithVersion(t *testing.T) {
+func TestIngestModuleWithVersion(t *testing.T) {
 	tests := []struct {
 		name            string
-		request         CreateModuleRequest
+		request         internal.CreateModuleRequest
 		expectedSource  string
 		expectedVersion string
 		wantErr         bool
@@ -15,7 +17,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 	}{
 		{
 			name: "valid local module",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "./local/modules/test-module",
 				Version: "",
 			},
@@ -25,7 +27,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "valid registry module",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "hashicorp/consul/aws",
 				Version: "0.1.0",
 			},
@@ -35,7 +37,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "valid github module",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "github.com/hashicorp/example?ref=v1.2.0",
 				Version: "",
 			},
@@ -45,7 +47,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "valid git module",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "git::https://example.com/network.git?ref=v1.2.0",
 				Version: "",
 			},
@@ -55,7 +57,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "valid bitbucket module",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "bitbucket.org/hashicorp/terraform-consul-aws?ref=v1.0.0",
 				Version: "",
 			},
@@ -65,7 +67,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "valid mercurial module",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "hg::http://example.com/vpc.hg?ref=v1.2.0",
 				Version: "",
 			},
@@ -75,7 +77,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "valid s3 module",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip?versionId=abc123",
 				Version: "",
 			},
@@ -85,7 +87,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "valid gcs module",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "gcs::https://www.googleapis.com/storage/v1/modules/foomodule.zip?generation=123456789",
 				Version: "",
 			},
@@ -95,7 +97,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "empty source",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "",
 				Version: "1.0.0",
 			},
@@ -106,7 +108,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "local module with version should fail",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "./local/modules/test-module",
 				Version: "1.0.0",
 			},
@@ -117,7 +119,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "registry module without version should fail",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "hashicorp/consul/aws",
 				Version: "",
 			},
@@ -128,7 +130,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "github module without ref should fail",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "github.com/hashicorp/example",
 				Version: "",
 			},
@@ -139,9 +141,9 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "github module with version should fail",
-			request: CreateModuleRequest{
-				Source:  "github.com/hashicorp/example?ref=v1.2.0",
-				Version: "1.0.0",
+			request: internal.CreateModuleRequest{
+				Source:  "github.com/hashicorp/example",
+				Version: "v1.2.0",
 			},
 			expectedSource:  "",
 			expectedVersion: "",
@@ -150,7 +152,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "s3 module without versionId should fail",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip",
 				Version: "",
 			},
@@ -161,7 +163,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "s3 module with version should fail",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip?versionId=abc123",
 				Version: "1.0.0",
 			},
@@ -172,7 +174,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "gcs module without generation should fail",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "gcs::https://www.googleapis.com/storage/v1/modules/foomodule.zip",
 				Version: "",
 			},
@@ -183,7 +185,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "gcs module with version should fail",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "gcs::https://www.googleapis.com/storage/v1/modules/foomodule.zip?generation=123456789",
 				Version: "1.0.0",
 			},
@@ -194,7 +196,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "http module should fail",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "https://example.com/vpc-module.zip",
 				Version: "",
 			},
@@ -205,7 +207,7 @@ func TestCreateModuleWithVersion(t *testing.T) {
 		},
 		{
 			name: "unknown source type should fail",
-			request: CreateModuleRequest{
+			request: internal.CreateModuleRequest{
 				Source:  "unknown::source/type",
 				Version: "",
 			},
@@ -218,44 +220,44 @@ func TestCreateModuleWithVersion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			module, moduleVersion, err := createModuleWithVersion(tt.request)
+			module, moduleVersion, err := ingestModuleWithVersion(tt.request)
 
 			if tt.wantErr {
 				if err == nil {
-					t.Errorf("createModuleWithVersion() expected error but got none")
+					t.Errorf("ingestModuleWithVersion() expected error but got none")
 					return
 				}
 				if tt.errMsg != "" && err.Error() != tt.errMsg {
-					t.Errorf("createModuleWithVersion() error = %v, want error containing %v", err, tt.errMsg)
+					t.Errorf("ingestModuleWithVersion() error = %v, want error containing %v", err, tt.errMsg)
 				}
 				return
 			}
 
 			if err != nil {
-				t.Errorf("createModuleWithVersion() unexpected error = %v", err)
+				t.Errorf("ingestModuleWithVersion() unexpected error = %v", err)
 				return
 			}
 
 			if module == nil {
-				t.Errorf("createModuleWithVersion() module is nil")
+				t.Errorf("ingestModuleWithVersion() module is nil")
 				return
 			}
 
 			if moduleVersion == nil {
-				t.Errorf("createModuleWithVersion() moduleVersion is nil")
+				t.Errorf("ingestModuleWithVersion() moduleVersion is nil")
 				return
 			}
 
 			if module.Source != tt.expectedSource {
-				t.Errorf("createModuleWithVersion() module.Source = %v, want %v", module.Source, tt.expectedSource)
+				t.Errorf("ingestModuleWithVersion() module.Source = %v, want %v", module.Source, tt.expectedSource)
 			}
 
 			if moduleVersion.Version != tt.expectedVersion {
-				t.Errorf("createModuleWithVersion() moduleVersion.Version = %v, want %v", moduleVersion.Version, tt.expectedVersion)
+				t.Errorf("ingestModuleWithVersion() moduleVersion.Version = %v, want %v", moduleVersion.Version, tt.expectedVersion)
 			}
 
 			if moduleVersion.ModuleID != 0 {
-				t.Errorf("createModuleWithVersion() moduleVersion.ModuleID should be 0, got %v", moduleVersion.ModuleID)
+				t.Errorf("ingestModuleWithVersion() moduleVersion.ModuleID should be 0, got %v", moduleVersion.ModuleID)
 			}
 		})
 	}

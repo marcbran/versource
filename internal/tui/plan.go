@@ -2,12 +2,15 @@ package tui
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
+	log "github.com/sirupsen/logrus"
 )
 
 type PlansTableData struct {
@@ -23,7 +26,7 @@ func NewPlansPage(client *client.Client) func(params map[string]string) Page {
 func (p *PlansTableData) LoadData() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		resp, err := p.client.ListPlans(ctx)
+		resp, err := p.client.ListPlans(ctx, internal.ListPlansRequest{})
 		if err != nil {
 			return errorMsg{err: err}
 		}
@@ -60,9 +63,18 @@ func (p *PlansTableData) ResolveData(data any) ([]table.Column, []table.Row, []a
 }
 
 func (p *PlansTableData) Links(elem any) map[string]string {
+	plan, ok := elem.(internal.Plan)
+	if !ok {
+		return map[string]string{
+			"c": "components",
+			"a": "applies",
+		}
+	}
+
 	return map[string]string{
 		"c": "components",
 		"a": "applies",
+		"l": fmt.Sprintf("plans/%d/logs", plan.ID),
 	}
 }
 
@@ -84,7 +96,7 @@ func (p *ChangesetPlansTableData) LoadData() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
-		resp, err := p.client.ListPlans(ctx)
+		resp, err := p.client.ListPlans(ctx, internal.ListPlansRequest{Changeset: &p.changesetName})
 		if err != nil {
 			return errorMsg{err: err}
 		}
@@ -122,5 +134,65 @@ func (p *ChangesetPlansTableData) ResolveData(data any) ([]table.Column, []table
 }
 
 func (p *ChangesetPlansTableData) Links(elem any) map[string]string {
-	return map[string]string{}
+	plan, ok := elem.(internal.Plan)
+	if !ok {
+		return map[string]string{
+			"c": "components",
+			"a": "applies",
+		}
+	}
+
+	return map[string]string{
+		"c": "components",
+		"a": "applies",
+		"l": fmt.Sprintf("plans/%d/logs", plan.ID),
+	}
+}
+
+type PlanLogsPageData struct {
+	client *client.Client
+	planID uint
+}
+
+func NewPlanLogsPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		planID, _ := strconv.ParseUint(params["planID"], 10, 32)
+		return NewDataViewport(&PlanLogsPageData{
+			client: client,
+			planID: uint(planID),
+		})
+	}
+}
+
+func (p *PlanLogsPageData) LoadData() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		resp, err := p.client.GetPlanLog(ctx, p.planID)
+		log.WithField("resp", resp).Infof("resp: %+v", resp)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+		return dataLoadedMsg{data: resp}
+	}
+}
+
+func (p *PlanLogsPageData) ResolveData(data any) string {
+	logResp, ok := data.(*internal.GetPlanLogResponse)
+	if !ok {
+		return "Failed to load log data"
+	}
+
+	content, err := io.ReadAll(logResp.Content)
+	if err != nil {
+		return "Failed to read log content"
+	}
+	defer logResp.Content.Close()
+
+	return string(content)
+}
+
+func (p *PlanLogsPageData) Links(elem any) map[string]string {
+	return map[string]string{
+		"b": "plans",
+	}
 }

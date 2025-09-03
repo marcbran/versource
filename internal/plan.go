@@ -45,7 +45,9 @@ func NewListPlans(planRepo PlanRepo, tx TransactionManager) *ListPlans {
 	}
 }
 
-type ListPlansRequest struct{}
+type ListPlansRequest struct {
+	Changeset *string `json:"changeset"`
+}
 
 type ListPlansResponse struct {
 	Plans []Plan `json:"plans"`
@@ -53,7 +55,13 @@ type ListPlansResponse struct {
 
 func (l *ListPlans) Exec(ctx context.Context, req ListPlansRequest) (*ListPlansResponse, error) {
 	var plans []Plan
-	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+
+	branch := MainBranch
+	if req.Changeset != nil {
+		branch = *req.Changeset
+	}
+
+	err := l.tx.Checkout(ctx, branch, func(ctx context.Context) error {
 		var err error
 		plans, err = l.planRepo.ListPlans(ctx)
 		return err
@@ -308,7 +316,7 @@ type GetPlanLogRequest struct {
 }
 
 type GetPlanLogResponse struct {
-	Content io.ReadCloser `json:"content"`
+	Content io.ReadCloser
 }
 
 func (g *GetPlanLog) Exec(ctx context.Context, req GetPlanLogRequest) (*GetPlanLogResponse, error) {

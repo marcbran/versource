@@ -4,11 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -179,6 +177,7 @@ func (s *Server) setupRoutes() {
 			r.Get("/components", s.handleListComponents)
 			r.Post("/components", s.handleCreateComponent)
 			r.Get("/components/diffs", s.handleListComponentDiffs)
+			r.Get("/plans", s.handleListPlans)
 			r.Route("/components/{componentID}", func(r chi.Router) {
 				r.Patch("/", s.handleUpdateComponent)
 				r.Post("/plans", s.handleCreatePlan)
@@ -235,48 +234,4 @@ func returnJSON(w http.ResponseWriter, data any) {
 	if encodeErr != nil {
 		log.WithError(encodeErr).Warn("Failed to encode JSON response")
 	}
-}
-
-func (s *Server) handleGetPlanLog(w http.ResponseWriter, r *http.Request) {
-	planIDStr := chi.URLParam(r, "planID")
-
-	planID, err := strconv.ParseUint(planIDStr, 10, 32)
-	if err != nil {
-		returnBadRequest(w, fmt.Errorf("invalid plan ID: %s", planIDStr))
-		return
-	}
-
-	req := internal.GetPlanLogRequest{
-		PlanID: uint(planID),
-	}
-
-	response, err := s.getPlanLog.Exec(r.Context(), req)
-	if err != nil {
-		returnError(w, err)
-		return
-	}
-
-	returnSuccess(w, response)
-}
-
-func (s *Server) handleGetApplyLog(w http.ResponseWriter, r *http.Request) {
-	applyIDStr := chi.URLParam(r, "applyID")
-
-	applyID, err := strconv.ParseUint(applyIDStr, 10, 32)
-	if err != nil {
-		returnBadRequest(w, fmt.Errorf("invalid apply ID: %s", applyIDStr))
-		return
-	}
-
-	req := internal.GetApplyLogRequest{
-		ApplyID: uint(applyID),
-	}
-
-	response, err := s.getApplyLog.Exec(r.Context(), req)
-	if err != nil {
-		returnError(w, err)
-		return
-	}
-
-	returnSuccess(w, response)
 }

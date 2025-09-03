@@ -93,6 +93,7 @@ func NewApp(client *client.Client) *App {
 	app.router.Register("changesets/{changesetName}/applies", NewChangesetAppliesPage(client))
 	app.router.Register("components", NewComponentsPage(client))
 	app.router.Register("plans", NewPlansPage(client))
+	app.router.Register("plans/{planID}/logs", NewPlanLogsPage(client))
 	app.router.Register("applies", NewAppliesPage(client))
 
 	return app

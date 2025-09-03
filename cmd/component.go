@@ -17,10 +17,16 @@ var componentCmd = &cobra.Command{
 }
 
 var componentCreateCmd = &cobra.Command{
-	Use:   "create",
+	Use:   "create [name]",
 	Short: "Create a new component",
-	Long:  `Create a new component with module ID and variables (uses latest module version)`,
+	Long:  `Create a new component with name, module ID and variables (uses latest module version)`,
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		name := args[0]
+		if name == "" {
+			return fmt.Errorf("name is required")
+		}
+
 		moduleIDStr, err := cmd.Flags().GetString("module-id")
 		if err != nil {
 			return fmt.Errorf("failed to get module-id flag: %w", err)
@@ -66,6 +72,7 @@ var componentCreateCmd = &cobra.Command{
 		req := internal.CreateComponentRequest{
 			ModuleID:  uint(moduleID),
 			Changeset: changeset,
+			Name:      name,
 			Variables: variables,
 		}
 

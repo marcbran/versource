@@ -24,7 +24,7 @@ ARG TARGETPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 
-RUN apk --no-cache add ca-certificates curl unzip
+RUN apk --no-cache add ca-certificates curl unzip git openssh-client
 
 WORKDIR /root/
 

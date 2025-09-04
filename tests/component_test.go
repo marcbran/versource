@@ -59,7 +59,7 @@ func TestCreateComponentWithInvalidVariables(t *testing.T) {
 		a_changeset_has_been_created("test1")
 
 	when.
-		a_component_is_created_for_the_module_and_changeset("component1", `{"invalid": json`)
+		a_component_is_created_for_the_module_and_changeset("component1", `{"invalid": "{"}`)
 
 	then.
 		the_component_creation_has_failed()

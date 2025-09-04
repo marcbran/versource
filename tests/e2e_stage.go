@@ -139,3 +139,40 @@ func (s *Stage) execQuery(query string) string {
 
 	return string(output)
 }
+
+func (s *Stage) parseVariablesToArgs(variables string) []string {
+	if variables == "" {
+		return []string{}
+	}
+
+	var args []string
+	var variablesMap map[string]any
+	err := json.Unmarshal([]byte(variables), &variablesMap)
+	if err != nil {
+		return []string{}
+	}
+
+	for key, value := range variablesMap {
+		var valueStr string
+		switch v := value.(type) {
+		case string:
+			valueStr = v
+		case bool:
+			if v {
+				valueStr = "true"
+			} else {
+				valueStr = "false"
+			}
+		case float64:
+			valueStr = fmt.Sprintf("%.0f", v)
+		case nil:
+			valueStr = "null"
+		default:
+			valueBytes, _ := json.Marshal(value)
+			valueStr = string(valueBytes)
+		}
+		args = append(args, "--variable", fmt.Sprintf("%s=%s", key, valueStr))
+	}
+
+	return args
+}

@@ -12,7 +12,8 @@ func (s *Stage) a_component_has_been_created(name, variables string) *Stage {
 }
 
 func (s *Stage) a_component_is_created_for_the_module(changeset, name, variables string) *Stage {
-	args := []string{"component", "create", name, "--changeset", changeset, "--module-id", s.ModuleID, "--variables", variables}
+	args := []string{"component", "create", name, "--changeset", changeset, "--module-id", s.ModuleID}
+	args = append(args, s.parseVariablesToArgs(variables)...)
 	s.execCommand(args...)
 	if s.LastOutputMap != nil {
 		if id, ok := s.LastOutputMap["id"]; ok {
@@ -25,7 +26,8 @@ func (s *Stage) a_component_is_created_for_the_module(changeset, name, variables
 }
 
 func (s *Stage) a_component_is_created_for_the_module_and_changeset(name, variables string) *Stage {
-	args := []string{"component", "create", name, "--changeset", s.ChangesetName, "--module-id", s.ModuleID, "--variables", variables}
+	args := []string{"component", "create", name, "--changeset", s.ChangesetName, "--module-id", s.ModuleID}
+	args = append(args, s.parseVariablesToArgs(variables)...)
 	s.execCommand(args...)
 	if s.LastOutputMap != nil {
 		if id, ok := s.LastOutputMap["id"]; ok {
@@ -50,15 +52,21 @@ func (s *Stage) both_component_creations_have_succeeded() *Stage {
 }
 
 func (s *Stage) the_component_is_updated(variables string) *Stage {
-	return s.execCommand("component", "update", s.ComponentID, "--changeset", s.ChangesetName, "--variables", variables)
+	args := []string{"component", "update", s.ComponentID, "--changeset", s.ChangesetName}
+	args = append(args, s.parseVariablesToArgs(variables)...)
+	return s.execCommand(args...)
 }
 
 func (s *Stage) a_component_is_updated_for_the_changeset(componentID, variables string) *Stage {
-	return s.execCommand("component", "update", componentID, "--changeset", s.ChangesetName, "--variables", variables)
+	args := []string{"component", "update", componentID, "--changeset", s.ChangesetName}
+	args = append(args, s.parseVariablesToArgs(variables)...)
+	return s.execCommand(args...)
 }
 
 func (s *Stage) a_component_is_updated(componentID, changeset, variables string) *Stage {
-	return s.execCommand("component", "update", componentID, "--changeset", changeset, "--variables", variables)
+	args := []string{"component", "update", componentID, "--changeset", changeset}
+	args = append(args, s.parseVariablesToArgs(variables)...)
+	return s.execCommand(args...)
 }
 
 func (s *Stage) the_component_is_updated_with_no_fields() *Stage {

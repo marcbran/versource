@@ -12,17 +12,10 @@ type DataTable struct {
 	rows    []table.Row
 	elems   []any
 
-	size Rect
-	data TableData
+	size    Rect
+	data    TableData
+	focused bool
 }
-
-//func (a *DataTable) cursorView() string {
-//	if len(t.rowIds) == 0 || t.table.Cursor() < 0 || t.table.Cursor() >= len(t.rowIds) {
-//		return ""
-//	}
-//	selectedId := t.rowIds[t.table.Cursor()]
-//	return fmt.Sprintf("%s/%s", t.currentView, selectedId)
-//}
 
 func NewDataTable(data TableData) *DataTable {
 	return &DataTable{
@@ -43,20 +36,12 @@ func (t *DataTable) Resize(size Rect) {
 
 func (t *DataTable) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "j", "down":
-			if t.table.Cursor() < len(t.table.Rows())-1 {
-				t.table.SetCursor(t.table.Cursor() + 1)
-			}
-		case "k", "up":
-			if t.table.Cursor() > 0 {
-				t.table.SetCursor(t.table.Cursor() - 1)
-			}
-		}
 	case dataLoadedMsg:
 		t.columns, t.rows, t.elems = t.data.ResolveData(msg.data)
 		t.table = newTable(t.columns, t.rows, t.size)
+		if t.focused {
+			t.table.Focus()
+		}
 	}
 	var cmd tea.Cmd
 	t.table, cmd = t.table.Update(msg)
@@ -69,6 +54,16 @@ func (t DataTable) View() string {
 
 func (t DataTable) Links() map[string]string {
 	return t.data.Links(t.elems[t.table.Cursor()])
+}
+
+func (t *DataTable) Focus() {
+	t.focused = true
+	t.table.Focus()
+}
+
+func (t *DataTable) Blur() {
+	t.focused = false
+	t.table.Blur()
 }
 
 type TableData interface {

@@ -22,7 +22,7 @@ type App struct {
 
 	size Rect
 
-	currentRoute Route
+	currentRoute *Route
 	routeHistory []Route
 }
 
@@ -63,6 +63,12 @@ func (p *IndexPage) Links() map[string]string {
 	}
 }
 
+func (p *IndexPage) Focus() {
+}
+
+func (p *IndexPage) Blur() {
+}
+
 type Rect struct {
 	Width  int
 	Height int
@@ -80,7 +86,7 @@ func NewApp(client *client.Client) *App {
 
 		input: input,
 
-		currentRoute: Route{Path: "", Page: &IndexPage{}},
+		currentRoute: &Route{Path: "", Page: &IndexPage{}},
 	}
 
 	app.router.Register("modules", NewModulesPage(client))
@@ -119,14 +125,18 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyMsg:
 			switch msg.String() {
 			case "esc":
+				a.input.Blur()
 				a.showInput = false
 				a.input.SetValue("")
+				a.currentRoute.Page.Focus()
 				a.currentRoute.Page.Resize(a.contentSize())
 				return a, nil
 			case "enter":
 				command := a.input.Value()
+				a.input.Blur()
 				a.showInput = false
 				a.input.SetValue("")
+				a.currentRoute.Page.Focus()
 				a.currentRoute.Page.Resize(a.contentSize())
 				return a, a.executeCommand(command)
 			}
@@ -141,11 +151,26 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.size.Height = msg.Height
 		a.input.Width = msg.Width - 7
 		a.currentRoute.Page.Resize(a.contentSize())
+	case routeOpenedMsg:
+		if a.currentRoute.Path != msg.route.Path {
+			a.routeHistory = append(a.routeHistory, *a.currentRoute)
+		}
+		a.currentRoute = &msg.route
+		a.currentRoute.Page.Resize(a.contentSize())
+		a.input.Blur()
+		a.currentRoute.Page.Focus()
+	case dataLoadedMsg:
+		a.loading = false
+		a.err = nil
+	case errorMsg:
+		a.loading = false
+		a.err = msg.err
 	case tea.KeyMsg:
 		switch msg.String() {
 		case ":":
 			a.showInput = true
 			a.input.Focus()
+			a.currentRoute.Page.Blur()
 			a.currentRoute.Page.Resize(a.contentSize())
 			return a, textinput.Blink
 		case "r":
@@ -157,18 +182,6 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return a, a.router.Open(link)
 			}
 		}
-	case routeOpenedMsg:
-		if a.currentRoute.Path != msg.route.Path {
-			a.routeHistory = append(a.routeHistory, a.currentRoute)
-		}
-		a.currentRoute = msg.route
-		a.currentRoute.Page.Resize(a.contentSize())
-	case dataLoadedMsg:
-		a.loading = false
-		a.err = nil
-	case errorMsg:
-		a.loading = false
-		a.err = msg.err
 	}
 
 	page, cmd := a.currentRoute.Page.Update(msg)
@@ -214,7 +227,7 @@ func (a *App) goBack() tea.Cmd {
 		if len(a.routeHistory) > 0 {
 			previousRoute := a.routeHistory[len(a.routeHistory)-1]
 			a.routeHistory = a.routeHistory[:len(a.routeHistory)-1]
-			a.currentRoute = previousRoute
+			a.currentRoute = &previousRoute
 			return a.refresh()()
 		}
 		return nil

@@ -15,6 +15,8 @@ type Page interface {
 	tea.Model
 	Resize(size Rect)
 	Links() map[string]string
+	Focus()
+	Blur()
 }
 
 type Router struct {

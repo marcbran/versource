@@ -12,7 +12,7 @@ type DataTable struct {
 	rows    []table.Row
 	elems   []any
 
-	size    Rect
+	size    Size
 	data    TableData
 	focused bool
 }
@@ -28,13 +28,13 @@ func (t DataTable) Init() tea.Cmd {
 	return t.data.LoadData()
 }
 
-func (t *DataTable) Resize(size Rect) {
+func (t *DataTable) Resize(size Size) {
 	t.table.SetWidth(size.Width)
 	t.table.SetHeight(size.Height)
 	t.size = size
 }
 
-func (t *DataTable) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (t *DataTable) Update(msg tea.Msg) (Page, tea.Cmd) {
 	switch msg := msg.(type) {
 	case dataLoadedMsg:
 		t.columns, t.rows, t.elems = t.data.ResolveData(msg.data)
@@ -53,7 +53,11 @@ func (t DataTable) View() string {
 }
 
 func (t DataTable) Links() map[string]string {
-	return t.data.Links(t.elems[t.table.Cursor()])
+	cursor := t.table.Cursor()
+	if cursor < 0 || cursor >= len(t.rows) {
+		return map[string]string{}
+	}
+	return t.data.Links(t.elems[cursor])
 }
 
 func (t *DataTable) Focus() {
@@ -72,7 +76,7 @@ type TableData interface {
 	Links(elem any) map[string]string
 }
 
-func newTable(columns []table.Column, rows []table.Row, size Rect) table.Model {
+func newTable(columns []table.Column, rows []table.Row, size Size) table.Model {
 	if len(rows) == 0 {
 		placeholderRow := make(table.Row, len(columns))
 		for i := range placeholderRow {

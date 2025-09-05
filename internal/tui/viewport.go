@@ -8,7 +8,7 @@ import (
 type DataViewport struct {
 	viewport viewport.Model
 	content  string
-	size     Rect
+	size     Size
 	data     ViewportData
 }
 
@@ -25,13 +25,13 @@ func (v *DataViewport) Init() tea.Cmd {
 	return v.data.LoadData()
 }
 
-func (v *DataViewport) Resize(size Rect) {
+func (v *DataViewport) Resize(size Size) {
 	v.viewport.Width = size.Width
 	v.viewport.Height = size.Height
 	v.size = size
 }
 
-func (v *DataViewport) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (v *DataViewport) Update(msg tea.Msg) (Page, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {

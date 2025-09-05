@@ -12,7 +12,43 @@ import (
 type TerraformModule struct {
 	Source    string         `json:"source"`
 	Version   string         `json:"version,omitempty"`
-	Variables map[string]any `json:"variables,omitempty"`
+	Variables map[string]any `json:"-"`
+}
+
+func (tm TerraformModule) MarshalJSON() ([]byte, error) {
+	result := make(map[string]any)
+	result["source"] = tm.Source
+	if tm.Version != "" {
+		result["version"] = tm.Version
+	}
+	for key, value := range tm.Variables {
+		result[key] = value
+	}
+	return json.Marshal(result)
+}
+
+func (tm *TerraformModule) UnmarshalJSON(data []byte) error {
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	if source, ok := raw["source"].(string); ok {
+		tm.Source = source
+	}
+
+	if version, ok := raw["version"].(string); ok {
+		tm.Version = version
+	}
+
+	tm.Variables = make(map[string]any)
+	for key, value := range raw {
+		if key != "source" && key != "version" {
+			tm.Variables[key] = value
+		}
+	}
+
+	return nil
 }
 
 type TerraformOutput struct {
@@ -91,7 +127,8 @@ func buildTerraformModule(component *internal.Component) (TerraformModule, error
 	}
 
 	terraformModule := TerraformModule{
-		Source: source,
+		Source:    source,
+		Variables: make(map[string]any),
 	}
 
 	if version != "" && !strings.HasPrefix(source, "./") && !strings.HasPrefix(source, "../") {

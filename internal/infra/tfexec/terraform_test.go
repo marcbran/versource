@@ -108,12 +108,10 @@ func TestTerraformStack_JSONMarshaling(t *testing.T) {
   {
     "module": {
       "file_module": {
+        "content": "test content",
+        "filename": "test.txt",
         "source": "./modules/file",
-        "version": "1.0.0",
-        "variables": {
-          "content": "test content",
-          "filename": "test.txt"
-        }
+        "version": "1.0.0"
       }
     }
   },
@@ -192,12 +190,10 @@ func TestTerraformStack_JSONMarshalingWithBackend(t *testing.T) {
   {
     "module": {
       "file_module": {
+        "content": "test content",
+        "filename": "test.txt",
         "source": "./modules/file",
-        "version": "1.0.0",
-        "variables": {
-          "content": "test content",
-          "filename": "test.txt"
-        }
+        "version": "1.0.0"
       }
     }
   },

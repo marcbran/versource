@@ -56,25 +56,22 @@ func (p *ModulesTableData) ResolveData(data any) ([]table.Column, []table.Row, [
 	return columns, rows, elems
 }
 
-func (p *ModulesTableData) Links(elem any) map[string]string {
-	module, ok := elem.(internal.Module)
-	if !ok {
-		return map[string]string{}
+func (p *ModulesTableData) KeyBindings(elem any) KeyBindings {
+	if module, ok := elem.(internal.Module); ok {
+		return rootKeyBindings.
+			With("enter", "View module versions", fmt.Sprintf("modules/%d/moduleversions", module.ID)).
+			With("c", "View components", fmt.Sprintf("components?module-id=%d", module.ID))
 	}
-	return map[string]string{
-		"enter": fmt.Sprintf("modules/%d/moduleversions", module.ID),
-		"c":     fmt.Sprintf("components?module-id=%d", module.ID),
-	}
+	return rootKeyBindings
 }
 
 type ModuleVersionsTableData struct {
-	client          *client.Client
-	moduleVersionID string
+	client *client.Client
 }
 
 func NewModuleVersionsPage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		return NewDataTable(&ModuleVersionsTableData{client: client, moduleVersionID: params["moduleVersionID"]})
+		return NewDataTable(&ModuleVersionsTableData{client: client})
 	}
 }
 
@@ -119,14 +116,11 @@ func (p *ModuleVersionsTableData) ResolveData(data any) ([]table.Column, []table
 	return columns, rows, elems
 }
 
-func (p *ModuleVersionsTableData) Links(elem any) map[string]string {
-	moduleVersion, ok := elem.(internal.ModuleVersion)
-	if !ok {
-		return map[string]string{}
+func (p *ModuleVersionsTableData) KeyBindings(elem any) KeyBindings {
+	if moduleVersion, ok := elem.(internal.ModuleVersion); ok {
+		return rootKeyBindings.With("c", "View components", fmt.Sprintf("components?module-version-id=%d", moduleVersion.ID))
 	}
-	return map[string]string{
-		"c": fmt.Sprintf("components?module-version-id=%d", moduleVersion.ID),
-	}
+	return rootKeyBindings
 }
 
 type ModuleVersionsForModuleTableData struct {
@@ -186,12 +180,9 @@ func (p *ModuleVersionsForModuleTableData) ResolveData(data any) ([]table.Column
 	return columns, rows, elems
 }
 
-func (p *ModuleVersionsForModuleTableData) Links(elem any) map[string]string {
-	moduleVersion, ok := elem.(internal.ModuleVersion)
-	if !ok {
-		return map[string]string{}
+func (p *ModuleVersionsForModuleTableData) KeyBindings(elem any) KeyBindings {
+	if moduleVersion, ok := elem.(internal.ModuleVersion); ok {
+		return rootKeyBindings.With("c", "View components", fmt.Sprintf("components?module-version-id=%d", moduleVersion.ID))
 	}
-	return map[string]string{
-		"c": fmt.Sprintf("components?module-version-id=%d", moduleVersion.ID),
-	}
+	return rootKeyBindings
 }

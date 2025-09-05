@@ -11,6 +11,16 @@ import (
 	"github.com/marcbran/versource/internal/http/client"
 )
 
+func changesetKeyBindings(changesetName string) KeyBindings {
+	return KeyBindings{
+		{Key: "m", Help: "View modules", Command: fmt.Sprintf("changesets/%s/modules", changesetName)},
+		{Key: "c", Help: "View components", Command: fmt.Sprintf("changesets/%s/components", changesetName)},
+		{Key: "d", Help: "View component diffs", Command: fmt.Sprintf("changesets/%s/components/diffs", changesetName)},
+		{Key: "p", Help: "View plans", Command: fmt.Sprintf("changesets/%s/plans", changesetName)},
+		{Key: "a", Help: "View applies", Command: fmt.Sprintf("changesets/%s/applies", changesetName)},
+	}
+}
+
 type ChangesetsTableData struct {
 	client *client.Client
 }
@@ -60,15 +70,10 @@ func (p *ChangesetsTableData) ResolveData(data any) ([]table.Column, []table.Row
 	return columns, rows, elems
 }
 
-func (p *ChangesetsTableData) Links(elem any) map[string]string {
-	changeset, ok := elem.(internal.Changeset)
-	if !ok {
-		return map[string]string{}
+func (p *ChangesetsTableData) KeyBindings(elem any) KeyBindings {
+	if changeset, ok := elem.(internal.Changeset); ok {
+		return changesetKeyBindings(changeset.Name).
+			With("enter", "View component diffs", fmt.Sprintf("changesets/%s/components/diffs", changeset.Name))
 	}
-	return map[string]string{
-		"enter": fmt.Sprintf("changesets/%s/components/diffs", changeset.Name),
-		"c":     fmt.Sprintf("changesets/%s/components", changeset.Name),
-		"p":     fmt.Sprintf("changesets/%s/plans", changeset.Name),
-		"a":     fmt.Sprintf("changesets/%s/applies", changeset.Name),
-	}
+	return rootKeyBindings
 }

@@ -62,20 +62,12 @@ func (p *PlansTableData) ResolveData(data any) ([]table.Column, []table.Row, []a
 	return columns, rows, elems
 }
 
-func (p *PlansTableData) Links(elem any) map[string]string {
-	plan, ok := elem.(internal.Plan)
-	if !ok {
-		return map[string]string{
-			"c": "components",
-			"a": "applies",
-		}
+func (p *PlansTableData) KeyBindings(elem any) KeyBindings {
+	if plan, ok := elem.(internal.Plan); ok {
+		return rootKeyBindings.
+			With("l", "View logs", fmt.Sprintf("plans/%d/logs", plan.ID))
 	}
-
-	return map[string]string{
-		"c": "components",
-		"a": "applies",
-		"l": fmt.Sprintf("plans/%d/logs", plan.ID),
-	}
+	return rootKeyBindings
 }
 
 type ChangesetPlansTableData struct {
@@ -133,20 +125,12 @@ func (p *ChangesetPlansTableData) ResolveData(data any) ([]table.Column, []table
 	return columns, rows, elems
 }
 
-func (p *ChangesetPlansTableData) Links(elem any) map[string]string {
-	plan, ok := elem.(internal.Plan)
-	if !ok {
-		return map[string]string{
-			"c": "components",
-			"a": "applies",
-		}
+func (p *ChangesetPlansTableData) KeyBindings(elem any) KeyBindings {
+	if plan, ok := elem.(internal.Plan); ok {
+		return changesetKeyBindings(p.changesetName).
+			With("l", "View logs", fmt.Sprintf("plans/%d/logs", plan.ID))
 	}
-
-	return map[string]string{
-		"c": "components",
-		"a": "applies",
-		"l": fmt.Sprintf("plans/%d/logs", plan.ID),
-	}
+	return changesetKeyBindings(p.changesetName)
 }
 
 type PlanLogsPageData struct {
@@ -191,8 +175,6 @@ func (p *PlanLogsPageData) ResolveData(data any) string {
 	return string(content)
 }
 
-func (p *PlanLogsPageData) Links(elem any) map[string]string {
-	return map[string]string{
-		"b": "plans",
-	}
+func (p *PlanLogsPageData) KeyBindings(elem any) KeyBindings {
+	return rootKeyBindings
 }

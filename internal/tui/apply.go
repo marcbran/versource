@@ -59,12 +59,11 @@ func (p *AppliesTableData) ResolveData(data any) ([]table.Column, []table.Row, [
 	return columns, rows, elems
 }
 
-func (p *AppliesTableData) Links(elem any) map[string]string {
-	return map[string]string{}
+func (p *AppliesTableData) KeyBindings(elem any) KeyBindings {
+	return rootKeyBindings
 }
 
 type ChangesetAppliesTableData struct {
-	AppliesTableData
 	client        *client.Client
 	changesetName string
 }
@@ -91,6 +90,34 @@ func (p *ChangesetAppliesTableData) LoadData() tea.Cmd {
 	}
 }
 
-func (p *ChangesetAppliesTableData) Links(elem any) map[string]string {
-	return map[string]string{}
+func (p *ChangesetAppliesTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
+	applies, ok := data.([]internal.Apply)
+	if !ok {
+		return nil, nil, nil
+	}
+
+	columns := []table.Column{
+		{Title: "ID", Width: 1},
+		{Title: "Plan", Width: 1},
+		{Title: "Changeset", Width: 6},
+		{Title: "State", Width: 2},
+	}
+
+	var rows []table.Row
+	var elems []any
+	for _, apply := range applies {
+		rows = append(rows, table.Row{
+			strconv.FormatUint(uint64(apply.ID), 10),
+			strconv.FormatUint(uint64(apply.PlanID), 10),
+			apply.Changeset.Name,
+			apply.State,
+		})
+		elems = append(elems, apply)
+	}
+
+	return columns, rows, elems
+}
+
+func (p *ChangesetAppliesTableData) KeyBindings(elem any) KeyBindings {
+	return changesetKeyBindings(p.changesetName)
 }

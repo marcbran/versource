@@ -21,13 +21,25 @@ type Focuser interface {
 	Blur()
 }
 
+type KeyBindings []KeyBinding
+
+func (k KeyBindings) With(key, help, command string) KeyBindings {
+	return append(k, KeyBinding{Key: key, Help: help, Command: command})
+}
+
+type KeyBinding struct {
+	Key     string
+	Help    string
+	Command string
+}
+
 type Page interface {
 	Init() tea.Cmd
 	Update(tea.Msg) (Page, tea.Cmd)
 	View() string
 	Resizer
 	Focuser
-	Links() map[string]string
+	KeyBindings() KeyBindings
 }
 
 type Router struct {
@@ -102,8 +114,11 @@ func (r *Router) Update(msg tea.Msg) (*Router, tea.Cmd) {
 		case "esc":
 			return r, r.goBack()
 		default:
-			if link, ok := r.currentRoute.Page.Links()[msg.String()]; ok {
-				return r, r.Open(link)
+			keyBindings := r.currentRoute.Page.KeyBindings()
+			for _, binding := range keyBindings {
+				if binding.Key == msg.String() {
+					return r, r.Open(binding.Command)
+				}
 			}
 		}
 	}

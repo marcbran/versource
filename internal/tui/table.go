@@ -52,12 +52,12 @@ func (t DataTable) View() string {
 	return t.table.View()
 }
 
-func (t DataTable) Links() map[string]string {
+func (t DataTable) KeyBindings() KeyBindings {
 	cursor := t.table.Cursor()
 	if cursor < 0 || cursor >= len(t.rows) {
-		return map[string]string{}
+		return KeyBindings{}
 	}
-	return t.data.Links(t.elems[cursor])
+	return t.data.KeyBindings(t.elems[cursor])
 }
 
 func (t *DataTable) Focus() {
@@ -73,7 +73,7 @@ func (t *DataTable) Blur() {
 type TableData interface {
 	LoadData() tea.Cmd
 	ResolveData(data any) ([]table.Column, []table.Row, []any)
-	Links(elem any) map[string]string
+	KeyBindings(elem any) KeyBindings
 }
 
 func newTable(columns []table.Column, rows []table.Row, size Size) table.Model {

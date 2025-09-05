@@ -66,8 +66,8 @@ func (v *DataViewport) View() string {
 	return v.viewport.View()
 }
 
-func (v *DataViewport) Links() map[string]string {
-	return v.data.Links(nil)
+func (v *DataViewport) KeyBindings() KeyBindings {
+	return v.data.KeyBindings(nil)
 }
 
 func (v *DataViewport) Focus() {
@@ -79,5 +79,5 @@ func (v *DataViewport) Blur() {
 type ViewportData interface {
 	LoadData() tea.Cmd
 	ResolveData(data any) string
-	Links(elem any) map[string]string
+	KeyBindings(elem any) KeyBindings
 }

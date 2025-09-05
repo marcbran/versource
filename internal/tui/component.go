@@ -2,7 +2,6 @@ package tui
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -92,8 +91,8 @@ func (p *ComponentsTableData) ResolveData(data any) ([]table.Column, []table.Row
 	return columns, rows, elems
 }
 
-func (p *ComponentsTableData) Links(elem any) map[string]string {
-	return map[string]string{}
+func (p *ComponentsTableData) KeyBindings(elem any) KeyBindings {
+	return rootKeyBindings
 }
 
 type ChangesetComponentsTableData struct {
@@ -163,12 +162,8 @@ func (p *ChangesetComponentsTableData) ResolveData(data any) ([]table.Column, []
 	return columns, rows, elems
 }
 
-func (p *ChangesetComponentsTableData) Links(elem any) map[string]string {
-	return map[string]string{
-		"d": fmt.Sprintf("changesets/%s/components/diffs", p.changesetName),
-		"p": fmt.Sprintf("changesets/%s/plans", p.changesetName),
-		"a": fmt.Sprintf("changesets/%s/applies", p.changesetName),
-	}
+func (p *ChangesetComponentsTableData) KeyBindings(elem any) KeyBindings {
+	return changesetKeyBindings(p.changesetName)
 }
 
 type ComponentDiffsTableData struct {
@@ -267,11 +262,6 @@ func (p *ComponentDiffsTableData) ResolveData(data any) ([]table.Column, []table
 	return columns, rows, elems
 }
 
-func (p *ComponentDiffsTableData) Links(elem any) map[string]string {
-	return map[string]string{
-		"b": fmt.Sprintf("changesets/%s/components", p.changeset),
-		"c": fmt.Sprintf("changesets/%s/components", p.changeset),
-		"p": fmt.Sprintf("changesets/%s/plans", p.changeset),
-		"a": fmt.Sprintf("changesets/%s/applies", p.changeset),
-	}
+func (p *ComponentDiffsTableData) KeyBindings(elem any) KeyBindings {
+	return changesetKeyBindings(p.changeset)
 }

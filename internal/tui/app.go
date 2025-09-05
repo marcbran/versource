@@ -39,6 +39,14 @@ type Size struct {
 	Height int
 }
 
+var rootKeyBindings = KeyBindings{
+	{Key: "m", Help: "View modules", Command: "modules"},
+	{Key: "g", Help: "View changesets", Command: "changesets"},
+	{Key: "c", Help: "View components", Command: "components"},
+	{Key: "p", Help: "View plans", Command: "plans"},
+	{Key: "a", Help: "View applies", Command: "applies"},
+}
+
 func NewApp(client *client.Client) *App {
 	input := textinput.New()
 	input.CharLimit = 100

@@ -140,15 +140,13 @@ func (l *ListModuleVersionsForModule) Exec(ctx context.Context, req ListModuleVe
 type CreateModule struct {
 	moduleRepo        ModuleRepo
 	moduleVersionRepo ModuleVersionRepo
-	moduleIngester    ModuleIngester
 	tx                TransactionManager
 }
 
-func NewCreateModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo, moduleIngester ModuleIngester, tx TransactionManager) *CreateModule {
+func NewCreateModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo, tx TransactionManager) *CreateModule {
 	return &CreateModule{
 		moduleRepo:        moduleRepo,
 		moduleVersionRepo: moduleVersionRepo,
-		moduleIngester:    moduleIngester,
 		tx:                tx,
 	}
 }
@@ -167,13 +165,25 @@ type CreateModuleResponse struct {
 }
 
 func (c *CreateModule) Exec(ctx context.Context, req CreateModuleRequest) (*CreateModuleResponse, error) {
-	module, moduleVersion, err := c.moduleIngester.IngestModuleWithVersion(req)
-	if err != nil {
-		return nil, err
+	if req.Source == "" {
+		return nil, UserErr("source is required")
+	}
+
+	if req.ExecutorType == "" {
+		return nil, UserErr("executor type is required")
+	}
+
+	module := &Module{
+		Source:       req.Source,
+		ExecutorType: req.ExecutorType,
+	}
+
+	moduleVersion := &ModuleVersion{
+		Version: req.Version,
 	}
 
 	var response *CreateModuleResponse
-	err = c.tx.Do(ctx, MainBranch, "create module", func(ctx context.Context) error {
+	err := c.tx.Do(ctx, MainBranch, "create module", func(ctx context.Context) error {
 		err := c.moduleRepo.CreateModule(ctx, module)
 		if err != nil {
 			return InternalErrE("failed to create module", err)

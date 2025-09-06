@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/database"
+	"github.com/marcbran/versource/internal/infra"
 	tfmodule "github.com/marcbran/versource/internal/infra/terraform-module"
 	"github.com/marcbran/versource/internal/store/file"
 	log "github.com/sirupsen/logrus"
@@ -104,7 +105,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 	moduleVersionRepo := database.NewGormModuleVersionRepo(db)
 	transactionManager := database.NewGormTransactionManager(db)
 
-	newExecutor := tfmodule.NewExecutor
+	newExecutor := infra.NewExecutor
 
 	runApply := internal.NewRunApply(config, applyRepo, stateRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor)
 	applyWorker := internal.NewApplyWorker(runApply, applyRepo)

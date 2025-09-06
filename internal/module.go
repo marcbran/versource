@@ -5,8 +5,9 @@ import (
 )
 
 type Module struct {
-	ID     uint `gorm:"primarykey"`
-	Source string
+	ID           uint `gorm:"primarykey"`
+	Source       string
+	ExecutorType string `gorm:"not null;default:'terraform-module'"`
 }
 
 type ModuleVersion struct {
@@ -153,8 +154,9 @@ func NewCreateModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo,
 }
 
 type CreateModuleRequest struct {
-	Source  string `json:"source"`
-	Version string `json:"version"`
+	Source       string `json:"source"`
+	Version      string `json:"version"`
+	ExecutorType string `json:"executor_type,omitempty"`
 }
 
 type CreateModuleResponse struct {

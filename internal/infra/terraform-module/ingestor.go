@@ -55,7 +55,8 @@ func ingestModuleWithVersion(request internal.CreateModuleRequest) (*internal.Mo
 	}
 
 	module := &internal.Module{
-		Source: cleanSource,
+		Source:       cleanSource,
+		ExecutorType: request.ExecutorType,
 	}
 
 	version := request.Version

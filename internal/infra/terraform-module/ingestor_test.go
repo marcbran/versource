@@ -1,4 +1,4 @@
-package tfexec
+package tfmodule
 
 import (
 	"testing"

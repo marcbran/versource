@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
 	tfjson "github.com/hashicorp/terraform-json"
@@ -14,80 +13,31 @@ import (
 	"gorm.io/datatypes"
 )
 
-type TerraformExecutor struct {
-	component *internal.Component
-	workdir   string
-	tf        *tfexec.Terraform
-	tempDir   string
+type Executor struct {
+	tf *tfexec.Terraform
 }
 
-func NewExecutor(component *internal.Component, workdir string) (internal.Executor, error) {
-	terraformStack, err := NewTerraformStackFromComponent(component, workdir)
+func NewExecutor(component *internal.Component, workdir string, logs io.Writer) (internal.Executor, error) {
+	tf, err := tfexec.NewTerraform(workdir, "terraform")
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert component to terraform stack: %w", err)
-	}
-
-	tempDir, err := os.MkdirTemp("", "versource-*")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create temp directory: %w", err)
-	}
-
-	modulesDir := filepath.Join(workdir, "modules")
-	if _, err := os.Stat(modulesDir); err == nil {
-		absModulesDir, err := filepath.Abs(modulesDir)
-		if err != nil {
-			os.RemoveAll(tempDir)
-			return nil, fmt.Errorf("failed to get absolute path for modules directory: %w", err)
-		}
-		modulesLink := filepath.Join(tempDir, "modules")
-		err = os.Symlink(absModulesDir, modulesLink)
-		if err != nil {
-			os.RemoveAll(tempDir)
-			return nil, fmt.Errorf("failed to create modules symlink: %w", err)
-		}
-	}
-
-	mainJSONPath := filepath.Join(tempDir, "main.tf.json")
-	jsonData, err := json.MarshalIndent(terraformStack, "", "  ")
-	if err != nil {
-		os.RemoveAll(tempDir)
-		return nil, fmt.Errorf("failed to marshal stack config: %w", err)
-	}
-
-	err = os.WriteFile(mainJSONPath, jsonData, 0644)
-	if err != nil {
-		os.RemoveAll(tempDir)
-		return nil, fmt.Errorf("failed to write stack config: %w", err)
-	}
-
-	tf, err := tfexec.NewTerraform(tempDir, "terraform")
-	if err != nil {
-		os.RemoveAll(tempDir)
 		return nil, fmt.Errorf("failed to create terraform instance: %w", err)
 	}
 
-	return &TerraformExecutor{
-		component: component,
-		workdir:   workdir,
-		tf:        tf,
-		tempDir:   tempDir,
+	if logs != nil {
+		tf.SetStdout(logs)
+		tf.SetStderr(logs)
+	}
+
+	return &Executor{
+		tf: tf,
 	}, nil
 }
 
-func (t *TerraformExecutor) Init(ctx context.Context, logs io.Writer) error {
-	if logs != nil {
-		t.tf.SetStdout(logs)
-		t.tf.SetStderr(logs)
-	}
+func (t *Executor) Init(ctx context.Context) error {
 	return t.tf.Init(ctx)
 }
 
-func (t *TerraformExecutor) Plan(ctx context.Context, logs io.Writer) (internal.PlanPath, error) {
-	if logs != nil {
-		t.tf.SetStdout(logs)
-		t.tf.SetStderr(logs)
-	}
-
+func (t *Executor) Plan(ctx context.Context) (internal.PlanPath, error) {
 	tempFile, err := os.CreateTemp("", "plan-*.tfplan")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp plan file: %w", err)
@@ -104,12 +54,7 @@ func (t *TerraformExecutor) Plan(ctx context.Context, logs io.Writer) (internal.
 	return internal.PlanPath(planPath), nil
 }
 
-func (t *TerraformExecutor) Apply(ctx context.Context, planPath internal.PlanPath, logs io.Writer) (internal.State, []internal.Resource, error) {
-	if logs != nil {
-		t.tf.SetStdout(logs)
-		t.tf.SetStderr(logs)
-	}
-
+func (t *Executor) Apply(ctx context.Context, planPath internal.PlanPath) (internal.State, []internal.Resource, error) {
 	err := t.tf.Apply(ctx, tfexec.DirOrPlan(string(planPath)))
 	if err != nil {
 		return internal.State{}, nil, fmt.Errorf("failed to apply terraform: %w", err)
@@ -136,8 +81,7 @@ func (t *TerraformExecutor) Apply(ctx context.Context, planPath internal.PlanPat
 	return state, resources, nil
 }
 
-func (t *TerraformExecutor) Close() error {
-	os.RemoveAll(t.tempDir)
+func (t *Executor) Close() error {
 	return nil
 }
 

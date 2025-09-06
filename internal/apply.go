@@ -124,9 +124,15 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 		return err
 	}
 
+	logWriter, err := a.logStore.NewLogWriter("apply", applyID)
+	if err != nil {
+		return fmt.Errorf("failed to create log writer: %w", err)
+	}
+	defer logWriter.Close()
+
 	component := &apply.Plan.Component
 	workDir := a.config.Terraform.WorkDir
-	executor, err := a.newExecutor(component, workDir)
+	executor, err := a.newExecutor(component, workDir, logWriter)
 	if err != nil {
 		return fmt.Errorf("failed to create executor: %w", err)
 	}
@@ -134,13 +140,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	log.Info("Created dynamic component config in temp directory")
 
-	logWriter, err := a.logStore.NewLogWriter("apply", applyID)
-	if err != nil {
-		return fmt.Errorf("failed to create log writer: %w", err)
-	}
-	defer logWriter.Close()
-
-	err = executor.Init(ctx, logWriter)
+	err = executor.Init(ctx)
 	if err != nil {
 		stateErr := a.tx.Do(ctx, MainBranch, "fail apply", func(ctx context.Context) error {
 			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
@@ -164,7 +164,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	log.WithField("plan_path", planPath).Info("Loaded plan")
 
-	state, resources, err := executor.Apply(ctx, planPath, logWriter)
+	state, resources, err := executor.Apply(ctx, planPath)
 	if err != nil {
 		stateErr := a.tx.Do(ctx, MainBranch, "fail apply", func(ctx context.Context) error {
 			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)

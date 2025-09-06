@@ -1,4 +1,4 @@
-package tfexec
+package tfmodule
 
 import (
 	"encoding/json"
@@ -65,7 +65,7 @@ type TerraformBackendLocal struct {
 
 type TerraformStack []any
 
-func NewTerraformStackFromComponent(component *internal.Component, workDir string) (TerraformStack, error) {
+func newTerraformStackFromComponent(component *internal.Component, workDir string) (TerraformStack, error) {
 	terraformModule, err := buildTerraformModule(component)
 	if err != nil {
 		return nil, err

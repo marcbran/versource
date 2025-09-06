@@ -5,13 +5,13 @@ import (
 	"io"
 )
 
-type NewExecutor func(component *Component, workdir string) (Executor, error)
+type NewExecutor func(component *Component, workdir string, logs io.Writer) (Executor, error)
 
 type Executor interface {
 	io.Closer
-	Init(ctx context.Context, logs io.Writer) error
-	Plan(ctx context.Context, logs io.Writer) (PlanPath, error)
-	Apply(ctx context.Context, planPath PlanPath, logs io.Writer) (State, []Resource, error)
+	Init(ctx context.Context) error
+	Plan(ctx context.Context) (PlanPath, error)
+	Apply(ctx context.Context, planPath PlanPath) (State, []Resource, error)
 }
 
 type PlanPath string

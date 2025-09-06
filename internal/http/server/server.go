@@ -14,7 +14,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/database"
-	"github.com/marcbran/versource/internal/infra/tfexec"
+	"github.com/marcbran/versource/internal/infra"
 	"github.com/marcbran/versource/internal/store/file"
 	log "github.com/sirupsen/logrus"
 )
@@ -104,7 +104,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 	moduleVersionRepo := database.NewGormModuleVersionRepo(db)
 	transactionManager := database.NewGormTransactionManager(db)
 
-	newExecutor := tfexec.NewExecutor
+	newExecutor := infra.NewExecutor
 
 	runApply := internal.NewRunApply(config, applyRepo, stateRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor)
 	applyWorker := internal.NewApplyWorker(runApply, applyRepo)
@@ -119,7 +119,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		config:                      config,
 		router:                      chi.NewRouter(),
 		listModules:                 internal.NewListModules(moduleRepo, transactionManager),
-		createModule:                internal.NewCreateModule(moduleRepo, moduleVersionRepo, tfexec.NewModuleIngester(), transactionManager),
+		createModule:                internal.NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
 		updateModule:                internal.NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
 		deleteModule:                internal.NewDeleteModule(moduleRepo, componentRepo, transactionManager),
 		listModuleVersions:          internal.NewListModuleVersions(moduleVersionRepo, transactionManager),

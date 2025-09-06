@@ -30,6 +30,11 @@ var moduleCreateCmd = &cobra.Command{
 			return fmt.Errorf("failed to get version flag: %w", err)
 		}
 
+		executorType, err := cmd.Flags().GetString("executor")
+		if err != nil {
+			return fmt.Errorf("failed to get executor flag: %w", err)
+		}
+
 		if source == "" {
 			return fmt.Errorf("source is required")
 		}
@@ -42,8 +47,9 @@ var moduleCreateCmd = &cobra.Command{
 		client := client.NewClient(config)
 
 		req := internal.CreateModuleRequest{
-			Source:  source,
-			Version: version,
+			Source:       source,
+			Version:      version,
+			ExecutorType: executorType,
 		}
 
 		module, err := client.CreateModule(cmd.Context(), req)
@@ -130,7 +136,9 @@ var moduleDeleteCmd = &cobra.Command{
 func init() {
 	moduleCreateCmd.Flags().String("source", "", "Module source")
 	moduleCreateCmd.Flags().String("version", "", "Module version (optional for some source types)")
+	moduleCreateCmd.Flags().String("executor", "terraform-module", "Executor type (terraform-module, terraform-jsonnet)")
 	moduleCreateCmd.MarkFlagRequired("source")
+	moduleCreateCmd.MarkFlagRequired("executor")
 
 	moduleUpdateCmd.Flags().String("version", "", "Module version")
 	moduleUpdateCmd.MarkFlagRequired("version")

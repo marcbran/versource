@@ -226,7 +226,13 @@ func (r *RunPlan) Exec(ctx context.Context, req RunPlanRequest) error {
 	component := &plan.Component
 	workDir := r.config.Terraform.WorkDir
 
-	executor, err := r.newExecutor(component, workDir)
+	logWriter, err := r.logStore.NewLogWriter("plan", req.PlanID)
+	if err != nil {
+		return fmt.Errorf("failed to create log writer: %w", err)
+	}
+	defer logWriter.Close()
+
+	executor, err := r.newExecutor(component, workDir, logWriter)
 	if err != nil {
 		return fmt.Errorf("failed to create executor: %w", err)
 	}
@@ -234,13 +240,7 @@ func (r *RunPlan) Exec(ctx context.Context, req RunPlanRequest) error {
 
 	log.Info("Created dynamic component config in temp directory")
 
-	logWriter, err := r.logStore.NewLogWriter("plan", req.PlanID)
-	if err != nil {
-		return fmt.Errorf("failed to create log writer: %w", err)
-	}
-	defer logWriter.Close()
-
-	err = executor.Init(ctx, logWriter)
+	err = executor.Init(ctx)
 	if err != nil {
 		stateErr := r.tx.Do(ctx, req.Branch, "fail plan", func(ctx context.Context) error {
 			return r.planRepo.UpdatePlanState(ctx, req.PlanID, TaskStateFailed)
@@ -251,7 +251,7 @@ func (r *RunPlan) Exec(ctx context.Context, req RunPlanRequest) error {
 		return fmt.Errorf("failed to initialize executor: %w", err)
 	}
 
-	planPath, err := executor.Plan(ctx, logWriter)
+	planPath, err := executor.Plan(ctx)
 	if err != nil {
 		stateErr := r.tx.Do(ctx, req.Branch, "fail plan", func(ctx context.Context) error {
 			return r.planRepo.UpdatePlanState(ctx, req.PlanID, TaskStateFailed)
@@ -262,7 +262,7 @@ func (r *RunPlan) Exec(ctx context.Context, req RunPlanRequest) error {
 		return fmt.Errorf("failed to plan executor: %w", err)
 	}
 
-	err = r.planStore.StorePlan(ctx, req.PlanID, PlanPath(planPath))
+	err = r.planStore.StorePlan(ctx, req.PlanID, planPath)
 	if err != nil {
 		stateErr := r.tx.Do(ctx, req.Branch, "fail plan", func(ctx context.Context) error {
 			return r.planRepo.UpdatePlanState(ctx, req.PlanID, TaskStateFailed)

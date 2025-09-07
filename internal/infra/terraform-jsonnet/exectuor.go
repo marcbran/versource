@@ -19,6 +19,7 @@ import (
 type Executor struct {
 	component *internal.Component
 	delegate  internal.Executor
+	workDir   string
 	tempDir   string
 }
 
@@ -39,6 +40,7 @@ func NewExecutor(component *internal.Component, workdir string, logs io.Writer) 
 	return Executor{
 		component: component,
 		delegate:  tf,
+		workDir:   workdir,
 		tempDir:   tempDir,
 	}, nil
 }
@@ -60,6 +62,10 @@ func (e Executor) Init(ctx context.Context) error {
 		return fmt.Errorf("failed to ensure dependencies: %w", err)
 	}
 	importSource := strings.TrimPrefix(strings.TrimPrefix(e.component.ModuleVersion.Module.Source, deps.GitSchemeHTTPS), deps.GitSchemeSSH)
+	statePath, err := filepath.Abs(filepath.Join(e.workDir, "states", fmt.Sprintf("%d.tfstate", e.component.ID)))
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path for state file: %w", err)
+	}
 	terraformDir := filepath.Join(e.tempDir, ".terraform-jsonnet")
 	err = jpoet.NewEval().
 		FileImport([]string{vendorDir}).
@@ -68,6 +74,7 @@ func (e Executor) Init(ctx context.Context) error {
 		Serialize(false).
 		TLACode("module", fmt.Sprintf("import '%s/main.tf.jsonnet'", importSource)).
 		TLACode("var", string(e.component.Variables)).
+		TLAVar("statePath", statePath).
 		FileInput("./lib/gen.libsonnet").
 		DirectoryOutput(terraformDir).
 		Eval()

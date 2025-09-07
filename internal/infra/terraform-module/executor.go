@@ -37,7 +37,7 @@ func NewExecutor(component *internal.Component, workdir string, logs io.Writer) 
 }
 
 func (e *Executor) Init(ctx context.Context) error {
-	terraformStack, err := newTerraformStackFromComponent(e.component, e.tempDir)
+	terraformStack, err := newTerraformStackFromComponent(e.component, e.workDir)
 	if err != nil {
 		return fmt.Errorf("failed to convert component to terraform stack: %w", err)
 	}

@@ -24,6 +24,10 @@ type Executor struct {
 }
 
 func NewExecutor(component *internal.Component, workdir string, logs io.Writer) (internal.Executor, error) {
+	err := os.Chdir(os.TempDir())
+	if err != nil {
+		return nil, fmt.Errorf("could not change to temporary directory: %w", err)
+	}
 	tempDir, err := os.MkdirTemp("", "versource-*")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp directory: %w", err)
@@ -66,13 +70,14 @@ func (e Executor) Init(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get absolute path for state file: %w", err)
 	}
+	moduleFile := filepath.Join(importSource, "main.tf.jsonnet")
 	terraformDir := filepath.Join(e.tempDir, ".terraform-jsonnet")
 	err = jpoet.NewEval().
 		FileImport([]string{vendorDir}).
 		FSImport(lib).
 		FSImport(imports.Fs).
 		Serialize(false).
-		TLACode("module", fmt.Sprintf("import '%s/main.tf.jsonnet'", importSource)).
+		TLACode("module", fmt.Sprintf("import '%s'", moduleFile)).
 		TLACode("var", string(e.component.Variables)).
 		TLAVar("statePath", statePath).
 		FileInput("./lib/gen.libsonnet").

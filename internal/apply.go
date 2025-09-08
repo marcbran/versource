@@ -50,17 +50,28 @@ type StateRepo interface {
 	UpsertState(ctx context.Context, state *State) error
 }
 
-type Resource struct {
+type StateResource struct {
 	ID           uint  `gorm:"primarykey"`
 	State        State `gorm:"foreignKey:StateID"`
 	StateID      uint
-	Address      string
+	Resource     Resource `gorm:"foreignKey:ResourceID"`
+	ResourceID   uint
 	Mode         ResourceMode
 	ProviderName string
+	Type         string
+	Address      string
 	Count        *int
 	ForEach      *string
-	Type         string
-	Attributes   datatypes.JSON `gorm:"type:jsonb"`
+}
+
+type Resource struct {
+	ID            uint `gorm:"primarykey"`
+	Provider      string
+	ProviderAlias *string
+	ResourceType  string
+	Namespace     *string
+	Name          string
+	Attributes    datatypes.JSON `gorm:"type:jsonb"`
 }
 
 type ResourceMode string
@@ -70,31 +81,37 @@ const (
 	ManagedResourceMode ResourceMode = "managed"
 )
 
+type StateResourceRepo interface {
+	UpsertStateResources(ctx context.Context, resources []StateResource) error
+}
+
 type ResourceRepo interface {
 	UpsertResources(ctx context.Context, resources []Resource) error
 }
 
 type RunApply struct {
-	config       *Config
-	applyRepo    ApplyRepo
-	stateRepo    StateRepo
-	resourceRepo ResourceRepo
-	planStore    PlanStore
-	logStore     LogStore
-	tx           TransactionManager
-	newExecutor  NewExecutor
+	config            *Config
+	applyRepo         ApplyRepo
+	stateRepo         StateRepo
+	stateResourceRepo StateResourceRepo
+	resourceRepo      ResourceRepo
+	planStore         PlanStore
+	logStore          LogStore
+	tx                TransactionManager
+	newExecutor       NewExecutor
 }
 
-func NewRunApply(config *Config, applyRepo ApplyRepo, stateRepo StateRepo, resourceRepo ResourceRepo, planStore PlanStore, logStore LogStore, tx TransactionManager, newExecutor NewExecutor) *RunApply {
+func NewRunApply(config *Config, applyRepo ApplyRepo, stateRepo StateRepo, stateResourceRepo StateResourceRepo, resourceRepo ResourceRepo, planStore PlanStore, logStore LogStore, tx TransactionManager, newExecutor NewExecutor) *RunApply {
 	return &RunApply{
-		config:       config,
-		applyRepo:    applyRepo,
-		stateRepo:    stateRepo,
-		resourceRepo: resourceRepo,
-		planStore:    planStore,
-		logStore:     logStore,
-		tx:           tx,
-		newExecutor:  newExecutor,
+		config:            config,
+		applyRepo:         applyRepo,
+		stateRepo:         stateRepo,
+		stateResourceRepo: stateResourceRepo,
+		resourceRepo:      resourceRepo,
+		planStore:         planStore,
+		logStore:          logStore,
+		tx:                tx,
+		newExecutor:       newExecutor,
 	}
 }
 
@@ -164,7 +181,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	log.WithField("plan_path", planPath).Info("Loaded plan")
 
-	state, resources, err := executor.Apply(ctx, planPath)
+	state, stateResources, err := executor.Apply(ctx, planPath)
 	if err != nil {
 		stateErr := a.tx.Do(ctx, MainBranch, "fail apply", func(ctx context.Context) error {
 			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
@@ -189,11 +206,13 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 			return fmt.Errorf("failed to upsert state: %w", err)
 		}
 
-		for i := range resources {
-			resources[i].StateID = state.ID
-		}
+		if len(stateResources) > 0 {
+			var resources []Resource
+			for i := range stateResources {
+				stateResources[i].StateID = state.ID
+				resources = append(resources, stateResources[i].Resource)
+			}
 
-		if len(resources) > 0 {
 			err = a.resourceRepo.UpsertResources(ctx, resources)
 			if err != nil {
 				stateErr := a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
@@ -201,6 +220,19 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 					return fmt.Errorf("failed to upsert resources: %w, and failed to update apply state: %w", err, stateErr)
 				}
 				return fmt.Errorf("failed to upsert resources: %w", err)
+			}
+
+			for i := range stateResources {
+				stateResources[i].ResourceID = resources[i].ID
+			}
+
+			err = a.stateResourceRepo.UpsertStateResources(ctx, stateResources)
+			if err != nil {
+				stateErr := a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
+				if stateErr != nil {
+					return fmt.Errorf("failed to upsert state resources: %w, and failed to update apply state: %w", err, stateErr)
+				}
+				return fmt.Errorf("failed to upsert state resources: %w", err)
 			}
 		}
 

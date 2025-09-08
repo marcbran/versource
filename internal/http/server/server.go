@@ -94,6 +94,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 	componentRepo := database.NewGormComponentRepo(db)
 	componentDiffRepo := database.NewGormComponentDiffRepo(db)
 	stateRepo := database.NewGormStateRepo(db)
+	stateResourceRepo := database.NewGormStateResourceRepo(db)
 	resourceRepo := database.NewGormResourceRepo(db)
 	planRepo := database.NewGormPlanRepo(db)
 	planStore := file.NewPlanStore(config.Terraform.WorkDir)
@@ -106,7 +107,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 
 	newExecutor := infra.NewExecutor
 
-	runApply := internal.NewRunApply(config, applyRepo, stateRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor)
+	runApply := internal.NewRunApply(config, applyRepo, stateRepo, stateResourceRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor)
 	applyWorker := internal.NewApplyWorker(runApply, applyRepo)
 	runPlan := internal.NewRunPlan(config, planRepo, planStore, logStore, applyRepo, transactionManager, newExecutor)
 	planWorker := internal.NewPlanWorker(runPlan, planRepo)

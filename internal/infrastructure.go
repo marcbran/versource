@@ -11,7 +11,7 @@ type Executor interface {
 	io.Closer
 	Init(ctx context.Context) error
 	Plan(ctx context.Context) (PlanPath, error)
-	Apply(ctx context.Context, planPath PlanPath) (State, []Resource, error)
+	Apply(ctx context.Context, planPath PlanPath) (State, []StateResource, error)
 }
 
 type PlanPath string

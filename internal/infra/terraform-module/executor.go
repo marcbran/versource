@@ -71,7 +71,7 @@ func (e *Executor) Plan(ctx context.Context) (internal.PlanPath, error) {
 	return e.delegate.Plan(ctx)
 }
 
-func (e *Executor) Apply(ctx context.Context, planPath internal.PlanPath) (internal.State, []internal.Resource, error) {
+func (e *Executor) Apply(ctx context.Context, planPath internal.PlanPath) (internal.State, []internal.StateResource, error) {
 	return e.delegate.Apply(ctx, planPath)
 }
 

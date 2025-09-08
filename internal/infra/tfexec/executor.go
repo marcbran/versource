@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
 	tfjson "github.com/hashicorp/terraform-json"
@@ -54,7 +56,7 @@ func (t *Executor) Plan(ctx context.Context) (internal.PlanPath, error) {
 	return internal.PlanPath(planPath), nil
 }
 
-func (t *Executor) Apply(ctx context.Context, planPath internal.PlanPath) (internal.State, []internal.Resource, error) {
+func (t *Executor) Apply(ctx context.Context, planPath internal.PlanPath) (internal.State, []internal.StateResource, error) {
 	err := t.tf.Apply(ctx, tfexec.DirOrPlan(string(planPath)))
 	if err != nil {
 		return internal.State{}, nil, fmt.Errorf("failed to apply terraform: %w", err)
@@ -70,15 +72,15 @@ func (t *Executor) Apply(ctx context.Context, planPath internal.PlanPath) (inter
 		return internal.State{}, nil, fmt.Errorf("failed to extract state: %w", err)
 	}
 
-	var resources []internal.Resource
+	var stateResources []internal.StateResource
 	if tfState.Values != nil && tfState.Values.RootModule != nil {
-		resources, err = extractResources(tfState.Values.RootModule)
+		stateResources, err = extractResources(tfState.Values.RootModule)
 		if err != nil {
 			return internal.State{}, nil, fmt.Errorf("failed to extract resources: %w", err)
 		}
 	}
 
-	return state, resources, nil
+	return state, stateResources, nil
 }
 
 func (t *Executor) Close() error {
@@ -109,8 +111,8 @@ func extractState(tfState *tfjson.State) (internal.State, error) {
 	return state, nil
 }
 
-func extractResources(module *tfjson.StateModule) ([]internal.Resource, error) {
-	var resources []internal.Resource
+func extractResources(module *tfjson.StateModule) ([]internal.StateResource, error) {
+	var stateResources []internal.StateResource
 
 	for _, tfResource := range module.Resources {
 		var count *int
@@ -121,29 +123,80 @@ func extractResources(module *tfjson.StateModule) ([]internal.Resource, error) {
 		case string:
 			forEach = &index
 		}
+
+		providerInfo := parseProvider(tfResource.ProviderName)
+
 		jsonAttributes, err := json.Marshal(tfResource.AttributeValues)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal attributes: %w", err)
 		}
+
+		resourceType := extractResourceType(tfResource.Type, providerInfo.Name)
+
 		resource := internal.Resource{
+			Provider:      providerInfo.Name,
+			ProviderAlias: providerInfo.Alias,
+			ResourceType:  resourceType,
+			Namespace:     nil,
+			Name:          tfResource.Name,
+			Attributes:    datatypes.JSON(jsonAttributes),
+		}
+
+		stateResource := internal.StateResource{
 			Address:      tfResource.Address,
 			Mode:         internal.ResourceMode(tfResource.Mode),
 			ProviderName: tfResource.ProviderName,
 			Count:        count,
 			ForEach:      forEach,
 			Type:         tfResource.Type,
-			Attributes:   datatypes.JSON(jsonAttributes),
+			Resource:     resource,
 		}
-		resources = append(resources, resource)
+		stateResources = append(stateResources, stateResource)
 	}
 
 	for _, childModule := range module.ChildModules {
-		childResources, err := extractResources(childModule)
+		childStateResources, err := extractResources(childModule)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract resources: %w", err)
 		}
-		resources = append(resources, childResources...)
+		stateResources = append(stateResources, childStateResources...)
 	}
 
-	return resources, nil
+	return stateResources, nil
+}
+
+type ProviderInfo struct {
+	Name  string
+	Alias *string
+}
+
+func parseProvider(providerName string) ProviderInfo {
+	re := regexp.MustCompile(`provider\["([^"]+)"\](?:\.(.+))?`)
+	matches := re.FindStringSubmatch(providerName)
+
+	if len(matches) < 2 {
+		return ProviderInfo{Name: providerName}
+	}
+
+	providerSource := matches[1]
+	alias := matches[2]
+
+	parts := strings.Split(providerSource, "/")
+	providerNameFromSource := parts[len(parts)-1]
+
+	result := ProviderInfo{Name: providerNameFromSource}
+	if alias != "" {
+		result.Alias = &alias
+	}
+
+	return result
+}
+
+func extractResourceType(tfType, providerName string) string {
+	prefix := providerName + "_"
+	if strings.HasPrefix(tfType, prefix) {
+		return strings.TrimPrefix(tfType, prefix)
+	}
+
+	return tfType
 }

@@ -117,6 +117,46 @@ func (g *GetModule) Exec(ctx context.Context, req GetModuleRequest) (*GetModuleR
 	}, nil
 }
 
+type GetModuleVersion struct {
+	moduleVersionRepo ModuleVersionRepo
+	tx                TransactionManager
+}
+
+func NewGetModuleVersion(moduleVersionRepo ModuleVersionRepo, tx TransactionManager) *GetModuleVersion {
+	return &GetModuleVersion{
+		moduleVersionRepo: moduleVersionRepo,
+		tx:                tx,
+	}
+}
+
+type GetModuleVersionRequest struct {
+	ModuleVersionID uint `json:"module_version_id"`
+}
+
+type GetModuleVersionResponse struct {
+	ModuleVersion ModuleVersion `json:"module_version"`
+}
+
+func (g *GetModuleVersion) Exec(ctx context.Context, req GetModuleVersionRequest) (*GetModuleVersionResponse, error) {
+	var moduleVersion *ModuleVersion
+	err := g.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+		var err error
+		moduleVersion, err = g.moduleVersionRepo.GetModuleVersion(ctx, req.ModuleVersionID)
+		return err
+	})
+	if err != nil {
+		return nil, InternalErrE("failed to get module version", err)
+	}
+
+	if moduleVersion == nil {
+		return nil, UserErr("module version not found")
+	}
+
+	return &GetModuleVersionResponse{
+		ModuleVersion: *moduleVersion,
+	}, nil
+}
+
 type ListModuleVersions struct {
 	moduleVersionRepo ModuleVersionRepo
 	tx                TransactionManager

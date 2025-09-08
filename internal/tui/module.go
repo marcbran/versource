@@ -120,7 +120,9 @@ func (p *ModuleVersionsTableData) ResolveData(data any) ([]table.Column, []table
 
 func (p *ModuleVersionsTableData) KeyBindings(elem any) KeyBindings {
 	if moduleVersion, ok := elem.(internal.ModuleVersion); ok {
-		return rootKeyBindings.With("c", "View components", fmt.Sprintf("components?module-version-id=%d", moduleVersion.ID))
+		return rootKeyBindings.
+			With("enter", "View module version detail", fmt.Sprintf("moduleversions/%d", moduleVersion.ID)).
+			With("c", "View components", fmt.Sprintf("components?module-version-id=%d", moduleVersion.ID))
 	}
 	return rootKeyBindings
 }
@@ -184,7 +186,9 @@ func (p *ModuleVersionsForModuleTableData) ResolveData(data any) ([]table.Column
 
 func (p *ModuleVersionsForModuleTableData) KeyBindings(elem any) KeyBindings {
 	if moduleVersion, ok := elem.(internal.ModuleVersion); ok {
-		return rootKeyBindings.With("c", "View components", fmt.Sprintf("components?module-version-id=%d", moduleVersion.ID))
+		return rootKeyBindings.
+			With("enter", "View module version detail", fmt.Sprintf("moduleversions/%d", moduleVersion.ID)).
+			With("c", "View components", fmt.Sprintf("components?module-version-id=%d", moduleVersion.ID))
 	}
 	return rootKeyBindings
 }
@@ -194,16 +198,14 @@ type ModuleDetailData struct {
 	moduleID string
 }
 
-type ModuleVersionViewModel struct {
-	ID      uint   `yaml:"id"`
-	Version string `yaml:"version"`
-}
-
 type ModuleDetailViewModel struct {
-	ID            uint                    `yaml:"id"`
-	Source        string                  `yaml:"source"`
-	ExecutorType  string                  `yaml:"executorType"`
-	LatestVersion *ModuleVersionViewModel `yaml:"latestVersion,omitempty"`
+	ID            uint   `yaml:"id"`
+	Source        string `yaml:"source"`
+	ExecutorType  string `yaml:"executorType"`
+	LatestVersion *struct {
+		ID      uint   `yaml:"id"`
+		Version string `yaml:"version"`
+	} `yaml:"latestVersion,omitempty"`
 }
 
 func NewModuleDetailPage(client *client.Client) func(params map[string]string) Page {
@@ -236,9 +238,15 @@ func (p *ModuleDetailData) ResolveData(data any) string {
 		return "Error: Invalid data format"
 	}
 
-	var latestVersion *ModuleVersionViewModel
+	var latestVersion *struct {
+		ID      uint   `yaml:"id"`
+		Version string `yaml:"version"`
+	}
 	if moduleResp.LatestVersion != nil {
-		latestVersion = &ModuleVersionViewModel{
+		latestVersion = &struct {
+			ID      uint   `yaml:"id"`
+			Version string `yaml:"version"`
+		}{
 			ID:      moduleResp.LatestVersion.ID,
 			Version: moduleResp.LatestVersion.Version,
 		}
@@ -263,4 +271,82 @@ func (p *ModuleDetailData) KeyBindings(elem any) KeyBindings {
 	return rootKeyBindings.
 		With("v", "View all versions", fmt.Sprintf("modules/%s/moduleversions", p.moduleID)).
 		With("c", "View components", fmt.Sprintf("components?module-id=%s", p.moduleID))
+}
+
+type ModuleVersionDetailData struct {
+	client          *client.Client
+	moduleVersionID string
+}
+
+type ModuleVersionDetailViewModel struct {
+	ID      uint   `yaml:"id"`
+	Version string `yaml:"version"`
+	Module  struct {
+		ID           uint   `yaml:"id"`
+		Source       string `yaml:"source"`
+		ExecutorType string `yaml:"executorType"`
+	} `yaml:"module"`
+}
+
+func NewModuleVersionDetailPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return NewDataViewport(&ModuleVersionDetailData{client: client, moduleVersionID: params["moduleVersionID"]})
+	}
+}
+
+func (p *ModuleVersionDetailData) LoadData() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+
+		moduleVersionIDUint, err := strconv.ParseUint(p.moduleVersionID, 10, 32)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+
+		moduleVersionResp, err := p.client.GetModuleVersion(ctx, uint(moduleVersionIDUint))
+		if err != nil {
+			return errorMsg{err: err}
+		}
+
+		return dataLoadedMsg{data: moduleVersionResp}
+	}
+}
+
+func (p *ModuleVersionDetailData) ResolveData(data any) string {
+	moduleVersionResp, ok := data.(*internal.GetModuleVersionResponse)
+	if !ok {
+		return "Error: Invalid data format"
+	}
+
+	viewModel := ModuleVersionDetailViewModel{
+		ID:      moduleVersionResp.ModuleVersion.ID,
+		Version: moduleVersionResp.ModuleVersion.Version,
+		Module: struct {
+			ID           uint   `yaml:"id"`
+			Source       string `yaml:"source"`
+			ExecutorType string `yaml:"executorType"`
+		}{
+			ID:           moduleVersionResp.ModuleVersion.Module.ID,
+			Source:       moduleVersionResp.ModuleVersion.Module.Source,
+			ExecutorType: moduleVersionResp.ModuleVersion.Module.ExecutorType,
+		},
+	}
+
+	yamlData, err := yaml.Marshal(viewModel)
+	if err != nil {
+		return fmt.Sprintf("Error marshaling to YAML: %v", err)
+	}
+
+	return string(yamlData)
+}
+
+func (p *ModuleVersionDetailData) KeyBindings(elem any) KeyBindings {
+	moduleVersionIDUint, err := strconv.ParseUint(p.moduleVersionID, 10, 32)
+	if err != nil {
+		return rootKeyBindings
+	}
+
+	return rootKeyBindings.
+		With("m", "View module", fmt.Sprintf("modules/%d", moduleVersionIDUint)).
+		With("c", "View components", fmt.Sprintf("components?module-version-id=%d", moduleVersionIDUint))
 }

@@ -79,6 +79,9 @@ func (r *Router) Blur() {
 
 func (r *Router) refresh() tea.Cmd {
 	return func() tea.Msg {
+		if r.currentRoute == nil {
+			return nil
+		}
 		cmd := r.Open(r.currentRoute.Path)
 		if cmd != nil {
 			return cmd()
@@ -89,13 +92,7 @@ func (r *Router) refresh() tea.Cmd {
 
 func (r *Router) goBack() tea.Cmd {
 	return func() tea.Msg {
-		if len(r.routeHistory) > 0 {
-			previousRoute := r.routeHistory[len(r.routeHistory)-1]
-			r.routeHistory = r.routeHistory[:len(r.routeHistory)-1]
-			r.currentRoute = &previousRoute
-			return r.refresh()()
-		}
-		return nil
+		return goBackMsg{}
 	}
 }
 
@@ -107,6 +104,13 @@ func (r *Router) Update(msg tea.Msg) (*Router, tea.Cmd) {
 		}
 		r.currentRoute = &msg.route
 		r.updateCurrentRoute()
+	case goBackMsg:
+		if len(r.routeHistory) > 0 {
+			previousRoute := r.routeHistory[len(r.routeHistory)-1]
+			r.routeHistory = r.routeHistory[:len(r.routeHistory)-1]
+			r.currentRoute = &previousRoute
+			r.updateCurrentRoute()
+		}
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "r":
@@ -196,6 +200,8 @@ func (r *Router) Open(path string) tea.Cmd {
 type routeOpenedMsg struct {
 	route Route
 }
+
+type goBackMsg struct{}
 
 type dataLoadedMsg struct {
 	data any

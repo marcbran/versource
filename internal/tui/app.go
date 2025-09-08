@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"fmt"
-
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -12,9 +10,6 @@ import (
 type App struct {
 	client *client.Client
 	router *Router
-
-	loading bool
-	err     error
 
 	input     textinput.Model
 	showInput bool
@@ -54,8 +49,6 @@ func NewApp(client *client.Client) *App {
 	app := &App{
 		client: client,
 		router: NewRouter(),
-
-		loading: true,
 
 		input: input,
 	}
@@ -128,12 +121,6 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.input.Blur()
 		a.router.Resize(a.contentSize())
 		a.router.Focus()
-	case dataLoadedMsg:
-		a.loading = false
-		a.err = nil
-	case errorMsg:
-		a.loading = false
-		a.err = msg.err
 	case tea.KeyMsg:
 		switch msg.String() {
 		case ":":
@@ -149,19 +136,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return a, cmd
 }
 
-type errorMsg struct {
-	err error
-}
-
 func (a *App) View() string {
-	if a.loading {
-		return "Loading...\nPress 'r' to refresh, 'esc' to go back, 'ctrl+c' to quit, ':' to enter commands"
-	}
-
-	if a.err != nil {
-		return fmt.Sprintf("Error: %v\nPress 'r' to refresh, 'esc' to go back, 'ctrl+c' to quit, ':' to enter commands", a.err)
-	}
-
 	content := a.router.View()
 
 	if a.showInput {

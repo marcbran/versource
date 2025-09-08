@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -50,11 +51,15 @@ type Router struct {
 
 	size     Size
 	focussed bool
+
+	loading bool
+	err     error
 }
 
 func NewRouter() *Router {
 	return &Router{
-		routes: make(map[string]func(map[string]string) Page),
+		routes:  make(map[string]func(map[string]string) Page),
+		loading: true,
 	}
 }
 
@@ -111,6 +116,12 @@ func (r *Router) Update(msg tea.Msg) (*Router, tea.Cmd) {
 			r.currentRoute = &previousRoute
 			r.updateCurrentRoute()
 		}
+	case dataLoadedMsg:
+		r.loading = false
+		r.err = nil
+	case errorMsg:
+		r.loading = false
+		r.err = msg.err
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "r":
@@ -168,6 +179,14 @@ func (r *Router) executeCommand(command string) tea.Cmd {
 }
 
 func (r *Router) View() string {
+	if r.loading {
+		return "Loading..."
+	}
+
+	if r.err != nil {
+		return fmt.Sprintf("Error: %v\nPress 'r' to refresh, 'esc' to go back, 'ctrl+c' to quit, ':' to enter commands", r.err)
+	}
+
 	return titledBox(r.currentRoute.Path, r.currentRoute.Page.View())
 }
 
@@ -205,6 +224,10 @@ type goBackMsg struct{}
 
 type dataLoadedMsg struct {
 	data any
+}
+
+type errorMsg struct {
+	err error
 }
 
 func matchPath(routePath, actualPath string) map[string]string {

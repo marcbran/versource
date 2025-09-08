@@ -20,6 +20,27 @@ func (s *Server) handleListModules(w http.ResponseWriter, r *http.Request) {
 	returnSuccess(w, resp)
 }
 
+func (s *Server) handleGetModule(w http.ResponseWriter, r *http.Request) {
+	moduleIDStr := chi.URLParam(r, "moduleID")
+	moduleID, err := strconv.ParseUint(moduleIDStr, 10, 32)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid module ID"))
+		return
+	}
+
+	req := internal.GetModuleRequest{
+		ModuleID: uint(moduleID),
+	}
+
+	resp, err := s.getModule.Exec(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
 func (s *Server) handleCreateModule(w http.ResponseWriter, r *http.Request) {
 	var req internal.CreateModuleRequest
 	err := json.NewDecoder(r.Body).Decode(&req)

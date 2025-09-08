@@ -62,6 +62,7 @@ type Server struct {
 	config                      *internal.Config
 	router                      *chi.Mux
 	listModules                 *internal.ListModules
+	getModule                   *internal.GetModule
 	createModule                *internal.CreateModule
 	updateModule                *internal.UpdateModule
 	deleteModule                *internal.DeleteModule
@@ -120,6 +121,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		config:                      config,
 		router:                      chi.NewRouter(),
 		listModules:                 internal.NewListModules(moduleRepo, transactionManager),
+		getModule:                   internal.NewGetModule(moduleRepo, moduleVersionRepo, transactionManager),
 		createModule:                internal.NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
 		updateModule:                internal.NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
 		deleteModule:                internal.NewDeleteModule(moduleRepo, componentRepo, transactionManager),
@@ -158,6 +160,7 @@ func (s *Server) setupMiddleware() {
 func (s *Server) setupRoutes() {
 	s.router.Route("/api/v1", func(r chi.Router) {
 		r.Get("/modules", s.handleListModules)
+		r.Get("/modules/{moduleID}", s.handleGetModule)
 		r.Get("/module-versions", s.handleListModuleVersions)
 		r.Get("/components", s.handleListComponents)
 		r.Get("/plans", s.handleListPlans)

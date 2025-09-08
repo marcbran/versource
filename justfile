@@ -36,7 +36,7 @@ serve: install
   versource serve
 
 ui: install
-  versource ui
+  VS_CONFIG=local versource ui
 
 sql:
   dolt --host localhost --no-tls --use-db versource sql

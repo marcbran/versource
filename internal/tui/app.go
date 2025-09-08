@@ -61,6 +61,7 @@ func NewApp(client *client.Client) *App {
 	}
 
 	app.router.Register("modules", NewModulesPage(client))
+	app.router.Register("modules/{moduleID}", NewModuleDetailPage(client))
 	app.router.Register("modules/{moduleID}/moduleversions", NewModuleVersionsForModulePage(client))
 	app.router.Register("moduleversions", NewModuleVersionsPage(client))
 	app.router.Register("changesets", NewChangesetsPage(client))

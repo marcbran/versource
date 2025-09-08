@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
+	"gopkg.in/yaml.v3"
 )
 
 type ModulesTableData struct {
@@ -59,7 +60,8 @@ func (p *ModulesTableData) ResolveData(data any) ([]table.Column, []table.Row, [
 func (p *ModulesTableData) KeyBindings(elem any) KeyBindings {
 	if module, ok := elem.(internal.Module); ok {
 		return rootKeyBindings.
-			With("enter", "View module versions", fmt.Sprintf("modules/%d/moduleversions", module.ID)).
+			With("enter", "View module detail", fmt.Sprintf("modules/%d", module.ID)).
+			With("v", "View module versions", fmt.Sprintf("modules/%d/moduleversions", module.ID)).
 			With("c", "View components", fmt.Sprintf("components?module-id=%d", module.ID))
 	}
 	return rootKeyBindings
@@ -185,4 +187,80 @@ func (p *ModuleVersionsForModuleTableData) KeyBindings(elem any) KeyBindings {
 		return rootKeyBindings.With("c", "View components", fmt.Sprintf("components?module-version-id=%d", moduleVersion.ID))
 	}
 	return rootKeyBindings
+}
+
+type ModuleDetailData struct {
+	client   *client.Client
+	moduleID string
+}
+
+type ModuleVersionViewModel struct {
+	ID      uint   `yaml:"id"`
+	Version string `yaml:"version"`
+}
+
+type ModuleDetailViewModel struct {
+	ID            uint                    `yaml:"id"`
+	Source        string                  `yaml:"source"`
+	ExecutorType  string                  `yaml:"executorType"`
+	LatestVersion *ModuleVersionViewModel `yaml:"latestVersion,omitempty"`
+}
+
+func NewModuleDetailPage(client *client.Client) func(params map[string]string) Page {
+	return func(params map[string]string) Page {
+		return NewDataViewport(&ModuleDetailData{client: client, moduleID: params["moduleID"]})
+	}
+}
+
+func (p *ModuleDetailData) LoadData() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+
+		moduleIDUint, err := strconv.ParseUint(p.moduleID, 10, 32)
+		if err != nil {
+			return errorMsg{err: err}
+		}
+
+		moduleResp, err := p.client.GetModule(ctx, uint(moduleIDUint))
+		if err != nil {
+			return errorMsg{err: err}
+		}
+
+		return dataLoadedMsg{data: moduleResp}
+	}
+}
+
+func (p *ModuleDetailData) ResolveData(data any) string {
+	moduleResp, ok := data.(*internal.GetModuleResponse)
+	if !ok {
+		return "Error: Invalid data format"
+	}
+
+	var latestVersion *ModuleVersionViewModel
+	if moduleResp.LatestVersion != nil {
+		latestVersion = &ModuleVersionViewModel{
+			ID:      moduleResp.LatestVersion.ID,
+			Version: moduleResp.LatestVersion.Version,
+		}
+	}
+
+	viewModel := ModuleDetailViewModel{
+		ID:            moduleResp.Module.ID,
+		Source:        moduleResp.Module.Source,
+		ExecutorType:  moduleResp.Module.ExecutorType,
+		LatestVersion: latestVersion,
+	}
+
+	yamlData, err := yaml.Marshal(viewModel)
+	if err != nil {
+		return fmt.Sprintf("Error marshaling to YAML: %v", err)
+	}
+
+	return string(yamlData)
+}
+
+func (p *ModuleDetailData) KeyBindings(elem any) KeyBindings {
+	return rootKeyBindings.
+		With("v", "View all versions", fmt.Sprintf("modules/%s/moduleversions", p.moduleID)).
+		With("c", "View components", fmt.Sprintf("components?module-id=%s", p.moduleID))
 }

@@ -8,41 +8,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type Route struct {
-	Path string
-	Page Page
-}
-
-type Resizer interface {
-	Resize(size Size)
-}
-
-type Focuser interface {
-	Focus()
-	Blur()
-}
-
-type KeyBindings []KeyBinding
-
-func (k KeyBindings) With(key, help, command string) KeyBindings {
-	return append(k, KeyBinding{Key: key, Help: help, Command: command})
-}
-
-type KeyBinding struct {
-	Key     string
-	Help    string
-	Command string
-}
-
-type Page interface {
-	Init() tea.Cmd
-	Update(tea.Msg) (Page, tea.Cmd)
-	View() string
-	Resizer
-	Focuser
-	KeyBindings() KeyBindings
-}
-
 type Router struct {
 	routes map[string]func(map[string]string) Page
 
@@ -51,19 +16,18 @@ type Router struct {
 
 	size     Size
 	focussed bool
-
-	loading bool
-	err     error
 }
 
 func NewRouter() *Router {
 	return &Router{
-		routes:  make(map[string]func(map[string]string) Page),
-		loading: true,
+		routes: make(map[string]func(map[string]string) Page),
 	}
 }
 
 func (r *Router) Init() tea.Cmd {
+	if r.currentRoute != nil {
+		return r.currentRoute.Init()
+	}
 	return nil
 }
 
@@ -78,70 +42,71 @@ func (r *Router) Focus() {
 }
 
 func (r *Router) Blur() {
-	r.focussed = true
+	r.focussed = false
 	r.updateCurrentRoute()
 }
 
-func (r *Router) refresh() tea.Cmd {
-	return func() tea.Msg {
-		if r.currentRoute == nil {
-			return nil
-		}
-		cmd := r.Open(r.currentRoute.Path)
-		if cmd != nil {
-			return cmd()
-		}
-		return nil
-	}
-}
-
-func (r *Router) goBack() tea.Cmd {
-	return func() tea.Msg {
-		return goBackMsg{}
-	}
-}
-
 func (r *Router) Update(msg tea.Msg) (*Router, tea.Cmd) {
-	switch msg := msg.(type) {
+	switch m := msg.(type) {
 	case routeOpenedMsg:
-		if r.currentRoute != nil && r.currentRoute.Path != msg.route.Path {
+		r.currentRoute.page = m.page
+		r.updateCurrentRoute()
+		if m.msg != nil {
+			return r, func() tea.Msg { return m.msg }
+		}
+		return r, nil
+	case errorMsg:
+		r.currentRoute.err = m.err
+		r.updateCurrentRoute()
+		return r, nil
+	}
+
+	if r.currentRoute != nil && r.currentRoute.IsLoading() {
+		var cmd tea.Cmd
+		*r.currentRoute, cmd = r.currentRoute.Update(msg)
+		return r, cmd
+	}
+
+	switch m := msg.(type) {
+	case openPageRequestedMsg:
+		if r.currentRoute != nil && r.currentRoute.path != m.path {
 			r.routeHistory = append(r.routeHistory, *r.currentRoute)
 		}
-		r.currentRoute = &msg.route
+		route := NewRoute(m.path)
+		r.currentRoute = &route
 		r.updateCurrentRoute()
-	case goBackMsg:
+		return r, route.Init()
+	case goBackRequestedMsg:
 		if len(r.routeHistory) > 0 {
 			previousRoute := r.routeHistory[len(r.routeHistory)-1]
 			r.routeHistory = r.routeHistory[:len(r.routeHistory)-1]
 			r.currentRoute = &previousRoute
 			r.updateCurrentRoute()
 		}
-	case dataLoadedMsg:
-		r.loading = false
-		r.err = nil
-	case errorMsg:
-		r.loading = false
-		r.err = msg.err
+		return r, nil
 	case tea.KeyMsg:
-		switch msg.String() {
+		switch m.String() {
 		case "r":
 			return r, r.refresh()
 		case "esc":
 			return r, r.goBack()
 		default:
-			keyBindings := r.currentRoute.Page.KeyBindings()
-			for _, binding := range keyBindings {
-				if binding.Key == msg.String() {
-					return r, r.Open(binding.Command)
+			if r.currentRoute != nil && r.currentRoute.page != nil {
+				keyBindings := r.currentRoute.page.KeyBindings()
+				for _, binding := range keyBindings {
+					if binding.Key == m.String() {
+						return r, r.Open(binding.Command)
+					}
 				}
 			}
 		}
 	}
+
 	if r.currentRoute == nil {
 		return r, nil
 	}
 	var cmd tea.Cmd
-	r.currentRoute.Page, cmd = r.currentRoute.Page.Update(msg)
+	*r.currentRoute, cmd = r.currentRoute.Update(msg)
 	return r, cmd
 }
 
@@ -149,11 +114,11 @@ func (r *Router) updateCurrentRoute() {
 	if r.currentRoute == nil {
 		return
 	}
-	r.currentRoute.Page.Resize(r.size)
+	r.currentRoute.Resize(r.size)
 	if r.focussed {
-		r.currentRoute.Page.Focus()
+		r.currentRoute.Focus()
 	} else {
-		r.currentRoute.Page.Blur()
+		r.currentRoute.Blur()
 	}
 }
 
@@ -178,16 +143,30 @@ func (r *Router) executeCommand(command string) tea.Cmd {
 	}
 }
 
+func (r *Router) refresh() tea.Cmd {
+	return func() tea.Msg {
+		if r.currentRoute == nil {
+			return nil
+		}
+		cmd := r.Open(r.currentRoute.path)
+		if cmd != nil {
+			return cmd()
+		}
+		return nil
+	}
+}
+
+func (r *Router) goBack() tea.Cmd {
+	return func() tea.Msg {
+		return goBackRequestedMsg{}
+	}
+}
+
 func (r *Router) View() string {
-	if r.loading {
-		return "Loading..."
+	if r.currentRoute == nil {
+		return ""
 	}
-
-	if r.err != nil {
-		return fmt.Sprintf("Error: %v\nPress 'r' to refresh, 'esc' to go back, 'ctrl+c' to quit, ':' to enter commands", r.err)
-	}
-
-	return titledBox(r.currentRoute.Path, r.currentRoute.Page.View())
+	return r.currentRoute.View()
 }
 
 func (r *Router) Register(path string, page func(map[string]string) Page) {
@@ -210,17 +189,25 @@ func (r *Router) Open(path string) tea.Cmd {
 	}
 	return tea.Sequence(
 		func() tea.Msg {
-			return routeOpenedMsg{route: Route{Path: path, Page: page}}
+			return openPageRequestedMsg{path: path}
 		},
-		page.Init(),
+		func() tea.Msg {
+			return routeOpenedMsg{path: path, page: page, msg: page.Init()()}
+		},
 	)
 }
 
-type routeOpenedMsg struct {
-	route Route
+type openPageRequestedMsg struct {
+	path string
 }
 
-type goBackMsg struct{}
+type routeOpenedMsg struct {
+	path string
+	page Page
+	msg  tea.Msg
+}
+
+type goBackRequestedMsg struct{}
 
 type dataLoadedMsg struct {
 	data any
@@ -301,4 +288,109 @@ func titledBox(title, content string) string {
 		Render(content)
 
 	return lipgloss.JoinVertical(lipgloss.Left, top, body)
+}
+
+type Route struct {
+	path string
+	page Page
+	err  error
+
+	size     Size
+	loadView LoadView
+}
+
+func NewRoute(path string) Route {
+	return Route{
+		path:     path,
+		loadView: NewLoadView(),
+	}
+}
+
+func (r Route) Init() tea.Cmd {
+	return r.loadView.Init()
+}
+
+func (r Route) IsLoading() bool {
+	return r.page == nil && r.err == nil
+}
+
+func (r *Route) Resize(size Size) {
+	r.size = size
+	r.loadView.Resize(size)
+	if r.page != nil {
+		r.page.Resize(size)
+	}
+}
+
+func (r *Route) Focus() {
+	if r.page != nil {
+		r.page.Focus()
+	}
+}
+
+func (r *Route) Blur() {
+	if r.page != nil {
+		r.page.Blur()
+	}
+}
+
+func (r Route) Update(msg tea.Msg) (Route, tea.Cmd) {
+	if r.IsLoading() {
+		var cmd tea.Cmd
+		r.loadView, cmd = r.loadView.Update(msg)
+		return r, cmd
+	}
+	var cmd tea.Cmd
+	r.page, cmd = r.page.Update(msg)
+	return r, cmd
+}
+
+func (r Route) View() string {
+	if r.err != nil {
+		errorText := fmt.Sprintf("Error: %v", r.err)
+
+		centeredContent := lipgloss.NewStyle().
+			Width(r.size.Width).
+			Height(r.size.Height).
+			Align(lipgloss.Center, lipgloss.Center).
+			Render(errorText)
+
+		return titledBox("Error", centeredContent)
+	}
+
+	if r.page == nil {
+		return titledBox(r.path, r.loadView.View())
+	}
+
+	return titledBox(r.path, r.page.View())
+}
+
+type Page interface {
+	Init() tea.Cmd
+	Update(tea.Msg) (Page, tea.Cmd)
+	View() string
+	Resizer
+	Focuser
+	KeyBindings() KeyBindings
+}
+
+type KeyBindings []KeyBinding
+
+func (k KeyBindings) With(key, help, command string) KeyBindings {
+	return append(k, KeyBinding{Key: key, Help: help, Command: command})
+}
+
+type KeyBinding struct {
+	Key     string
+	Help    string
+	Command string
+}
+
+type Resizer interface {
+	Resize(size Size)
+}
+
+type Focuser interface {
+	Focus()
+	Blur()
 }

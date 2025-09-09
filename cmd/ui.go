@@ -7,7 +7,11 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal/http/client"
-	"github.com/marcbran/versource/internal/tui"
+	"github.com/marcbran/versource/internal/tui/apply"
+	"github.com/marcbran/versource/internal/tui/changeset"
+	"github.com/marcbran/versource/internal/tui/component"
+	"github.com/marcbran/versource/internal/tui/module"
+	"github.com/marcbran/versource/internal/tui/plan"
 	"github.com/marcbran/versource/internal/tui/platform"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -53,20 +57,19 @@ var uiCmd = &cobra.Command{
 		client := client.NewClient(config)
 
 		router := platform.NewRouter().
-			Register("modules", tui.NewModulesPage(client)).
-			Register("modules/{moduleID}", tui.NewModuleDetailPage(client)).
-			Register("modules/{moduleID}/moduleversions", tui.NewModuleVersionsForModulePage(client)).
-			Register("moduleversions", tui.NewModuleVersionsPage(client)).
-			Register("moduleversions/{moduleVersionID}", tui.NewModuleVersionDetailPage(client)).
-			Register("changesets", tui.NewChangesetsPage(client)).
-			Register("changesets/{changesetName}/components", tui.NewChangesetComponentsPage(client)).
-			Register("changesets/{changesetName}/components/diffs", tui.NewComponentDiffsPage(client)).
-			Register("changesets/{changesetName}/plans", tui.NewChangesetPlansPage(client)).
-			Register("changesets/{changesetName}/applies", tui.NewChangesetAppliesPage(client)).
-			Register("components", tui.NewComponentsPage(client)).
-			Register("plans", tui.NewPlansPage(client)).
-			Register("plans/{planID}/logs", tui.NewPlanLogsPage(client)).
-			Register("applies", tui.NewAppliesPage(client))
+			Register("modules", module.NewTable(client)).
+			Register("modules/{moduleID}", module.NewDetail(client)).
+			Register("modules/{moduleID}/moduleversions", module.NewVersionsForModuleTable(client)).
+			Register("moduleversions", module.NewVersionsTable(client)).
+			Register("moduleversions/{moduleVersionID}", module.NewVersionDetail(client)).
+			Register("components", component.NewTable(client)).
+			Register("plans", plan.NewTable(client)).
+			Register("plans/{planID}/logs", plan.NewLogs(client)).
+			Register("applies", apply.NewTable(client)).
+			Register("changesets", changeset.NewTable(client)).
+			Register("changesets/{changesetName}/components", component.NewChangesetTable(client)).
+			Register("changesets/{changesetName}/components/diffs", component.NewChangesetDiffTable(client)).
+			Register("changesets/{changesetName}/plans", plan.NewChangesetTable(client))
 
 		app := platform.NewCommandable(router, client)
 

@@ -214,48 +214,41 @@ func NewModuleDetailPage(client *client.Client) func(params map[string]string) P
 	}
 }
 
-func (p *ModuleDetailData) LoadData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
+func (p *ModuleDetailData) LoadData() (*internal.GetModuleResponse, error) {
+	ctx := context.Background()
 
-		moduleIDUint, err := strconv.ParseUint(p.moduleID, 10, 32)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-
-		moduleResp, err := p.client.GetModule(ctx, uint(moduleIDUint))
-		if err != nil {
-			return errorMsg{err: err}
-		}
-
-		return dataLoadedMsg{data: moduleResp}
+	moduleIDUint, err := strconv.ParseUint(p.moduleID, 10, 32)
+	if err != nil {
+		return nil, err
 	}
+
+	moduleResp, err := p.client.GetModule(ctx, uint(moduleIDUint))
+	if err != nil {
+		return nil, err
+	}
+
+	return moduleResp, nil
 }
 
-func (p *ModuleDetailData) ResolveData(data any) string {
-	moduleResp, ok := data.(*internal.GetModuleResponse)
-	if !ok {
-		return "Error: Invalid data format"
-	}
-
+func (p *ModuleDetailData) ResolveData(data internal.GetModuleResponse) string {
 	var latestVersion *struct {
 		ID      uint   `yaml:"id"`
 		Version string `yaml:"version"`
 	}
-	if moduleResp.LatestVersion != nil {
+	if data.LatestVersion != nil {
 		latestVersion = &struct {
 			ID      uint   `yaml:"id"`
 			Version string `yaml:"version"`
 		}{
-			ID:      moduleResp.LatestVersion.ID,
-			Version: moduleResp.LatestVersion.Version,
+			ID:      data.LatestVersion.ID,
+			Version: data.LatestVersion.Version,
 		}
 	}
 
 	viewModel := ModuleDetailViewModel{
-		ID:            moduleResp.Module.ID,
-		Source:        moduleResp.Module.Source,
-		ExecutorType:  moduleResp.Module.ExecutorType,
+		ID:            data.Module.ID,
+		Source:        data.Module.Source,
+		ExecutorType:  data.Module.ExecutorType,
 		LatestVersion: latestVersion,
 	}
 
@@ -267,7 +260,7 @@ func (p *ModuleDetailData) ResolveData(data any) string {
 	return string(yamlData)
 }
 
-func (p *ModuleDetailData) KeyBindings(elem any) KeyBindings {
+func (p *ModuleDetailData) KeyBindings(elem internal.GetModuleResponse) KeyBindings {
 	return rootKeyBindings.
 		With("v", "View all versions", fmt.Sprintf("modules/%s/moduleversions", p.moduleID)).
 		With("c", "View components", fmt.Sprintf("components?module-id=%s", p.moduleID))
@@ -294,41 +287,34 @@ func NewModuleVersionDetailPage(client *client.Client) func(params map[string]st
 	}
 }
 
-func (p *ModuleVersionDetailData) LoadData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
+func (p *ModuleVersionDetailData) LoadData() (*internal.GetModuleVersionResponse, error) {
+	ctx := context.Background()
 
-		moduleVersionIDUint, err := strconv.ParseUint(p.moduleVersionID, 10, 32)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-
-		moduleVersionResp, err := p.client.GetModuleVersion(ctx, uint(moduleVersionIDUint))
-		if err != nil {
-			return errorMsg{err: err}
-		}
-
-		return dataLoadedMsg{data: moduleVersionResp}
+	moduleVersionIDUint, err := strconv.ParseUint(p.moduleVersionID, 10, 32)
+	if err != nil {
+		return nil, err
 	}
+
+	moduleVersionResp, err := p.client.GetModuleVersion(ctx, uint(moduleVersionIDUint))
+	if err != nil {
+		return nil, err
+	}
+
+	return moduleVersionResp, nil
 }
 
-func (p *ModuleVersionDetailData) ResolveData(data any) string {
-	moduleVersionResp, ok := data.(*internal.GetModuleVersionResponse)
-	if !ok {
-		return "Error: Invalid data format"
-	}
-
+func (p *ModuleVersionDetailData) ResolveData(data internal.GetModuleVersionResponse) string {
 	viewModel := ModuleVersionDetailViewModel{
-		ID:      moduleVersionResp.ModuleVersion.ID,
-		Version: moduleVersionResp.ModuleVersion.Version,
+		ID:      data.ModuleVersion.ID,
+		Version: data.ModuleVersion.Version,
 		Module: struct {
 			ID           uint   `yaml:"id"`
 			Source       string `yaml:"source"`
 			ExecutorType string `yaml:"executorType"`
 		}{
-			ID:           moduleVersionResp.ModuleVersion.Module.ID,
-			Source:       moduleVersionResp.ModuleVersion.Module.Source,
-			ExecutorType: moduleVersionResp.ModuleVersion.Module.ExecutorType,
+			ID:           data.ModuleVersion.Module.ID,
+			Source:       data.ModuleVersion.Module.Source,
+			ExecutorType: data.ModuleVersion.Module.ExecutorType,
 		},
 	}
 
@@ -340,7 +326,7 @@ func (p *ModuleVersionDetailData) ResolveData(data any) string {
 	return string(yamlData)
 }
 
-func (p *ModuleVersionDetailData) KeyBindings(elem any) KeyBindings {
+func (p *ModuleVersionDetailData) KeyBindings(elem internal.GetModuleVersionResponse) KeyBindings {
 	moduleVersionIDUint, err := strconv.ParseUint(p.moduleVersionID, 10, 32)
 	if err != nil {
 		return rootKeyBindings

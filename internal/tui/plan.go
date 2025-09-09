@@ -10,7 +10,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
-	log "github.com/sirupsen/logrus"
 )
 
 type PlansTableData struct {
@@ -135,46 +134,40 @@ func (p *ChangesetPlansTableData) KeyBindings(elem any) KeyBindings {
 
 type PlanLogsPageData struct {
 	client *client.Client
-	planID uint
+	planID string
 }
 
 func NewPlanLogsPage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		planID, _ := strconv.ParseUint(params["planID"], 10, 32)
-		return NewDataViewport(&PlanLogsPageData{
-			client: client,
-			planID: uint(planID),
-		})
+		return NewDataViewport(&PlanLogsPageData{client: client, planID: params["planID"]})
 	}
 }
 
-func (p *PlanLogsPageData) LoadData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		resp, err := p.client.GetPlanLog(ctx, p.planID)
-		log.WithField("resp", resp).Infof("resp: %+v", resp)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		return dataLoadedMsg{data: resp}
+func (p *PlanLogsPageData) LoadData() (*internal.GetPlanLogResponse, error) {
+	ctx := context.Background()
+
+	planIDUint, err := strconv.ParseUint(p.planID, 10, 32)
+	if err != nil {
+		return nil, err
 	}
+
+	resp, err := p.client.GetPlanLog(ctx, uint(planIDUint))
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
-func (p *PlanLogsPageData) ResolveData(data any) string {
-	logResp, ok := data.(*internal.GetPlanLogResponse)
-	if !ok {
-		return "Failed to load log data"
-	}
-
-	content, err := io.ReadAll(logResp.Content)
+func (p *PlanLogsPageData) ResolveData(data internal.GetPlanLogResponse) string {
+	content, err := io.ReadAll(data.Content)
 	if err != nil {
 		return "Failed to read log content"
 	}
-	defer logResp.Content.Close()
+	defer data.Content.Close()
 
 	return string(content)
 }
 
-func (p *PlanLogsPageData) KeyBindings(elem any) KeyBindings {
+func (p *PlanLogsPageData) KeyBindings(elem internal.GetPlanLogResponse) KeyBindings {
 	return rootKeyBindings
 }

@@ -5,33 +5,41 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type DataViewport struct {
+type DataViewport[T any] struct {
 	viewport viewport.Model
+	elem     T
 	content  string
-	size     Size
-	data     ViewportData
+
+	size Size
+	data ViewportData[T]
 }
 
-func NewDataViewport(data ViewportData) *DataViewport {
+func NewDataViewport[T any](data ViewportData[T]) *DataViewport[T] {
 	vp := viewport.New(0, 0)
 
-	return &DataViewport{
+	return &DataViewport[T]{
 		viewport: vp,
 		data:     data,
 	}
 }
 
-func (v *DataViewport) Init() tea.Cmd {
-	return v.data.LoadData()
+func (v *DataViewport[T]) Init() tea.Cmd {
+	return func() tea.Msg {
+		data, err := v.data.LoadData()
+		if err != nil {
+			return errorMsg{err: err}
+		}
+		return dataLoadedMsg{data: *data}
+	}
 }
 
-func (v *DataViewport) Resize(size Size) {
+func (v *DataViewport[T]) Resize(size Size) {
 	v.viewport.Width = size.Width
 	v.viewport.Height = size.Height
 	v.size = size
 }
 
-func (v *DataViewport) Update(msg tea.Msg) (Page, tea.Cmd) {
+func (v *DataViewport[T]) Update(msg tea.Msg) (Page, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -51,33 +59,36 @@ func (v *DataViewport) Update(msg tea.Msg) (Page, tea.Cmd) {
 			v.viewport.ScrollUp(v.viewport.Height / 2)
 		}
 	case dataLoadedMsg:
-		v.content = v.data.ResolveData(msg.data)
-		if v.content == "" {
-			v.content = "No data available"
+		if data, ok := msg.data.(T); ok {
+			v.elem = data
+			v.content = v.data.ResolveData(data)
+			if v.content == "" {
+				v.content = "No data available"
+			}
+			v.viewport.SetContent(v.content)
 		}
-		v.viewport.SetContent(v.content)
 	}
 
 	v.viewport, cmd = v.viewport.Update(msg)
 	return v, cmd
 }
 
-func (v *DataViewport) View() string {
+func (v *DataViewport[T]) View() string {
 	return v.viewport.View()
 }
 
-func (v *DataViewport) KeyBindings() KeyBindings {
-	return v.data.KeyBindings(nil)
+func (v *DataViewport[T]) KeyBindings() KeyBindings {
+	return v.data.KeyBindings(v.elem)
 }
 
-func (v *DataViewport) Focus() {
+func (v *DataViewport[T]) Focus() {
 }
 
-func (v *DataViewport) Blur() {
+func (v *DataViewport[T]) Blur() {
 }
 
-type ViewportData interface {
-	LoadData() tea.Cmd
-	ResolveData(data any) string
-	KeyBindings(elem any) KeyBindings
+type ViewportData[T any] interface {
+	LoadData() (*T, error)
+	ResolveData(data T) string
+	KeyBindings(elem T) KeyBindings
 }

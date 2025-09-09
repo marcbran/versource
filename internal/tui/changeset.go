@@ -8,10 +8,11 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
+	"github.com/marcbran/versource/internal/tui/platform"
 )
 
-func changesetKeyBindings(changesetName string) KeyBindings {
-	return KeyBindings{
+func changesetKeyBindings(changesetName string) platform.KeyBindings {
+	return platform.KeyBindings{
 		{Key: "m", Help: "View modules", Command: fmt.Sprintf("changesets/%s/modules", changesetName)},
 		{Key: "c", Help: "View components", Command: fmt.Sprintf("changesets/%s/components", changesetName)},
 		{Key: "d", Help: "View component diffs", Command: fmt.Sprintf("changesets/%s/components/diffs", changesetName)},
@@ -24,9 +25,9 @@ type ChangesetsTableData struct {
 	client *client.Client
 }
 
-func NewChangesetsPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataTable[internal.Changeset](&ChangesetsTableData{client: client})
+func NewChangesetsPage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataTable[internal.Changeset](&ChangesetsTableData{client: client})
 	}
 }
 
@@ -63,7 +64,7 @@ func (p *ChangesetsTableData) ResolveData(data []internal.Changeset) ([]table.Co
 	return columns, rows, elems
 }
 
-func (p *ChangesetsTableData) KeyBindings(elem internal.Changeset) KeyBindings {
+func (p *ChangesetsTableData) KeyBindings(elem internal.Changeset) platform.KeyBindings {
 	return changesetKeyBindings(elem.Name).
 		With("enter", "View component diffs", fmt.Sprintf("changesets/%s/components/diffs", elem.Name))
 }

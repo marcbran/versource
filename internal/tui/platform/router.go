@@ -1,4 +1,4 @@
-package tui
+package platform
 
 import (
 	"fmt"
@@ -48,7 +48,7 @@ func (r *Router) Blur() {
 
 func (r *Router) Update(msg tea.Msg) (*Router, tea.Cmd) {
 	switch m := msg.(type) {
-	case routeOpenedMsg:
+	case RouteOpenedMsg:
 		r.currentRoute.page = m.page
 		r.updateCurrentRoute()
 		if m.msg != nil {
@@ -122,7 +122,7 @@ func (r *Router) updateCurrentRoute() {
 	}
 }
 
-func (r *Router) executeCommand(command string) tea.Cmd {
+func (r *Router) ExecuteCommand(command string) tea.Cmd {
 	return func() tea.Msg {
 		if command == "" {
 			return nil
@@ -169,8 +169,9 @@ func (r *Router) View() string {
 	return r.currentRoute.View()
 }
 
-func (r *Router) Register(path string, page func(map[string]string) Page) {
+func (r *Router) Register(path string, page func(map[string]string) Page) *Router {
 	r.routes[path] = page
+	return r
 }
 
 func (r *Router) Match(path string) Page {
@@ -192,7 +193,7 @@ func (r *Router) Open(path string) tea.Cmd {
 			return openPageRequestedMsg{path: path}
 		},
 		func() tea.Msg {
-			return routeOpenedMsg{path: path, page: page, msg: page.Init()()}
+			return RouteOpenedMsg{path: path, page: page, msg: page.Init()()}
 		},
 	)
 }
@@ -201,7 +202,7 @@ type openPageRequestedMsg struct {
 	path string
 }
 
-type routeOpenedMsg struct {
+type RouteOpenedMsg struct {
 	path string
 	page Page
 	msg  tea.Msg
@@ -388,6 +389,11 @@ type KeyBinding struct {
 
 type Resizer interface {
 	Resize(size Size)
+}
+
+type Size struct {
+	Width  int
+	Height int
 }
 
 type Focuser interface {

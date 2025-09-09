@@ -9,15 +9,16 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
+	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type PlansTableData struct {
 	client *client.Client
 }
 
-func NewPlansPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataTable[internal.Plan](&PlansTableData{client: client})
+func NewPlansPage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataTable[internal.Plan](&PlansTableData{client: client})
 	}
 }
 
@@ -54,8 +55,8 @@ func (p *PlansTableData) ResolveData(data []internal.Plan) ([]table.Column, []ta
 	return columns, rows, elems
 }
 
-func (p *PlansTableData) KeyBindings(elem internal.Plan) KeyBindings {
-	return rootKeyBindings.
+func (p *PlansTableData) KeyBindings(elem internal.Plan) platform.KeyBindings {
+	return KeyBindings.
 		With("l", "View logs", fmt.Sprintf("plans/%d/logs", elem.ID))
 }
 
@@ -64,9 +65,9 @@ type ChangesetPlansTableData struct {
 	changesetName string
 }
 
-func NewChangesetPlansPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataTable[internal.Plan](&ChangesetPlansTableData{
+func NewChangesetPlansPage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataTable[internal.Plan](&ChangesetPlansTableData{
 			client:        client,
 			changesetName: params["changesetName"],
 		})
@@ -108,7 +109,7 @@ func (p *ChangesetPlansTableData) ResolveData(data []internal.Plan) ([]table.Col
 	return columns, rows, elems
 }
 
-func (p *ChangesetPlansTableData) KeyBindings(elem internal.Plan) KeyBindings {
+func (p *ChangesetPlansTableData) KeyBindings(elem internal.Plan) platform.KeyBindings {
 	return changesetKeyBindings(p.changesetName).
 		With("l", "View logs", fmt.Sprintf("plans/%d/logs", elem.ID))
 }
@@ -118,9 +119,9 @@ type PlanLogsPageData struct {
 	planID string
 }
 
-func NewPlanLogsPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataViewport(&PlanLogsPageData{client: client, planID: params["planID"]})
+func NewPlanLogsPage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataViewport(&PlanLogsPageData{client: client, planID: params["planID"]})
 	}
 }
 
@@ -149,6 +150,6 @@ func (p *PlanLogsPageData) ResolveData(data internal.GetPlanLogResponse) string 
 	return string(content)
 }
 
-func (p *PlanLogsPageData) KeyBindings(elem internal.GetPlanLogResponse) KeyBindings {
-	return rootKeyBindings
+func (p *PlanLogsPageData) KeyBindings(elem internal.GetPlanLogResponse) platform.KeyBindings {
+	return KeyBindings
 }

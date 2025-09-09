@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui"
+	"github.com/marcbran/versource/internal/tui/platform"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -50,7 +51,24 @@ var uiCmd = &cobra.Command{
 		}
 
 		client := client.NewClient(config)
-		app := tui.NewApp(client)
+
+		router := platform.NewRouter().
+			Register("modules", tui.NewModulesPage(client)).
+			Register("modules/{moduleID}", tui.NewModuleDetailPage(client)).
+			Register("modules/{moduleID}/moduleversions", tui.NewModuleVersionsForModulePage(client)).
+			Register("moduleversions", tui.NewModuleVersionsPage(client)).
+			Register("moduleversions/{moduleVersionID}", tui.NewModuleVersionDetailPage(client)).
+			Register("changesets", tui.NewChangesetsPage(client)).
+			Register("changesets/{changesetName}/components", tui.NewChangesetComponentsPage(client)).
+			Register("changesets/{changesetName}/components/diffs", tui.NewComponentDiffsPage(client)).
+			Register("changesets/{changesetName}/plans", tui.NewChangesetPlansPage(client)).
+			Register("changesets/{changesetName}/applies", tui.NewChangesetAppliesPage(client)).
+			Register("components", tui.NewComponentsPage(client)).
+			Register("plans", tui.NewPlansPage(client)).
+			Register("plans/{planID}/logs", tui.NewPlanLogsPage(client)).
+			Register("applies", tui.NewAppliesPage(client))
+
+		app := platform.NewCommandable(router, client)
 
 		p := tea.NewProgram(app, tea.WithAltScreen())
 		if _, err := p.Run(); err != nil {

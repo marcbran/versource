@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
+	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type ComponentsTableData struct {
@@ -15,9 +16,9 @@ type ComponentsTableData struct {
 	moduleVersionID string
 }
 
-func NewComponentsPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataTable[internal.Component](&ComponentsTableData{
+func NewComponentsPage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataTable[internal.Component](&ComponentsTableData{
 			client:          client,
 			moduleID:        params["module-id"],
 			moduleVersionID: params["module-version-id"],
@@ -84,8 +85,8 @@ func (p *ComponentsTableData) ResolveData(data []internal.Component) ([]table.Co
 	return columns, rows, elems
 }
 
-func (p *ComponentsTableData) KeyBindings(elem internal.Component) KeyBindings {
-	return rootKeyBindings
+func (p *ComponentsTableData) KeyBindings(elem internal.Component) platform.KeyBindings {
+	return KeyBindings
 }
 
 type ChangesetComponentsTableData struct {
@@ -93,9 +94,9 @@ type ChangesetComponentsTableData struct {
 	changesetName string
 }
 
-func NewChangesetComponentsPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataTable[internal.Component](&ChangesetComponentsTableData{
+func NewChangesetComponentsPage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataTable[internal.Component](&ChangesetComponentsTableData{
 			client:        client,
 			changesetName: params["changesetName"],
 		})
@@ -149,7 +150,7 @@ func (p *ChangesetComponentsTableData) ResolveData(data []internal.Component) ([
 	return columns, rows, elems
 }
 
-func (p *ChangesetComponentsTableData) KeyBindings(elem internal.Component) KeyBindings {
+func (p *ChangesetComponentsTableData) KeyBindings(elem internal.Component) platform.KeyBindings {
 	return changesetKeyBindings(p.changesetName)
 }
 
@@ -158,9 +159,9 @@ type ComponentDiffsTableData struct {
 	changeset string
 }
 
-func NewComponentDiffsPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataTable[internal.ComponentDiff](&ComponentDiffsTableData{
+func NewComponentDiffsPage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataTable[internal.ComponentDiff](&ComponentDiffsTableData{
 			client:    client,
 			changeset: params["changesetName"],
 		})
@@ -243,6 +244,6 @@ func (p *ComponentDiffsTableData) ResolveData(data []internal.ComponentDiff) ([]
 	return columns, rows, elems
 }
 
-func (p *ComponentDiffsTableData) KeyBindings(elem internal.ComponentDiff) KeyBindings {
+func (p *ComponentDiffsTableData) KeyBindings(elem internal.ComponentDiff) platform.KeyBindings {
 	return changesetKeyBindings(p.changeset)
 }

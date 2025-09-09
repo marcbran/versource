@@ -7,15 +7,16 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
+	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type AppliesTableData struct {
 	client *client.Client
 }
 
-func NewAppliesPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataTable(&AppliesTableData{client: client})
+func NewAppliesPage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataTable(&AppliesTableData{client: client})
 	}
 }
 
@@ -51,8 +52,8 @@ func (p *AppliesTableData) ResolveData(data []internal.Apply) ([]table.Column, [
 	return columns, rows, elems
 }
 
-func (p *AppliesTableData) KeyBindings(elem internal.Apply) KeyBindings {
-	return rootKeyBindings
+func (p *AppliesTableData) KeyBindings(elem internal.Apply) platform.KeyBindings {
+	return KeyBindings
 }
 
 type ChangesetAppliesTableData struct {
@@ -60,9 +61,9 @@ type ChangesetAppliesTableData struct {
 	changesetName string
 }
 
-func NewChangesetAppliesPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataTable(&ChangesetAppliesTableData{
+func NewChangesetAppliesPage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataTable(&ChangesetAppliesTableData{
 			client:        client,
 			changesetName: params["changesetName"],
 		})
@@ -103,6 +104,6 @@ func (p *ChangesetAppliesTableData) ResolveData(data []internal.Apply) ([]table.
 	return columns, rows, elems
 }
 
-func (p *ChangesetAppliesTableData) KeyBindings(elem internal.Apply) KeyBindings {
+func (p *ChangesetAppliesTableData) KeyBindings(elem internal.Apply) platform.KeyBindings {
 	return changesetKeyBindings(p.changesetName)
 }

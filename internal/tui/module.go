@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
+	"github.com/marcbran/versource/internal/tui/platform"
 	"gopkg.in/yaml.v3"
 )
 
@@ -15,9 +16,9 @@ type ModulesTableData struct {
 	client *client.Client
 }
 
-func NewModulesPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataTable[internal.Module](&ModulesTableData{client: client})
+func NewModulesPage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataTable[internal.Module](&ModulesTableData{client: client})
 	}
 }
 
@@ -50,8 +51,8 @@ func (p *ModulesTableData) ResolveData(data []internal.Module) ([]table.Column, 
 	return columns, rows, elems
 }
 
-func (p *ModulesTableData) KeyBindings(elem internal.Module) KeyBindings {
-	return rootKeyBindings.
+func (p *ModulesTableData) KeyBindings(elem internal.Module) platform.KeyBindings {
+	return KeyBindings.
 		With("enter", "View module detail", fmt.Sprintf("modules/%d", elem.ID)).
 		With("v", "View module versions", fmt.Sprintf("modules/%d/moduleversions", elem.ID)).
 		With("c", "View components", fmt.Sprintf("components?module-id=%d", elem.ID))
@@ -61,9 +62,9 @@ type ModuleVersionsTableData struct {
 	client *client.Client
 }
 
-func NewModuleVersionsPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataTable[internal.ModuleVersion](&ModuleVersionsTableData{client: client})
+func NewModuleVersionsPage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataTable[internal.ModuleVersion](&ModuleVersionsTableData{client: client})
 	}
 }
 
@@ -102,8 +103,8 @@ func (p *ModuleVersionsTableData) ResolveData(data []internal.ModuleVersion) ([]
 	return columns, rows, elems
 }
 
-func (p *ModuleVersionsTableData) KeyBindings(elem internal.ModuleVersion) KeyBindings {
-	return rootKeyBindings.
+func (p *ModuleVersionsTableData) KeyBindings(elem internal.ModuleVersion) platform.KeyBindings {
+	return KeyBindings.
 		With("enter", "View module version detail", fmt.Sprintf("moduleversions/%d", elem.ID)).
 		With("c", "View components", fmt.Sprintf("components?module-version-id=%d", elem.ID))
 }
@@ -113,9 +114,9 @@ type ModuleVersionsForModuleTableData struct {
 	moduleID string
 }
 
-func NewModuleVersionsForModulePage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataTable[internal.ModuleVersion](&ModuleVersionsForModuleTableData{client: client, moduleID: params["moduleID"]})
+func NewModuleVersionsForModulePage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataTable[internal.ModuleVersion](&ModuleVersionsForModuleTableData{client: client, moduleID: params["moduleID"]})
 	}
 }
 
@@ -159,8 +160,8 @@ func (p *ModuleVersionsForModuleTableData) ResolveData(data []internal.ModuleVer
 	return columns, rows, elems
 }
 
-func (p *ModuleVersionsForModuleTableData) KeyBindings(elem internal.ModuleVersion) KeyBindings {
-	return rootKeyBindings.
+func (p *ModuleVersionsForModuleTableData) KeyBindings(elem internal.ModuleVersion) platform.KeyBindings {
+	return KeyBindings.
 		With("enter", "View module version detail", fmt.Sprintf("moduleversions/%d", elem.ID)).
 		With("c", "View components", fmt.Sprintf("components?module-version-id=%d", elem.ID))
 }
@@ -180,9 +181,9 @@ type ModuleDetailViewModel struct {
 	} `yaml:"latestVersion,omitempty"`
 }
 
-func NewModuleDetailPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataViewport(&ModuleDetailData{client: client, moduleID: params["moduleID"]})
+func NewModuleDetailPage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataViewport(&ModuleDetailData{client: client, moduleID: params["moduleID"]})
 	}
 }
 
@@ -232,8 +233,8 @@ func (p *ModuleDetailData) ResolveData(data internal.GetModuleResponse) string {
 	return string(yamlData)
 }
 
-func (p *ModuleDetailData) KeyBindings(elem internal.GetModuleResponse) KeyBindings {
-	return rootKeyBindings.
+func (p *ModuleDetailData) KeyBindings(elem internal.GetModuleResponse) platform.KeyBindings {
+	return KeyBindings.
 		With("v", "View all versions", fmt.Sprintf("modules/%s/moduleversions", p.moduleID)).
 		With("c", "View components", fmt.Sprintf("components?module-id=%s", p.moduleID))
 }
@@ -253,9 +254,9 @@ type ModuleVersionDetailViewModel struct {
 	} `yaml:"module"`
 }
 
-func NewModuleVersionDetailPage(client *client.Client) func(params map[string]string) Page {
-	return func(params map[string]string) Page {
-		return NewDataViewport(&ModuleVersionDetailData{client: client, moduleVersionID: params["moduleVersionID"]})
+func NewModuleVersionDetailPage(client *client.Client) func(params map[string]string) platform.Page {
+	return func(params map[string]string) platform.Page {
+		return platform.NewDataViewport(&ModuleVersionDetailData{client: client, moduleVersionID: params["moduleVersionID"]})
 	}
 }
 
@@ -298,13 +299,13 @@ func (p *ModuleVersionDetailData) ResolveData(data internal.GetModuleVersionResp
 	return string(yamlData)
 }
 
-func (p *ModuleVersionDetailData) KeyBindings(elem internal.GetModuleVersionResponse) KeyBindings {
+func (p *ModuleVersionDetailData) KeyBindings(elem internal.GetModuleVersionResponse) platform.KeyBindings {
 	moduleVersionIDUint, err := strconv.ParseUint(p.moduleVersionID, 10, 32)
 	if err != nil {
-		return rootKeyBindings
+		return KeyBindings
 	}
 
-	return rootKeyBindings.
+	return KeyBindings.
 		With("m", "View module", fmt.Sprintf("modules/%d", moduleVersionIDUint)).
 		With("c", "View components", fmt.Sprintf("components?module-version-id=%d", moduleVersionIDUint))
 }

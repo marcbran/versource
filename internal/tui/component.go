@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 )
@@ -18,7 +17,7 @@ type ComponentsTableData struct {
 
 func NewComponentsPage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		return NewDataTable(&ComponentsTableData{
+		return NewDataTable[internal.Component](&ComponentsTableData{
 			client:          client,
 			moduleID:        params["module-id"],
 			moduleVersionID: params["module-version-id"],
@@ -26,40 +25,34 @@ func NewComponentsPage(client *client.Client) func(params map[string]string) Pag
 	}
 }
 
-func (p *ComponentsTableData) LoadData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
+func (p *ComponentsTableData) LoadData() ([]internal.Component, error) {
+	ctx := context.Background()
 
-		req := internal.ListComponentsRequest{}
+	req := internal.ListComponentsRequest{}
 
-		if p.moduleID != "" {
-			if moduleID, err := strconv.ParseUint(p.moduleID, 10, 32); err == nil {
-				moduleIDUint := uint(moduleID)
-				req.ModuleID = &moduleIDUint
-			}
+	if p.moduleID != "" {
+		if moduleID, err := strconv.ParseUint(p.moduleID, 10, 32); err == nil {
+			moduleIDUint := uint(moduleID)
+			req.ModuleID = &moduleIDUint
 		}
-
-		if p.moduleVersionID != "" {
-			if moduleVersionID, err := strconv.ParseUint(p.moduleVersionID, 10, 32); err == nil {
-				moduleVersionIDUint := uint(moduleVersionID)
-				req.ModuleVersionID = &moduleVersionIDUint
-			}
-		}
-
-		resp, err := p.client.ListComponents(ctx, req)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-
-		return dataLoadedMsg{data: resp.Components}
 	}
+
+	if p.moduleVersionID != "" {
+		if moduleVersionID, err := strconv.ParseUint(p.moduleVersionID, 10, 32); err == nil {
+			moduleVersionIDUint := uint(moduleVersionID)
+			req.ModuleVersionID = &moduleVersionIDUint
+		}
+	}
+
+	resp, err := p.client.ListComponents(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Components, nil
 }
 
-func (p *ComponentsTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
-	components, ok := data.([]internal.Component)
-	if !ok {
-		return nil, nil, nil
-	}
+func (p *ComponentsTableData) ResolveData(data []internal.Component) ([]table.Column, []table.Row, []internal.Component) {
 
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
@@ -69,8 +62,8 @@ func (p *ComponentsTableData) ResolveData(data any) ([]table.Column, []table.Row
 	}
 
 	var rows []table.Row
-	var elems []any
-	for _, component := range components {
+	var elems []internal.Component
+	for _, component := range data {
 		source := ""
 		version := ""
 		if component.ModuleVersion.Module.Source != "" {
@@ -91,7 +84,7 @@ func (p *ComponentsTableData) ResolveData(data any) ([]table.Column, []table.Row
 	return columns, rows, elems
 }
 
-func (p *ComponentsTableData) KeyBindings(elem any) KeyBindings {
+func (p *ComponentsTableData) KeyBindings(elem internal.Component) KeyBindings {
 	return rootKeyBindings
 }
 
@@ -102,35 +95,29 @@ type ChangesetComponentsTableData struct {
 
 func NewChangesetComponentsPage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		return NewDataTable(&ChangesetComponentsTableData{
+		return NewDataTable[internal.Component](&ChangesetComponentsTableData{
 			client:        client,
 			changesetName: params["changesetName"],
 		})
 	}
 }
 
-func (p *ChangesetComponentsTableData) LoadData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
+func (p *ChangesetComponentsTableData) LoadData() ([]internal.Component, error) {
+	ctx := context.Background()
 
-		req := internal.ListComponentsRequest{
-			Changeset: &p.changesetName,
-		}
-
-		resp, err := p.client.ListComponents(ctx, req)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-
-		return dataLoadedMsg{data: resp.Components}
+	req := internal.ListComponentsRequest{
+		Changeset: &p.changesetName,
 	}
+
+	resp, err := p.client.ListComponents(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Components, nil
 }
 
-func (p *ChangesetComponentsTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
-	components, ok := data.([]internal.Component)
-	if !ok {
-		return nil, nil, nil
-	}
+func (p *ChangesetComponentsTableData) ResolveData(data []internal.Component) ([]table.Column, []table.Row, []internal.Component) {
 
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
@@ -140,8 +127,8 @@ func (p *ChangesetComponentsTableData) ResolveData(data any) ([]table.Column, []
 	}
 
 	var rows []table.Row
-	var elems []any
-	for _, component := range components {
+	var elems []internal.Component
+	for _, component := range data {
 		source := ""
 		version := ""
 		if component.ModuleVersion.Module.Source != "" {
@@ -162,7 +149,7 @@ func (p *ChangesetComponentsTableData) ResolveData(data any) ([]table.Column, []
 	return columns, rows, elems
 }
 
-func (p *ChangesetComponentsTableData) KeyBindings(elem any) KeyBindings {
+func (p *ChangesetComponentsTableData) KeyBindings(elem internal.Component) KeyBindings {
 	return changesetKeyBindings(p.changesetName)
 }
 
@@ -173,32 +160,26 @@ type ComponentDiffsTableData struct {
 
 func NewComponentDiffsPage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		return NewDataTable(&ComponentDiffsTableData{
+		return NewDataTable[internal.ComponentDiff](&ComponentDiffsTableData{
 			client:    client,
 			changeset: params["changesetName"],
 		})
 	}
 }
 
-func (p *ComponentDiffsTableData) LoadData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		req := internal.ListComponentDiffsRequest{
-			Changeset: p.changeset,
-		}
-		resp, err := p.client.ListComponentDiffs(ctx, req)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		return dataLoadedMsg{data: resp.Diffs}
+func (p *ComponentDiffsTableData) LoadData() ([]internal.ComponentDiff, error) {
+	ctx := context.Background()
+	req := internal.ListComponentDiffsRequest{
+		Changeset: p.changeset,
 	}
+	resp, err := p.client.ListComponentDiffs(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Diffs, nil
 }
 
-func (p *ComponentDiffsTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
-	diffs, ok := data.([]internal.ComponentDiff)
-	if !ok {
-		return nil, nil, nil
-	}
+func (p *ComponentDiffsTableData) ResolveData(data []internal.ComponentDiff) ([]table.Column, []table.Row, []internal.ComponentDiff) {
 
 	columns := []table.Column{
 		{Title: "Type", Width: 8},
@@ -213,8 +194,8 @@ func (p *ComponentDiffsTableData) ResolveData(data any) ([]table.Column, []table
 	}
 
 	var rows []table.Row
-	var elems []any
-	for _, diff := range diffs {
+	var elems []internal.ComponentDiff
+	for _, diff := range data {
 		fromID := "N/A"
 		if diff.FromComponent.ID != 0 {
 			fromID = strconv.FormatUint(uint64(diff.FromComponent.ID), 10)
@@ -262,6 +243,6 @@ func (p *ComponentDiffsTableData) ResolveData(data any) ([]table.Column, []table
 	return columns, rows, elems
 }
 
-func (p *ComponentDiffsTableData) KeyBindings(elem any) KeyBindings {
+func (p *ComponentDiffsTableData) KeyBindings(elem internal.ComponentDiff) KeyBindings {
 	return changesetKeyBindings(p.changeset)
 }

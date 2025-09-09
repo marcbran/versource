@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 )
@@ -20,23 +19,16 @@ func NewAppliesPage(client *client.Client) func(params map[string]string) Page {
 	}
 }
 
-func (p *AppliesTableData) LoadData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		resp, err := p.client.ListApplies(ctx)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		return dataLoadedMsg{data: resp.Applies}
+func (p *AppliesTableData) LoadData() ([]internal.Apply, error) {
+	ctx := context.Background()
+	resp, err := p.client.ListApplies(ctx)
+	if err != nil {
+		return nil, err
 	}
+	return resp.Applies, nil
 }
 
-func (p *AppliesTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
-	applies, ok := data.([]internal.Apply)
-	if !ok {
-		return nil, nil, nil
-	}
-
+func (p *AppliesTableData) ResolveData(data []internal.Apply) ([]table.Column, []table.Row, []internal.Apply) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Plan", Width: 1},
@@ -45,8 +37,8 @@ func (p *AppliesTableData) ResolveData(data any) ([]table.Column, []table.Row, [
 	}
 
 	var rows []table.Row
-	var elems []any
-	for _, apply := range applies {
+	var elems []internal.Apply
+	for _, apply := range data {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(apply.ID), 10),
 			strconv.FormatUint(uint64(apply.PlanID), 10),
@@ -59,7 +51,7 @@ func (p *AppliesTableData) ResolveData(data any) ([]table.Column, []table.Row, [
 	return columns, rows, elems
 }
 
-func (p *AppliesTableData) KeyBindings(elem any) KeyBindings {
+func (p *AppliesTableData) KeyBindings(elem internal.Apply) KeyBindings {
 	return rootKeyBindings
 }
 
@@ -77,25 +69,18 @@ func NewChangesetAppliesPage(client *client.Client) func(params map[string]strin
 	}
 }
 
-func (p *ChangesetAppliesTableData) LoadData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
+func (p *ChangesetAppliesTableData) LoadData() ([]internal.Apply, error) {
+	ctx := context.Background()
 
-		resp, err := p.client.ListApplies(ctx)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-
-		return dataLoadedMsg{data: resp.Applies}
+	resp, err := p.client.ListApplies(ctx)
+	if err != nil {
+		return nil, err
 	}
+
+	return resp.Applies, nil
 }
 
-func (p *ChangesetAppliesTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
-	applies, ok := data.([]internal.Apply)
-	if !ok {
-		return nil, nil, nil
-	}
-
+func (p *ChangesetAppliesTableData) ResolveData(data []internal.Apply) ([]table.Column, []table.Row, []internal.Apply) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Plan", Width: 1},
@@ -104,8 +89,8 @@ func (p *ChangesetAppliesTableData) ResolveData(data any) ([]table.Column, []tab
 	}
 
 	var rows []table.Row
-	var elems []any
-	for _, apply := range applies {
+	var elems []internal.Apply
+	for _, apply := range data {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(apply.ID), 10),
 			strconv.FormatUint(uint64(apply.PlanID), 10),
@@ -118,6 +103,6 @@ func (p *ChangesetAppliesTableData) ResolveData(data any) ([]table.Column, []tab
 	return columns, rows, elems
 }
 
-func (p *ChangesetAppliesTableData) KeyBindings(elem any) KeyBindings {
+func (p *ChangesetAppliesTableData) KeyBindings(elem internal.Apply) KeyBindings {
 	return changesetKeyBindings(p.changesetName)
 }

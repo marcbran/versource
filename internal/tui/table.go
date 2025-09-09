@@ -6,41 +6,49 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type DataTable struct {
+type DataTable[T any] struct {
 	table   table.Model
 	columns []table.Column
 	rows    []table.Row
-	elems   []any
+	elems   []T
 
 	size    Size
-	data    TableData
+	data    TableData[T]
 	focused bool
 }
 
-func NewDataTable(data TableData) *DataTable {
-	return &DataTable{
+func NewDataTable[T any](data TableData[T]) *DataTable[T] {
+	return &DataTable[T]{
 		table: table.New(),
 		data:  data,
 	}
 }
 
-func (t DataTable) Init() tea.Cmd {
-	return t.data.LoadData()
+func (t DataTable[T]) Init() tea.Cmd {
+	return func() tea.Msg {
+		data, err := t.data.LoadData()
+		if err != nil {
+			return errorMsg{err: err}
+		}
+		return dataLoadedMsg{data: data}
+	}
 }
 
-func (t *DataTable) Resize(size Size) {
+func (t *DataTable[T]) Resize(size Size) {
 	t.table.SetWidth(size.Width)
 	t.table.SetHeight(size.Height)
 	t.size = size
 }
 
-func (t *DataTable) Update(msg tea.Msg) (Page, tea.Cmd) {
+func (t *DataTable[T]) Update(msg tea.Msg) (Page, tea.Cmd) {
 	switch msg := msg.(type) {
 	case dataLoadedMsg:
-		t.columns, t.rows, t.elems = t.data.ResolveData(msg.data)
-		t.table = newTable(t.columns, t.rows, t.size)
-		if t.focused {
-			t.table.Focus()
+		if data, ok := msg.data.([]T); ok {
+			t.columns, t.rows, t.elems = t.data.ResolveData(data)
+			t.table = newTable(t.columns, t.rows, t.size)
+			if t.focused {
+				t.table.Focus()
+			}
 		}
 	}
 	var cmd tea.Cmd
@@ -48,11 +56,11 @@ func (t *DataTable) Update(msg tea.Msg) (Page, tea.Cmd) {
 	return t, cmd
 }
 
-func (t DataTable) View() string {
+func (t DataTable[T]) View() string {
 	return t.table.View()
 }
 
-func (t DataTable) KeyBindings() KeyBindings {
+func (t DataTable[T]) KeyBindings() KeyBindings {
 	cursor := t.table.Cursor()
 	if cursor < 0 || cursor >= len(t.rows) {
 		return KeyBindings{}
@@ -60,20 +68,20 @@ func (t DataTable) KeyBindings() KeyBindings {
 	return t.data.KeyBindings(t.elems[cursor])
 }
 
-func (t *DataTable) Focus() {
+func (t *DataTable[T]) Focus() {
 	t.focused = true
 	t.table.Focus()
 }
 
-func (t *DataTable) Blur() {
+func (t *DataTable[T]) Blur() {
 	t.focused = false
 	t.table.Blur()
 }
 
-type TableData interface {
-	LoadData() tea.Cmd
-	ResolveData(data any) ([]table.Column, []table.Row, []any)
-	KeyBindings(elem any) KeyBindings
+type TableData[T any] interface {
+	LoadData() ([]T, error)
+	ResolveData(data []T) ([]table.Column, []table.Row, []T)
+	KeyBindings(elem T) KeyBindings
 }
 
 func newTable(columns []table.Column, rows []table.Row, size Size) table.Model {

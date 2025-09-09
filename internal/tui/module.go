@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"gopkg.in/yaml.v3"
@@ -18,26 +17,20 @@ type ModulesTableData struct {
 
 func NewModulesPage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		return NewDataTable(&ModulesTableData{client: client})
+		return NewDataTable[internal.Module](&ModulesTableData{client: client})
 	}
 }
 
-func (p *ModulesTableData) LoadData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		resp, err := p.client.ListModules(ctx)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		return dataLoadedMsg{data: resp.Modules}
+func (p *ModulesTableData) LoadData() ([]internal.Module, error) {
+	ctx := context.Background()
+	resp, err := p.client.ListModules(ctx)
+	if err != nil {
+		return nil, err
 	}
+	return resp.Modules, nil
 }
 
-func (p *ModulesTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
-	modules, ok := data.([]internal.Module)
-	if !ok {
-		return nil, nil, nil
-	}
+func (p *ModulesTableData) ResolveData(data []internal.Module) ([]table.Column, []table.Row, []internal.Module) {
 
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
@@ -45,8 +38,8 @@ func (p *ModulesTableData) ResolveData(data any) ([]table.Column, []table.Row, [
 	}
 
 	var rows []table.Row
-	var elems []any
-	for _, module := range modules {
+	var elems []internal.Module
+	for _, module := range data {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(module.ID), 10),
 			module.Source,
@@ -57,14 +50,11 @@ func (p *ModulesTableData) ResolveData(data any) ([]table.Column, []table.Row, [
 	return columns, rows, elems
 }
 
-func (p *ModulesTableData) KeyBindings(elem any) KeyBindings {
-	if module, ok := elem.(internal.Module); ok {
-		return rootKeyBindings.
-			With("enter", "View module detail", fmt.Sprintf("modules/%d", module.ID)).
-			With("v", "View module versions", fmt.Sprintf("modules/%d/moduleversions", module.ID)).
-			With("c", "View components", fmt.Sprintf("components?module-id=%d", module.ID))
-	}
-	return rootKeyBindings
+func (p *ModulesTableData) KeyBindings(elem internal.Module) KeyBindings {
+	return rootKeyBindings.
+		With("enter", "View module detail", fmt.Sprintf("modules/%d", elem.ID)).
+		With("v", "View module versions", fmt.Sprintf("modules/%d/moduleversions", elem.ID)).
+		With("c", "View components", fmt.Sprintf("components?module-id=%d", elem.ID))
 }
 
 type ModuleVersionsTableData struct {
@@ -73,26 +63,20 @@ type ModuleVersionsTableData struct {
 
 func NewModuleVersionsPage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		return NewDataTable(&ModuleVersionsTableData{client: client})
+		return NewDataTable[internal.ModuleVersion](&ModuleVersionsTableData{client: client})
 	}
 }
 
-func (p *ModuleVersionsTableData) LoadData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		resp, err := p.client.ListModuleVersions(ctx)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		return dataLoadedMsg{data: resp.ModuleVersions}
+func (p *ModuleVersionsTableData) LoadData() ([]internal.ModuleVersion, error) {
+	ctx := context.Background()
+	resp, err := p.client.ListModuleVersions(ctx)
+	if err != nil {
+		return nil, err
 	}
+	return resp.ModuleVersions, nil
 }
 
-func (p *ModuleVersionsTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
-	moduleVersions, ok := data.([]internal.ModuleVersion)
-	if !ok {
-		return nil, nil, nil
-	}
+func (p *ModuleVersionsTableData) ResolveData(data []internal.ModuleVersion) ([]table.Column, []table.Row, []internal.ModuleVersion) {
 
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
@@ -101,8 +85,8 @@ func (p *ModuleVersionsTableData) ResolveData(data any) ([]table.Column, []table
 	}
 
 	var rows []table.Row
-	var elems []any
-	for _, moduleVersion := range moduleVersions {
+	var elems []internal.ModuleVersion
+	for _, moduleVersion := range data {
 		source := ""
 		if moduleVersion.Module.Source != "" {
 			source = moduleVersion.Module.Source
@@ -118,13 +102,10 @@ func (p *ModuleVersionsTableData) ResolveData(data any) ([]table.Column, []table
 	return columns, rows, elems
 }
 
-func (p *ModuleVersionsTableData) KeyBindings(elem any) KeyBindings {
-	if moduleVersion, ok := elem.(internal.ModuleVersion); ok {
-		return rootKeyBindings.
-			With("enter", "View module version detail", fmt.Sprintf("moduleversions/%d", moduleVersion.ID)).
-			With("c", "View components", fmt.Sprintf("components?module-version-id=%d", moduleVersion.ID))
-	}
-	return rootKeyBindings
+func (p *ModuleVersionsTableData) KeyBindings(elem internal.ModuleVersion) KeyBindings {
+	return rootKeyBindings.
+		With("enter", "View module version detail", fmt.Sprintf("moduleversions/%d", elem.ID)).
+		With("c", "View components", fmt.Sprintf("components?module-version-id=%d", elem.ID))
 }
 
 type ModuleVersionsForModuleTableData struct {
@@ -134,31 +115,25 @@ type ModuleVersionsForModuleTableData struct {
 
 func NewModuleVersionsForModulePage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		return NewDataTable(&ModuleVersionsForModuleTableData{client: client, moduleID: params["moduleID"]})
+		return NewDataTable[internal.ModuleVersion](&ModuleVersionsForModuleTableData{client: client, moduleID: params["moduleID"]})
 	}
 }
 
-func (p *ModuleVersionsForModuleTableData) LoadData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
+func (p *ModuleVersionsForModuleTableData) LoadData() ([]internal.ModuleVersion, error) {
+	ctx := context.Background()
 
-		moduleIDUint, err := strconv.ParseUint(p.moduleID, 10, 32)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		resp, err := p.client.ListModuleVersionsForModule(ctx, uint(moduleIDUint))
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		return dataLoadedMsg{data: resp.ModuleVersions}
+	moduleIDUint, err := strconv.ParseUint(p.moduleID, 10, 32)
+	if err != nil {
+		return nil, err
 	}
+	resp, err := p.client.ListModuleVersionsForModule(ctx, uint(moduleIDUint))
+	if err != nil {
+		return nil, err
+	}
+	return resp.ModuleVersions, nil
 }
 
-func (p *ModuleVersionsForModuleTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
-	moduleVersions, ok := data.([]internal.ModuleVersion)
-	if !ok {
-		return nil, nil, nil
-	}
+func (p *ModuleVersionsForModuleTableData) ResolveData(data []internal.ModuleVersion) ([]table.Column, []table.Row, []internal.ModuleVersion) {
 
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
@@ -167,8 +142,8 @@ func (p *ModuleVersionsForModuleTableData) ResolveData(data any) ([]table.Column
 	}
 
 	var rows []table.Row
-	var elems []any
-	for _, moduleVersion := range moduleVersions {
+	var elems []internal.ModuleVersion
+	for _, moduleVersion := range data {
 		source := ""
 		if moduleVersion.Module.Source != "" {
 			source = moduleVersion.Module.Source
@@ -184,13 +159,10 @@ func (p *ModuleVersionsForModuleTableData) ResolveData(data any) ([]table.Column
 	return columns, rows, elems
 }
 
-func (p *ModuleVersionsForModuleTableData) KeyBindings(elem any) KeyBindings {
-	if moduleVersion, ok := elem.(internal.ModuleVersion); ok {
-		return rootKeyBindings.
-			With("enter", "View module version detail", fmt.Sprintf("moduleversions/%d", moduleVersion.ID)).
-			With("c", "View components", fmt.Sprintf("components?module-version-id=%d", moduleVersion.ID))
-	}
-	return rootKeyBindings
+func (p *ModuleVersionsForModuleTableData) KeyBindings(elem internal.ModuleVersion) KeyBindings {
+	return rootKeyBindings.
+		With("enter", "View module version detail", fmt.Sprintf("moduleversions/%d", elem.ID)).
+		With("c", "View components", fmt.Sprintf("components?module-version-id=%d", elem.ID))
 }
 
 type ModuleDetailData struct {

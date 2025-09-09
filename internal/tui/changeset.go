@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 )
@@ -27,26 +26,20 @@ type ChangesetsTableData struct {
 
 func NewChangesetsPage(client *client.Client) func(params map[string]string) Page {
 	return func(params map[string]string) Page {
-		return NewDataTable(&ChangesetsTableData{client: client})
+		return NewDataTable[internal.Changeset](&ChangesetsTableData{client: client})
 	}
 }
 
-func (p *ChangesetsTableData) LoadData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		resp, err := p.client.ListChangesets(ctx)
-		if err != nil {
-			return errorMsg{err: err}
-		}
-		return dataLoadedMsg{data: resp.Changesets}
+func (p *ChangesetsTableData) LoadData() ([]internal.Changeset, error) {
+	ctx := context.Background()
+	resp, err := p.client.ListChangesets(ctx)
+	if err != nil {
+		return nil, err
 	}
+	return resp.Changesets, nil
 }
 
-func (p *ChangesetsTableData) ResolveData(data any) ([]table.Column, []table.Row, []any) {
-	changesets, ok := data.([]internal.Changeset)
-	if !ok {
-		return nil, nil, nil
-	}
+func (p *ChangesetsTableData) ResolveData(data []internal.Changeset) ([]table.Column, []table.Row, []internal.Changeset) {
 
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
@@ -56,8 +49,8 @@ func (p *ChangesetsTableData) ResolveData(data any) ([]table.Column, []table.Row
 	}
 
 	var rows []table.Row
-	var elems []any
-	for _, changeset := range changesets {
+	var elems []internal.Changeset
+	for _, changeset := range data {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(changeset.ID), 10),
 			changeset.Name,
@@ -70,10 +63,7 @@ func (p *ChangesetsTableData) ResolveData(data any) ([]table.Column, []table.Row
 	return columns, rows, elems
 }
 
-func (p *ChangesetsTableData) KeyBindings(elem any) KeyBindings {
-	if changeset, ok := elem.(internal.Changeset); ok {
-		return changesetKeyBindings(changeset.Name).
-			With("enter", "View component diffs", fmt.Sprintf("changesets/%s/components/diffs", changeset.Name))
-	}
-	return rootKeyBindings
+func (p *ChangesetsTableData) KeyBindings(elem internal.Changeset) KeyBindings {
+	return changesetKeyBindings(elem.Name).
+		With("enter", "View component diffs", fmt.Sprintf("changesets/%s/components/diffs", elem.Name))
 }

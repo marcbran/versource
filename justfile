@@ -38,5 +38,8 @@ serve: install
 ui: install
   VS_CONFIG=local versource ui
 
+ui-debug: install
+  VS_CONFIG=local dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient -- ui
+
 sql:
   dolt --host localhost --no-tls --use-db versource sql

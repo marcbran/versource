@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
-	"github.com/marcbran/versource/internal/tui"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
@@ -58,7 +57,8 @@ func (p *VersionsTableData) ResolveData(data []internal.ModuleVersion) ([]table.
 }
 
 func (p *VersionsTableData) KeyBindings(elem internal.ModuleVersion) platform.KeyBindings {
-	return tui.KeyBindings.
-		With("enter", "View module version detail", fmt.Sprintf("moduleversions/%d", elem.ID)).
-		With("c", "View components", fmt.Sprintf("components?module-version-id=%d", elem.ID))
+	return platform.KeyBindings{
+		{Key: "enter", Help: "View module version detail", Command: fmt.Sprintf("moduleversions/%d", elem.ID)},
+		{Key: "c", Help: "View components", Command: fmt.Sprintf("components?module-version-id=%d", elem.ID)},
+	}
 }

@@ -9,7 +9,8 @@ import (
 )
 
 type Router struct {
-	routes map[string]func(map[string]string) Page
+	routes      map[string]func(map[string]string) Page
+	keyBindings map[string]func(map[string]string) KeyBindings
 
 	currentRoute *Route
 	routeHistory []Route
@@ -20,7 +21,8 @@ type Router struct {
 
 func NewRouter() *Router {
 	return &Router{
-		routes: make(map[string]func(map[string]string) Page),
+		routes:      make(map[string]func(map[string]string) Page),
+		keyBindings: make(map[string]func(map[string]string) KeyBindings),
 	}
 }
 
@@ -99,6 +101,15 @@ func (r *Router) Update(msg tea.Msg) (*Router, tea.Cmd) {
 					}
 				}
 			}
+
+			if r.currentRoute != nil {
+				keyBindings := findBestKeyBindings(r.keyBindings, r.currentRoute.path)
+				for _, binding := range keyBindings {
+					if binding.Key == m.String() {
+						return r, r.Open(binding.Command)
+					}
+				}
+			}
 		}
 	}
 
@@ -169,8 +180,13 @@ func (r *Router) View() string {
 	return r.currentRoute.View()
 }
 
-func (r *Router) Register(path string, page func(map[string]string) Page) *Router {
+func (r *Router) Route(path string, page func(map[string]string) Page) *Router {
 	r.routes[path] = page
+	return r
+}
+
+func (r *Router) KeyBinding(path string, keyBindings func(map[string]string) KeyBindings) *Router {
+	r.keyBindings[path] = keyBindings
 	return r
 }
 
@@ -218,6 +234,28 @@ type errorMsg struct {
 	err error
 }
 
+func findBestKeyBindings(keyBindings map[string]func(map[string]string) KeyBindings, currentPath string) KeyBindings {
+	var bestMatchFunc func(map[string]string) KeyBindings
+	var bestMatchParams map[string]string
+	bestMatchLength := -1
+
+	for registeredPath, keyBindingsFunc := range keyBindings {
+		if params := matchPathPrefix(registeredPath, currentPath); params != nil {
+			if len(registeredPath) > bestMatchLength {
+				bestMatchFunc = keyBindingsFunc
+				bestMatchParams = params
+				bestMatchLength = len(registeredPath)
+			}
+		}
+	}
+
+	if bestMatchFunc != nil {
+		return bestMatchFunc(bestMatchParams)
+	}
+
+	return KeyBindings{}
+}
+
 func matchPath(routePath, actualPath string) map[string]string {
 	actualPathParts := strings.SplitN(actualPath, "?", 2)
 
@@ -231,6 +269,48 @@ func matchPath(routePath, actualPath string) map[string]string {
 	params := make(map[string]string)
 
 	for i, routePart := range routeParts {
+		actualPart := actualParts[i]
+
+		if strings.HasPrefix(routePart, "{") && strings.HasSuffix(routePart, "}") {
+			paramName := routePart[1 : len(routePart)-1]
+			params[paramName] = actualPart
+		} else if routePart != actualPart {
+			return nil
+		}
+	}
+
+	if len(actualPathParts) > 1 {
+		actualQuery := actualPathParts[1]
+		actualQueryParams := parseQueryString(actualQuery)
+
+		for key, value := range actualQueryParams {
+			params[key] = value
+		}
+	}
+
+	return params
+}
+
+func matchPathPrefix(routePath, actualPath string) map[string]string {
+	actualPathParts := strings.SplitN(actualPath, "?", 2)
+
+	routeParts := strings.Split(routePath, "/")
+	actualParts := strings.Split(actualPathParts[0], "/")
+
+	if routePath == "" {
+		routeParts = []string{}
+	}
+
+	if len(routeParts) > len(actualParts) {
+		return nil
+	}
+
+	params := make(map[string]string)
+
+	for i, routePart := range routeParts {
+		if i >= len(actualParts) {
+			return nil
+		}
 		actualPart := actualParts[i]
 
 		if strings.HasPrefix(routePart, "{") && strings.HasSuffix(routePart, "}") {
@@ -376,6 +456,10 @@ type Page interface {
 }
 
 type KeyBindings []KeyBinding
+
+func NewKeyBindings() KeyBindings {
+	return KeyBindings{}
+}
 
 func (k KeyBindings) With(key, help, command string) KeyBindings {
 	return append(k, KeyBinding{Key: key, Help: help, Command: command})

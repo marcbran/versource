@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
-	"github.com/marcbran/versource/internal/tui"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
@@ -54,5 +53,5 @@ func (p *TableData) ResolveData(data []internal.Apply) ([]table.Column, []table.
 }
 
 func (p *TableData) KeyBindings(elem internal.Apply) platform.KeyBindings {
-	return tui.KeyBindings
+	return platform.KeyBindings{}
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
-	"github.com/marcbran/versource/internal/tui"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
@@ -55,6 +54,7 @@ func (p *TableData) ResolveData(data []internal.Plan) ([]table.Column, []table.R
 }
 
 func (p *TableData) KeyBindings(elem internal.Plan) platform.KeyBindings {
-	return tui.KeyBindings.
-		With("l", "View logs", fmt.Sprintf("plans/%d/logs", elem.ID))
+	return platform.KeyBindings{
+		{Key: "l", Help: "View logs", Command: fmt.Sprintf("plans/%d/logs", elem.ID)},
+	}
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
-	"github.com/marcbran/versource/internal/tui"
 	"github.com/marcbran/versource/internal/tui/platform"
 	"gopkg.in/yaml.v3"
 )
@@ -80,7 +79,8 @@ func (p *DetailData) ResolveData(data internal.GetModuleResponse) string {
 }
 
 func (p *DetailData) KeyBindings(elem internal.GetModuleResponse) platform.KeyBindings {
-	return tui.KeyBindings.
-		With("v", "View all versions", fmt.Sprintf("modules/%s/moduleversions", p.moduleID)).
-		With("c", "View components", fmt.Sprintf("components?module-id=%s", p.moduleID))
+	return platform.KeyBindings{
+		{Key: "v", Help: "View all versions", Command: fmt.Sprintf("modules/%s/moduleversions", p.moduleID)},
+		{Key: "c", Help: "View components", Command: fmt.Sprintf("components?module-id=%s", p.moduleID)},
+	}
 }

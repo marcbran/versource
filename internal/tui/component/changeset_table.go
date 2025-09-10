@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
-	"github.com/marcbran/versource/internal/tui/changeset"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
@@ -73,5 +72,5 @@ func (p *ChangesetTableData) ResolveData(data []internal.Component) ([]table.Col
 }
 
 func (p *ChangesetTableData) KeyBindings(elem internal.Component) platform.KeyBindings {
-	return changeset.KeyBindings(p.changesetName)
+	return platform.KeyBindings{}
 }

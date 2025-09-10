@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
-	"github.com/marcbran/versource/internal/tui/changeset"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
@@ -102,5 +101,5 @@ func (p *DiffTableData) ResolveData(data []internal.ComponentDiff) ([]table.Colu
 }
 
 func (p *DiffTableData) KeyBindings(elem internal.ComponentDiff) platform.KeyBindings {
-	return changeset.KeyBindings(p.changeset)
+	return platform.KeyBindings{}
 }

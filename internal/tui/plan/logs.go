@@ -7,7 +7,6 @@ import (
 
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
-	"github.com/marcbran/versource/internal/tui"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
@@ -48,5 +47,5 @@ func (p *LogsData) ResolveData(data internal.GetPlanLogResponse) string {
 }
 
 func (p *LogsData) KeyBindings(elem internal.GetPlanLogResponse) platform.KeyBindings {
-	return tui.KeyBindings
+	return platform.KeyBindings{}
 }

@@ -5,14 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal/http/client"
-	"github.com/marcbran/versource/internal/tui/apply"
-	"github.com/marcbran/versource/internal/tui/changeset"
-	"github.com/marcbran/versource/internal/tui/component"
-	"github.com/marcbran/versource/internal/tui/module"
-	"github.com/marcbran/versource/internal/tui/plan"
-	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/internal/tui"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -56,30 +50,7 @@ var uiCmd = &cobra.Command{
 
 		client := client.NewClient(config)
 
-		router := platform.NewRouter().
-			Register("modules", module.NewTable(client)).
-			Register("modules/{moduleID}", module.NewDetail(client)).
-			Register("modules/{moduleID}/moduleversions", module.NewVersionsForModuleTable(client)).
-			Register("moduleversions", module.NewVersionsTable(client)).
-			Register("moduleversions/{moduleVersionID}", module.NewVersionDetail(client)).
-			Register("components", component.NewTable(client)).
-			Register("components/{componentID}", component.NewDetail(client)).
-			Register("plans", plan.NewTable(client)).
-			Register("plans/{planID}/logs", plan.NewLogs(client)).
-			Register("applies", apply.NewTable(client)).
-			Register("changesets", changeset.NewTable(client)).
-			Register("changesets/{changesetName}/components", component.NewChangesetTable(client)).
-			Register("changesets/{changesetName}/components/diffs", component.NewChangesetDiffTable(client)).
-			Register("changesets/{changesetName}/plans", plan.NewChangesetTable(client))
-
-		app := platform.NewCommandable(router, client)
-
-		p := tea.NewProgram(app, tea.WithAltScreen())
-		if _, err := p.Run(); err != nil {
-			return fmt.Errorf("failed to run: %w", err)
-		}
-
-		return nil
+		return tui.RunApp(client)
 	},
 }
 

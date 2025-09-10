@@ -8,9 +8,12 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+type PageFunc func(map[string]string) Page
+type KeyBindingsFunc func(map[string]string) KeyBindings
+
 type Router struct {
-	routes      map[string]func(map[string]string) Page
-	keyBindings map[string]func(map[string]string) KeyBindings
+	routes      map[string]PageFunc
+	keyBindings map[string]KeyBindingsFunc
 
 	currentRoute *Route
 	routeHistory []Route
@@ -21,8 +24,8 @@ type Router struct {
 
 func NewRouter() *Router {
 	return &Router{
-		routes:      make(map[string]func(map[string]string) Page),
-		keyBindings: make(map[string]func(map[string]string) KeyBindings),
+		routes:      make(map[string]PageFunc),
+		keyBindings: make(map[string]KeyBindingsFunc),
 	}
 }
 
@@ -88,25 +91,21 @@ func (r *Router) Update(msg tea.Msg) (*Router, tea.Cmd) {
 		return r, nil
 	case tea.KeyMsg:
 		switch m.String() {
-		case "r":
-			return r, r.refresh()
-		case "esc":
-			return r, r.goBack()
 		default:
 			if r.currentRoute != nil && r.currentRoute.page != nil {
 				keyBindings := r.currentRoute.page.KeyBindings()
 				for _, binding := range keyBindings {
 					if binding.Key == m.String() {
-						return r, r.Open(binding.Command)
+						return r, r.ExecuteCommand(binding.Command)
 					}
 				}
 			}
 
 			if r.currentRoute != nil {
-				keyBindings := findBestKeyBindings(r.keyBindings, r.currentRoute.path)
+				keyBindings := findAllMatchingKeyBindings(r.keyBindings, r.currentRoute.path)
 				for _, binding := range keyBindings {
 					if binding.Key == m.String() {
-						return r, r.Open(binding.Command)
+						return r, r.ExecuteCommand(binding.Command)
 					}
 				}
 			}
@@ -154,23 +153,19 @@ func (r *Router) ExecuteCommand(command string) tea.Cmd {
 	}
 }
 
-func (r *Router) refresh() tea.Cmd {
-	return func() tea.Msg {
-		if r.currentRoute == nil {
-			return nil
-		}
-		cmd := r.Open(r.currentRoute.path)
-		if cmd != nil {
-			return cmd()
-		}
+func (r *Router) refresh() tea.Msg {
+	if r.currentRoute == nil {
 		return nil
 	}
+	cmd := r.Open(r.currentRoute.path)
+	if cmd != nil {
+		return cmd()
+	}
+	return nil
 }
 
-func (r *Router) goBack() tea.Cmd {
-	return func() tea.Msg {
-		return goBackRequestedMsg{}
-	}
+func (r *Router) goBack() tea.Msg {
+	return goBackRequestedMsg{}
 }
 
 func (r *Router) View() string {
@@ -180,12 +175,12 @@ func (r *Router) View() string {
 	return r.currentRoute.View()
 }
 
-func (r *Router) Route(path string, page func(map[string]string) Page) *Router {
+func (r *Router) Route(path string, page PageFunc) *Router {
 	r.routes[path] = page
 	return r
 }
 
-func (r *Router) KeyBinding(path string, keyBindings func(map[string]string) KeyBindings) *Router {
+func (r *Router) KeyBinding(path string, keyBindings KeyBindingsFunc) *Router {
 	r.keyBindings[path] = keyBindings
 	return r
 }
@@ -234,26 +229,41 @@ type errorMsg struct {
 	err error
 }
 
-func findBestKeyBindings(keyBindings map[string]func(map[string]string) KeyBindings, currentPath string) KeyBindings {
-	var bestMatchFunc func(map[string]string) KeyBindings
-	var bestMatchParams map[string]string
-	bestMatchLength := -1
+func findAllMatchingKeyBindings(keyBindings map[string]KeyBindingsFunc, currentPath string) KeyBindings {
+	type match struct {
+		keyBindings KeyBindings
+		pathLength  int
+	}
+
+	var matches []match
 
 	for registeredPath, keyBindingsFunc := range keyBindings {
 		if params := matchPathPrefix(registeredPath, currentPath); params != nil {
-			if len(registeredPath) > bestMatchLength {
-				bestMatchFunc = keyBindingsFunc
-				bestMatchParams = params
-				bestMatchLength = len(registeredPath)
+			matches = append(matches, match{
+				keyBindings: keyBindingsFunc(params),
+				pathLength:  len(registeredPath),
+			})
+		}
+	}
+
+	if len(matches) == 0 {
+		return KeyBindings{}
+	}
+
+	for i := 0; i < len(matches)-1; i++ {
+		for j := i + 1; j < len(matches); j++ {
+			if matches[i].pathLength < matches[j].pathLength {
+				matches[i], matches[j] = matches[j], matches[i]
 			}
 		}
 	}
 
-	if bestMatchFunc != nil {
-		return bestMatchFunc(bestMatchParams)
+	var result KeyBindings
+	for _, match := range matches {
+		result = append(result, match.keyBindings...)
 	}
 
-	return KeyBindings{}
+	return result
 }
 
 func matchPath(routePath, actualPath string) map[string]string {

@@ -210,16 +210,16 @@ func TestMatchPathPrefix(t *testing.T) {
 	}
 }
 
-func TestFindBestKeyBindings(t *testing.T) {
+func TestFindAllMatchingKeyBindings(t *testing.T) {
 	tests := []struct {
 		name        string
-		keyBindings map[string]func(map[string]string) KeyBindings
+		keyBindings map[string]KeyBindingsFunc
 		currentPath string
 		expected    KeyBindings
 	}{
 		{
 			name: "exact match",
-			keyBindings: map[string]func(map[string]string) KeyBindings{
+			keyBindings: map[string]KeyBindingsFunc{
 				"modules": func(params map[string]string) KeyBindings {
 					return KeyBindings{}.With("m", "Go to modules", "/modules")
 				},
@@ -229,7 +229,7 @@ func TestFindBestKeyBindings(t *testing.T) {
 		},
 		{
 			name: "prefix match for modules/123",
-			keyBindings: map[string]func(map[string]string) KeyBindings{
+			keyBindings: map[string]KeyBindingsFunc{
 				"modules": func(params map[string]string) KeyBindings {
 					return KeyBindings{}.With("m", "Go to modules", "/modules")
 				},
@@ -241,11 +241,11 @@ func TestFindBestKeyBindings(t *testing.T) {
 				},
 			},
 			currentPath: "modules/123",
-			expected:    KeyBindings{}.With("e", "Edit module", "/modules/{moduleID}/edit"),
+			expected:    KeyBindings{}.With("e", "Edit module", "/modules/{moduleID}/edit").With("m", "Go to modules", "/modules"),
 		},
 		{
 			name: "longest prefix match for modules/123/edit",
-			keyBindings: map[string]func(map[string]string) KeyBindings{
+			keyBindings: map[string]KeyBindingsFunc{
 				"modules": func(params map[string]string) KeyBindings {
 					return KeyBindings{}.With("m", "Go to modules", "/modules")
 				},
@@ -257,11 +257,11 @@ func TestFindBestKeyBindings(t *testing.T) {
 				},
 			},
 			currentPath: "modules/123/edit",
-			expected:    KeyBindings{}.With("s", "Save module", "/modules/{moduleID}"),
+			expected:    KeyBindings{}.With("s", "Save module", "/modules/{moduleID}").With("e", "Edit module", "/modules/{moduleID}/edit").With("m", "Go to modules", "/modules"),
 		},
 		{
 			name: "no match",
-			keyBindings: map[string]func(map[string]string) KeyBindings{
+			keyBindings: map[string]KeyBindingsFunc{
 				"modules": func(params map[string]string) KeyBindings {
 					return KeyBindings{}.With("m", "Go to modules", "/modules")
 				},
@@ -271,24 +271,24 @@ func TestFindBestKeyBindings(t *testing.T) {
 		},
 		{
 			name:        "empty key bindings",
-			keyBindings: map[string]func(map[string]string) KeyBindings{},
+			keyBindings: map[string]KeyBindingsFunc{},
 			currentPath: "modules",
 			expected:    KeyBindings{},
 		},
 		{
 			name: "multiple prefix matches with different lengths",
-			keyBindings: map[string]func(map[string]string) KeyBindings{
+			keyBindings: map[string]KeyBindingsFunc{
 				"a":       func(params map[string]string) KeyBindings { return KeyBindings{}.With("1", "Action 1", "/a") },
 				"a/b":     func(params map[string]string) KeyBindings { return KeyBindings{}.With("2", "Action 2", "/a/b") },
 				"a/b/c":   func(params map[string]string) KeyBindings { return KeyBindings{}.With("3", "Action 3", "/a/b/c") },
 				"a/b/c/d": func(params map[string]string) KeyBindings { return KeyBindings{}.With("4", "Action 4", "/a/b/c/d") },
 			},
 			currentPath: "a/b/c/d/e",
-			expected:    KeyBindings{}.With("4", "Action 4", "/a/b/c/d"),
+			expected:    KeyBindings{}.With("4", "Action 4", "/a/b/c/d").With("3", "Action 3", "/a/b/c").With("2", "Action 2", "/a/b").With("1", "Action 1", "/a"),
 		},
 		{
 			name: "root path should be selected when no other matches",
-			keyBindings: map[string]func(map[string]string) KeyBindings{
+			keyBindings: map[string]KeyBindingsFunc{
 				"": func(params map[string]string) KeyBindings { return KeyBindings{}.With("r", "Root action", "/") },
 				"modules": func(params map[string]string) KeyBindings {
 					return KeyBindings{}.With("m", "Go to modules", "/modules")
@@ -301,9 +301,9 @@ func TestFindBestKeyBindings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := findBestKeyBindings(tt.keyBindings, tt.currentPath)
+			got := findAllMatchingKeyBindings(tt.keyBindings, tt.currentPath)
 			if !keyBindingsEqual(got, tt.expected) {
-				t.Errorf("findBestKeyBindings() = %v, want %v", got, tt.expected)
+				t.Errorf("findAllMatchingKeyBindings() = %v, want %v", got, tt.expected)
 			}
 		})
 	}

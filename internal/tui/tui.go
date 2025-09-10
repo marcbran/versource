@@ -17,6 +17,8 @@ func RunApp(client *client.Client) error {
 	router := platform.NewRouter().
 		KeyBinding("", func(params map[string]string) platform.KeyBindings {
 			return platform.KeyBindings{
+				{Key: "r", Help: "Refresh", Command: "refresh"},
+				{Key: "b", Help: "Go back", Command: "back"},
 				{Key: "m", Help: "View modules", Command: "modules"},
 				{Key: "g", Help: "View changesets", Command: "changesets"},
 				{Key: "c", Help: "View components", Command: "components"},

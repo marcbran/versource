@@ -9,7 +9,7 @@ import (
 )
 
 type PageFunc func(map[string]string) Page
-type KeyBindingsFunc func(map[string]string) KeyBindings
+type KeyBindingsFunc func(map[string]string, string) KeyBindings
 
 type Router struct {
 	routes      map[string]PageFunc
@@ -240,7 +240,7 @@ func findAllMatchingKeyBindings(keyBindings map[string]KeyBindingsFunc, currentP
 	for registeredPath, keyBindingsFunc := range keyBindings {
 		if params := matchPathPrefix(registeredPath, currentPath); params != nil {
 			matches = append(matches, match{
-				keyBindings: keyBindingsFunc(params),
+				keyBindings: keyBindingsFunc(params, currentPath),
 				pathLength:  len(registeredPath),
 			})
 		}

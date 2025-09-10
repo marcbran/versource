@@ -220,7 +220,7 @@ func TestFindAllMatchingKeyBindings(t *testing.T) {
 		{
 			name: "exact match",
 			keyBindings: map[string]KeyBindingsFunc{
-				"modules": func(params map[string]string) KeyBindings {
+				"modules": func(params map[string]string, currentPath string) KeyBindings {
 					return KeyBindings{}.With("m", "Go to modules", "/modules")
 				},
 			},
@@ -230,13 +230,13 @@ func TestFindAllMatchingKeyBindings(t *testing.T) {
 		{
 			name: "prefix match for modules/123",
 			keyBindings: map[string]KeyBindingsFunc{
-				"modules": func(params map[string]string) KeyBindings {
+				"modules": func(params map[string]string, currentPath string) KeyBindings {
 					return KeyBindings{}.With("m", "Go to modules", "/modules")
 				},
-				"modules/{moduleID}": func(params map[string]string) KeyBindings {
+				"modules/{moduleID}": func(params map[string]string, currentPath string) KeyBindings {
 					return KeyBindings{}.With("e", "Edit module", "/modules/{moduleID}/edit")
 				},
-				"modules/{moduleID}/edit": func(params map[string]string) KeyBindings {
+				"modules/{moduleID}/edit": func(params map[string]string, currentPath string) KeyBindings {
 					return KeyBindings{}.With("s", "Save module", "/modules/{moduleID}")
 				},
 			},
@@ -246,13 +246,13 @@ func TestFindAllMatchingKeyBindings(t *testing.T) {
 		{
 			name: "longest prefix match for modules/123/edit",
 			keyBindings: map[string]KeyBindingsFunc{
-				"modules": func(params map[string]string) KeyBindings {
+				"modules": func(params map[string]string, currentPath string) KeyBindings {
 					return KeyBindings{}.With("m", "Go to modules", "/modules")
 				},
-				"modules/{moduleID}": func(params map[string]string) KeyBindings {
+				"modules/{moduleID}": func(params map[string]string, currentPath string) KeyBindings {
 					return KeyBindings{}.With("e", "Edit module", "/modules/{moduleID}/edit")
 				},
-				"modules/{moduleID}/edit": func(params map[string]string) KeyBindings {
+				"modules/{moduleID}/edit": func(params map[string]string, currentPath string) KeyBindings {
 					return KeyBindings{}.With("s", "Save module", "/modules/{moduleID}")
 				},
 			},
@@ -262,7 +262,7 @@ func TestFindAllMatchingKeyBindings(t *testing.T) {
 		{
 			name: "no match",
 			keyBindings: map[string]KeyBindingsFunc{
-				"modules": func(params map[string]string) KeyBindings {
+				"modules": func(params map[string]string, currentPath string) KeyBindings {
 					return KeyBindings{}.With("m", "Go to modules", "/modules")
 				},
 			},
@@ -278,10 +278,18 @@ func TestFindAllMatchingKeyBindings(t *testing.T) {
 		{
 			name: "multiple prefix matches with different lengths",
 			keyBindings: map[string]KeyBindingsFunc{
-				"a":       func(params map[string]string) KeyBindings { return KeyBindings{}.With("1", "Action 1", "/a") },
-				"a/b":     func(params map[string]string) KeyBindings { return KeyBindings{}.With("2", "Action 2", "/a/b") },
-				"a/b/c":   func(params map[string]string) KeyBindings { return KeyBindings{}.With("3", "Action 3", "/a/b/c") },
-				"a/b/c/d": func(params map[string]string) KeyBindings { return KeyBindings{}.With("4", "Action 4", "/a/b/c/d") },
+				"a": func(params map[string]string, currentPath string) KeyBindings {
+					return KeyBindings{}.With("1", "Action 1", "/a")
+				},
+				"a/b": func(params map[string]string, currentPath string) KeyBindings {
+					return KeyBindings{}.With("2", "Action 2", "/a/b")
+				},
+				"a/b/c": func(params map[string]string, currentPath string) KeyBindings {
+					return KeyBindings{}.With("3", "Action 3", "/a/b/c")
+				},
+				"a/b/c/d": func(params map[string]string, currentPath string) KeyBindings {
+					return KeyBindings{}.With("4", "Action 4", "/a/b/c/d")
+				},
 			},
 			currentPath: "a/b/c/d/e",
 			expected:    KeyBindings{}.With("4", "Action 4", "/a/b/c/d").With("3", "Action 3", "/a/b/c").With("2", "Action 2", "/a/b").With("1", "Action 1", "/a"),
@@ -289,8 +297,10 @@ func TestFindAllMatchingKeyBindings(t *testing.T) {
 		{
 			name: "root path should be selected when no other matches",
 			keyBindings: map[string]KeyBindingsFunc{
-				"": func(params map[string]string) KeyBindings { return KeyBindings{}.With("r", "Root action", "/") },
-				"modules": func(params map[string]string) KeyBindings {
+				"": func(params map[string]string, currentPath string) KeyBindings {
+					return KeyBindings{}.With("r", "Root action", "/")
+				},
+				"modules": func(params map[string]string, currentPath string) KeyBindings {
 					return KeyBindings{}.With("m", "Go to modules", "/modules")
 				},
 			},

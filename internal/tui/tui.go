@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal/http/client"
@@ -15,7 +16,7 @@ import (
 
 func RunApp(client *client.Client) error {
 	router := platform.NewRouter().
-		KeyBinding("", func(params map[string]string) platform.KeyBindings {
+		KeyBinding("", func(params map[string]string, currentPath string) platform.KeyBindings {
 			return platform.KeyBindings{
 				{Key: "r", Help: "Refresh", Command: "refresh"},
 				{Key: "b", Help: "Go back", Command: "back"},
@@ -26,9 +27,11 @@ func RunApp(client *client.Client) error {
 				{Key: "a", Help: "View applies", Command: "applies"},
 			}
 		}).
-		KeyBinding("changesets/{changesetName}", func(params map[string]string) platform.KeyBindings {
+		KeyBinding("changesets/{changesetName}", func(params map[string]string, currentPath string) platform.KeyBindings {
 			changesetName := params["changesetName"]
+			pathWithoutChangeset := removeFirstTwoSegments(currentPath)
 			return platform.KeyBindings{
+				{Key: "esc", Help: "Back to changesets", Command: pathWithoutChangeset},
 				{Key: "m", Help: "View modules", Command: fmt.Sprintf("changesets/%s/modules", changesetName)},
 				{Key: "c", Help: "View components", Command: fmt.Sprintf("changesets/%s/components", changesetName)},
 				{Key: "d", Help: "View component diffs", Command: fmt.Sprintf("changesets/%s/components/diffs", changesetName)},
@@ -60,4 +63,12 @@ func RunApp(client *client.Client) error {
 	}
 
 	return nil
+}
+
+func removeFirstTwoSegments(path string) string {
+	parts := strings.Split(path, "/")
+	if len(parts) <= 2 {
+		return ""
+	}
+	return strings.Join(parts[2:], "/")
 }

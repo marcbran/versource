@@ -123,3 +123,28 @@ func (s *Server) handleListComponentDiffs(w http.ResponseWriter, r *http.Request
 
 	returnSuccess(w, resp)
 }
+
+func (s *Server) handleGetComponent(w http.ResponseWriter, r *http.Request) {
+	componentIDStr := chi.URLParam(r, "componentID")
+	componentID, err := strconv.ParseUint(componentIDStr, 10, 32)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid component ID"))
+		return
+	}
+
+	req := internal.GetComponentRequest{
+		ComponentID: uint(componentID),
+	}
+
+	if changesetName := chi.URLParam(r, "changesetName"); changesetName != "" {
+		req.Changeset = &changesetName
+	}
+
+	resp, err := s.getComponent.Exec(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}

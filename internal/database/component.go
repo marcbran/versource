@@ -21,7 +21,7 @@ func NewGormComponentRepo(db *gorm.DB) *GormComponentRepo {
 func (r *GormComponentRepo) GetComponent(ctx context.Context, componentID uint) (*internal.Component, error) {
 	db := getTxOrDb(ctx, r.db)
 	var component internal.Component
-	err := db.WithContext(ctx).Where("id = ?", componentID).First(&component).Error
+	err := db.WithContext(ctx).Preload("ModuleVersion.Module").Where("id = ?", componentID).First(&component).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get component: %w", err)
 	}

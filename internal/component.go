@@ -352,3 +352,46 @@ func (l *ListComponentDiffs) Exec(ctx context.Context, req ListComponentDiffsReq
 		Diffs: diffs,
 	}, nil
 }
+
+type GetComponent struct {
+	componentRepo ComponentRepo
+	tx            TransactionManager
+}
+
+func NewGetComponent(componentRepo ComponentRepo, tx TransactionManager) *GetComponent {
+	return &GetComponent{
+		componentRepo: componentRepo,
+		tx:            tx,
+	}
+}
+
+type GetComponentRequest struct {
+	ComponentID uint    `json:"component_id"`
+	Changeset   *string `json:"changeset,omitempty"`
+}
+
+type GetComponentResponse struct {
+	Component Component `json:"component"`
+}
+
+func (g *GetComponent) Exec(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error) {
+	var component *Component
+	var err error
+
+	if req.Changeset != nil {
+		err = g.tx.Checkout(ctx, *req.Changeset, func(ctx context.Context) error {
+			component, err = g.componentRepo.GetComponent(ctx, req.ComponentID)
+			return err
+		})
+	} else {
+		component, err = g.componentRepo.GetComponent(ctx, req.ComponentID)
+	}
+
+	if err != nil {
+		return nil, InternalErrE("failed to get component", err)
+	}
+
+	return &GetComponentResponse{
+		Component: *component,
+	}, nil
+}

@@ -63,6 +63,7 @@ var uiCmd = &cobra.Command{
 			Register("moduleversions", module.NewVersionsTable(client)).
 			Register("moduleversions/{moduleVersionID}", module.NewVersionDetail(client)).
 			Register("components", component.NewTable(client)).
+			Register("components/{componentID}", component.NewDetail(client)).
 			Register("plans", plan.NewTable(client)).
 			Register("plans/{planID}/logs", plan.NewLogs(client)).
 			Register("applies", apply.NewTable(client)).

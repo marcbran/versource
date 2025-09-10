@@ -73,6 +73,7 @@ type Server struct {
 	createChangeset             *internal.CreateChangeset
 	mergeChangeset              *internal.MergeChangeset
 	listComponents              *internal.ListComponents
+	getComponent                *internal.GetComponent
 	createComponent             *internal.CreateComponent
 	updateComponent             *internal.UpdateComponent
 	listComponentDiffs          *internal.ListComponentDiffs
@@ -133,6 +134,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		createChangeset:             internal.NewCreateChangeset(changesetRepo, transactionManager),
 		mergeChangeset:              internal.NewMergeChangeset(changesetRepo, applyRepo, applyWorker, transactionManager),
 		listComponents:              internal.NewListComponents(componentRepo, transactionManager),
+		getComponent:                internal.NewGetComponent(componentRepo, transactionManager),
 		createComponent:             internal.NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
 		updateComponent:             internal.NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, transactionManager),
 		listComponentDiffs:          internal.NewListComponentDiffs(componentDiffRepo, transactionManager),
@@ -166,6 +168,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/module-versions", s.handleListModuleVersions)
 		r.Get("/module-versions/{moduleVersionID}", s.handleGetModuleVersion)
 		r.Get("/components", s.handleListComponents)
+		r.Get("/components/{componentID}", s.handleGetComponent)
 		r.Get("/plans", s.handleListPlans)
 		r.Route("/plans/{planID}", func(r chi.Router) {
 			r.Get("/logs", s.handleGetPlanLog)
@@ -186,6 +189,7 @@ func (s *Server) setupRoutes() {
 			r.Get("/components/diffs", s.handleListComponentDiffs)
 			r.Get("/plans", s.handleListPlans)
 			r.Route("/components/{componentID}", func(r chi.Router) {
+				r.Get("/", s.handleGetComponent)
 				r.Patch("/", s.handleUpdateComponent)
 				r.Post("/plans", s.handleCreatePlan)
 			})

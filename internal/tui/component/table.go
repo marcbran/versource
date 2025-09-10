@@ -2,6 +2,7 @@ package component
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -87,5 +88,6 @@ func (p *TableData) ResolveData(data []internal.Component) ([]table.Column, []ta
 }
 
 func (p *TableData) KeyBindings(elem internal.Component) platform.KeyBindings {
-	return tui.KeyBindings
+	return tui.KeyBindings.
+		With("enter", "View component detail", fmt.Sprintf("components/%d", elem.ID))
 }

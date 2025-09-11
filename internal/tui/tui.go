@@ -15,7 +15,7 @@ import (
 )
 
 func RunApp(client *client.Client) error {
-	router := platform.NewRouter().
+	router := platform.NewRouter("components").
 		KeyBinding("", func(params map[string]string, currentPath string) platform.KeyBindings {
 			return platform.KeyBindings{
 				{Key: "r", Help: "Refresh", Command: "refresh"},

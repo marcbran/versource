@@ -44,7 +44,7 @@ func NewCommandable(
 }
 
 func (c *Commandable) Init() tea.Cmd {
-	return c.router.Open("modules")
+	return c.router.Init()
 }
 
 func (c *Commandable) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

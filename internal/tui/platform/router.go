@@ -17,23 +17,25 @@ type Router struct {
 
 	currentRoute *Route
 	routeHistory []Route
+	initialPath  string
 
 	size     Size
 	focussed bool
 }
 
-func NewRouter() *Router {
+func NewRouter(initialPath string) *Router {
 	return &Router{
 		routes:      make(map[string]PageFunc),
 		keyBindings: make(map[string]KeyBindingsFunc),
+		initialPath: initialPath,
 	}
 }
 
 func (r *Router) Init() tea.Cmd {
-	if r.currentRoute != nil {
-		return r.currentRoute.Init()
+	if r.initialPath == "" {
+		return nil
 	}
-	return nil
+	return r.Open(r.initialPath)
 }
 
 func (r *Router) Resize(size Size) {

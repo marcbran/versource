@@ -3,6 +3,7 @@ package component
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
@@ -10,19 +11,31 @@ import (
 )
 
 type CreateComponentData struct {
-	client *client.Client
+	client   *client.Client
+	moduleID string
 }
 
 func NewCreateComponent(client *client.Client) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewEditor(&CreateComponentData{client: client})
+		return platform.NewEditor(&CreateComponentData{
+			client:   client,
+			moduleID: params["module-id"],
+		})
 	}
 }
 
 func (c *CreateComponentData) GetInitialValue() internal.CreateComponentRequest {
+	moduleID := uint(0)
+	if c.moduleID != "" {
+		id, err := strconv.ParseUint(c.moduleID, 10, 32)
+		if err == nil {
+			moduleID = uint(id)
+		}
+	}
+
 	return internal.CreateComponentRequest{
 		Changeset: "",
-		ModuleID:  0,
+		ModuleID:  moduleID,
 		Name:      "",
 		Variables: make(map[string]any),
 	}

@@ -87,8 +87,12 @@ func (p *TableData) ResolveData(data []internal.Component) ([]table.Column, []ta
 }
 
 func (p *TableData) KeyBindings() platform.KeyBindings {
+	command := "components/create"
+	if p.moduleID != "" {
+		command = fmt.Sprintf("components/create?module-id=%s", p.moduleID)
+	}
 	return platform.KeyBindings{
-		{Key: "C", Help: "Create component", Command: "components/create"},
+		{Key: "C", Help: "Create component", Command: command},
 	}
 }
 

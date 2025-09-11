@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/marcbran/versource/internal"
@@ -43,7 +44,10 @@ func LoadConfig(cmd *cobra.Command) (*internal.Config, error) {
 	}
 
 	dbConfig := LoadDatabaseConfig(v)
-	tfConfig := LoadTerraformConfig(v)
+	tfConfig, err := LoadTerraformConfig(v)
+	if err != nil {
+		return nil, err
+	}
 	httpConfig := LoadHttpConfig(v)
 
 	return &internal.Config{
@@ -71,12 +75,18 @@ func LoadDatabaseConfig(v *viper.Viper) *internal.DatabaseConfig {
 	}
 }
 
-func LoadTerraformConfig(v *viper.Viper) *internal.TerraformConfig {
+func LoadTerraformConfig(v *viper.Viper) (*internal.TerraformConfig, error) {
 	v.SetDefault("terraform.workdir", "terraform")
 
-	return &internal.TerraformConfig{
-		WorkDir: v.GetString("terraform.workdir"),
+	workDir := v.GetString("terraform.workdir")
+	absWorkDir, err := filepath.Abs(workDir)
+	if err != nil {
+		return nil, err
 	}
+
+	return &internal.TerraformConfig{
+		WorkDir: absWorkDir,
+	}, nil
 }
 
 func LoadHttpConfig(v *viper.Viper) *internal.HttpConfig {

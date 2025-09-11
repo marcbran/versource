@@ -2,6 +2,8 @@ package platform
 
 import (
 	"testing"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func TestMatchPath(t *testing.T) {
@@ -336,6 +338,78 @@ func mapsEqual(a, b map[string]string) bool {
 	}
 	return true
 }
+
+func TestFindMatchingPage(t *testing.T) {
+	tests := []struct {
+		name        string
+		routes      map[string]PageFunc
+		path        string
+		expectedNil bool
+	}{
+		{
+			name: "exact match without query params",
+			routes: map[string]PageFunc{
+				"modules": func(params map[string]string) Page {
+					return &testPage{}
+				},
+			},
+			path:        "modules",
+			expectedNil: false,
+		},
+		{
+			name: "exact match with query params should work now",
+			routes: map[string]PageFunc{
+				"modules": func(params map[string]string) Page {
+					return &testPage{}
+				},
+			},
+			path:        "modules?status=active",
+			expectedNil: false,
+		},
+		{
+			name: "parameterized route with query params should work",
+			routes: map[string]PageFunc{
+				"modules/{moduleID}": func(params map[string]string) Page {
+					return &testPage{}
+				},
+			},
+			path:        "modules/123?status=active",
+			expectedNil: false,
+		},
+		{
+			name: "no matching route",
+			routes: map[string]PageFunc{
+				"other": func(params map[string]string) Page {
+					return &testPage{}
+				},
+			},
+			path:        "modules",
+			expectedNil: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := findMatchingPage(tt.routes, tt.path)
+			if tt.expectedNil && got != nil {
+				t.Errorf("findMatchingPage() = %v, want nil", got)
+			}
+			if !tt.expectedNil && got == nil {
+				t.Errorf("findMatchingPage() = nil, want non-nil")
+			}
+		})
+	}
+}
+
+type testPage struct{}
+
+func (t *testPage) Init() tea.Cmd                      { return nil }
+func (t *testPage) Update(msg tea.Msg) (Page, tea.Cmd) { return t, nil }
+func (t *testPage) View() string                       { return "test" }
+func (t *testPage) Resize(size Size)                   {}
+func (t *testPage) Focus()                             {}
+func (t *testPage) Blur()                              {}
+func (t *testPage) KeyBindings() KeyBindings           { return KeyBindings{} }
 
 func keyBindingsEqual(a, b KeyBindings) bool {
 	if len(a) != len(b) {

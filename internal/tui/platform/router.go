@@ -243,8 +243,17 @@ func findMatchingPage(routes map[string]PageFunc, path string) Page {
 		}
 	}
 
-	if page, exists := exactMatches[path]; exists {
-		return page(nil)
+	pathWithoutQuery := strings.SplitN(path, "?", 2)[0]
+	if page, exists := exactMatches[pathWithoutQuery]; exists {
+		params := make(map[string]string)
+		if strings.Contains(path, "?") {
+			queryPart := strings.SplitN(path, "?", 2)[1]
+			queryParams := parseQueryString(queryPart)
+			for key, value := range queryParams {
+				params[key] = value
+			}
+		}
+		return page(params)
 	}
 
 	for routePath, page := range paramMatches {

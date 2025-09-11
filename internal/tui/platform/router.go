@@ -53,7 +53,15 @@ func (r *Router) Blur() {
 
 func (r *Router) Update(msg tea.Msg) (*Router, tea.Cmd) {
 	switch m := msg.(type) {
-	case RouteOpenedMsg:
+	case openPageStartedMsg:
+		if r.currentRoute != nil && r.currentRoute.path != m.path {
+			r.routeHistory = append(r.routeHistory, *r.currentRoute)
+		}
+		route := NewRoute(m.path)
+		r.currentRoute = &route
+		r.updateCurrentRoute()
+		return r, route.Init()
+	case pageOpenedMsg:
 		r.currentRoute.page = m.page
 		r.updateCurrentRoute()
 		if m.msg != nil {
@@ -74,13 +82,7 @@ func (r *Router) Update(msg tea.Msg) (*Router, tea.Cmd) {
 
 	switch m := msg.(type) {
 	case openPageRequestedMsg:
-		if r.currentRoute != nil && r.currentRoute.path != m.path {
-			r.routeHistory = append(r.routeHistory, *r.currentRoute)
-		}
-		route := NewRoute(m.path)
-		r.currentRoute = &route
-		r.updateCurrentRoute()
-		return r, route.Init()
+		return r, r.Open(m.path)
 	case goBackRequestedMsg:
 		if len(r.routeHistory) > 0 {
 			previousRoute := r.routeHistory[len(r.routeHistory)-1]
@@ -185,26 +187,17 @@ func (r *Router) KeyBinding(path string, keyBindings KeyBindingsFunc) *Router {
 	return r
 }
 
-func (r *Router) Match(path string) Page {
-	for routePath, page := range r.routes {
-		if params := matchPath(routePath, path); params != nil {
-			return page(params)
-		}
-	}
-	return nil
-}
-
 func (r *Router) Open(path string) tea.Cmd {
-	page := r.Match(path)
+	page := findMatchingPage(r.routes, path)
 	if page == nil {
 		return nil
 	}
 	return tea.Sequence(
 		func() tea.Msg {
-			return openPageRequestedMsg{path: path}
+			return openPageStartedMsg{path: path}
 		},
 		func() tea.Msg {
-			return RouteOpenedMsg{path: path, page: page, msg: page.Init()()}
+			return pageOpenedMsg{path: path, page: page, msg: page.Init()()}
 		},
 	)
 }
@@ -213,7 +206,11 @@ type openPageRequestedMsg struct {
 	path string
 }
 
-type RouteOpenedMsg struct {
+type openPageStartedMsg struct {
+	path string
+}
+
+type pageOpenedMsg struct {
 	path string
 	page Page
 	msg  tea.Msg
@@ -229,7 +226,31 @@ type errorMsg struct {
 	err error
 }
 
-func findAllMatchingKeyBindings(keyBindings map[string]KeyBindingsFunc, currentPath string) KeyBindings {
+func findMatchingPage(routes map[string]PageFunc, path string) Page {
+	exactMatches := make(map[string]PageFunc)
+	paramMatches := make(map[string]PageFunc)
+
+	for routePath, page := range routes {
+		if strings.Contains(routePath, "{") {
+			paramMatches[routePath] = page
+		} else {
+			exactMatches[routePath] = page
+		}
+	}
+
+	if page, exists := exactMatches[path]; exists {
+		return page(nil)
+	}
+
+	for routePath, page := range paramMatches {
+		if params := matchPath(routePath, path); params != nil {
+			return page(params)
+		}
+	}
+	return nil
+}
+
+func findAllMatchingKeyBindings(keyBindings map[string]KeyBindingsFunc, path string) KeyBindings {
 	type match struct {
 		keyBindings KeyBindings
 		pathLength  int
@@ -238,9 +259,9 @@ func findAllMatchingKeyBindings(keyBindings map[string]KeyBindingsFunc, currentP
 	var matches []match
 
 	for registeredPath, keyBindingsFunc := range keyBindings {
-		if params := matchPathPrefix(registeredPath, currentPath); params != nil {
+		if params := matchPathPrefix(registeredPath, path); params != nil {
 			matches = append(matches, match{
-				keyBindings: keyBindingsFunc(params, currentPath),
+				keyBindings: keyBindingsFunc(params, path),
 				pathLength:  len(registeredPath),
 			})
 		}

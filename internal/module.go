@@ -242,9 +242,9 @@ func NewCreateModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo,
 }
 
 type CreateModuleRequest struct {
-	Source       string `json:"source"`
-	Version      string `json:"version"`
-	ExecutorType string `json:"executor_type,omitempty"`
+	Source       string `json:"source" yaml:"source"`
+	Version      string `json:"version" yaml:"version"`
+	ExecutorType string `json:"executor_type,omitempty" yaml:"executorType,omitempty"`
 }
 
 type CreateModuleResponse struct {

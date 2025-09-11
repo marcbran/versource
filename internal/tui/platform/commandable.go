@@ -89,7 +89,7 @@ func (c *Commandable) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		c.size.Height = msg.Height
 		c.input.Width = msg.Width - 7
 		c.router.Resize(c.contentSize())
-	case RouteOpenedMsg:
+	case pageOpenedMsg:
 		c.input.Blur()
 		c.router.Resize(c.contentSize())
 		c.router.Focus()

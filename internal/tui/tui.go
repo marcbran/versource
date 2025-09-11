@@ -40,6 +40,7 @@ func RunApp(client *client.Client) error {
 			}
 		}).
 		Route("modules", module.NewTable(client)).
+		Route("modules/create", module.NewCreateModule(client)).
 		Route("modules/{moduleID}", module.NewDetail(client)).
 		Route("modules/{moduleID}/moduleversions", module.NewVersionsForModuleTable(client)).
 		Route("moduleversions", module.NewVersionsTable(client)).

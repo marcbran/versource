@@ -197,7 +197,12 @@ func (r *Router) Open(path string) tea.Cmd {
 			return openPageStartedMsg{path: path}
 		},
 		func() tea.Msg {
-			return pageOpenedMsg{path: path, page: page, msg: page.Init()()}
+			init := page.Init()
+			var msg tea.Msg
+			if init != nil {
+				msg = init()
+			}
+			return pageOpenedMsg{path: path, page: page, msg: msg}
 		},
 	)
 }

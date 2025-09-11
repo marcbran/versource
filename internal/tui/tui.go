@@ -47,6 +47,7 @@ func RunApp(client *client.Client) error {
 		Route("moduleversions", module.NewVersionsTable(client)).
 		Route("moduleversions/{moduleVersionID}", module.NewVersionDetail(client)).
 		Route("components", component.NewTable(client)).
+		Route("components/create", component.NewCreateComponent(client)).
 		Route("components/{componentID}", component.NewDetail(client)).
 		Route("plans", plan.NewTable(client)).
 		Route("plans/{planID}/logs", plan.NewLogs(client)).

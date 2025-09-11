@@ -116,10 +116,10 @@ func NewCreateComponent(componentRepo ComponentRepo, moduleRepo ModuleRepo, modu
 }
 
 type CreateComponentRequest struct {
-	Changeset string         `json:"changeset"`
-	ModuleID  uint           `json:"module_id"`
-	Name      string         `json:"name"`
-	Variables map[string]any `json:"variables"`
+	Changeset string         `json:"changeset" yaml:"changeset"`
+	ModuleID  uint           `json:"module_id" yaml:"moduleId"`
+	Name      string         `json:"name" yaml:"name"`
+	Variables map[string]any `json:"variables" yaml:"variables"`
 }
 
 type CreateComponentResponse struct {

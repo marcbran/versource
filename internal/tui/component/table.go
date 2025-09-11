@@ -89,5 +89,6 @@ func (p *TableData) ResolveData(data []internal.Component) ([]table.Column, []ta
 func (p *TableData) KeyBindings(elem internal.Component) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "enter", Help: "View component detail", Command: fmt.Sprintf("components/%d", elem.ID)},
+		{Key: "C", Help: "Create component", Command: "components/create"},
 	}
 }

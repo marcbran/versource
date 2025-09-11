@@ -39,10 +39,10 @@ func (t *Executor) Init(ctx context.Context) error {
 	return t.tf.Init(ctx)
 }
 
-func (t *Executor) Plan(ctx context.Context) (internal.PlanPath, error) {
+func (t *Executor) Plan(ctx context.Context) (internal.PlanPath, internal.PlanResourceCounts, error) {
 	tempFile, err := os.CreateTemp("", "plan-*.tfplan")
 	if err != nil {
-		return "", fmt.Errorf("failed to create temp plan file: %w", err)
+		return "", internal.PlanResourceCounts{}, fmt.Errorf("failed to create temp plan file: %w", err)
 	}
 	defer tempFile.Close()
 
@@ -50,10 +50,16 @@ func (t *Executor) Plan(ctx context.Context) (internal.PlanPath, error) {
 	_, err = t.tf.Plan(ctx, tfexec.Out(planPath))
 	if err != nil {
 		os.Remove(planPath)
-		return "", fmt.Errorf("failed to plan terraform: %w", err)
+		return "", internal.PlanResourceCounts{}, fmt.Errorf("failed to plan terraform: %w", err)
 	}
 
-	return internal.PlanPath(planPath), nil
+	resourceCounts, err := extractResourceCountsFromPlan(ctx, t.tf, planPath)
+	if err != nil {
+		os.Remove(planPath)
+		return "", internal.PlanResourceCounts{}, fmt.Errorf("failed to extract resource counts: %w", err)
+	}
+
+	return internal.PlanPath(planPath), resourceCounts, nil
 }
 
 func (t *Executor) Apply(ctx context.Context, planPath internal.PlanPath) (internal.State, []internal.StateResource, error) {
@@ -199,4 +205,31 @@ func extractResourceType(tfType, providerName string) string {
 	}
 
 	return tfType
+}
+
+func extractResourceCountsFromPlan(ctx context.Context, tf *tfexec.Terraform, planPath string) (internal.PlanResourceCounts, error) {
+	counts := internal.PlanResourceCounts{}
+
+	plan, err := tf.ShowPlanFile(ctx, planPath)
+	if err != nil {
+		return counts, fmt.Errorf("failed to show plan file: %w", err)
+	}
+
+	if plan.ResourceChanges != nil {
+		for _, change := range plan.ResourceChanges {
+			if change.Change != nil && change.Change.Actions != nil {
+				if change.Change.Actions.Create() {
+					counts.AddCount++
+				}
+				if change.Change.Actions.Update() {
+					counts.ChangeCount++
+				}
+				if change.Change.Actions.Delete() {
+					counts.DestroyCount++
+				}
+			}
+		}
+	}
+
+	return counts, nil
 }

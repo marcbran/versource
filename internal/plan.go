@@ -18,6 +18,9 @@ type Plan struct {
 	MergeBase   string `gorm:"column:merge_base"`
 	Head        string `gorm:"column:head"`
 	State       string `gorm:"default:Queued"`
+	Add         *int   `gorm:"column:add"`
+	Change      *int   `gorm:"column:change"`
+	Destroy     *int   `gorm:"column:destroy"`
 }
 
 type PlanRepo interface {
@@ -26,6 +29,7 @@ type PlanRepo interface {
 	ListPlans(ctx context.Context) ([]Plan, error)
 	CreatePlan(ctx context.Context, plan *Plan) error
 	UpdatePlanState(ctx context.Context, planID uint, state TaskState) error
+	UpdatePlanResourceCounts(ctx context.Context, planID uint, counts PlanResourceCounts) error
 }
 
 type PlanStore interface {
@@ -251,7 +255,7 @@ func (r *RunPlan) Exec(ctx context.Context, req RunPlanRequest) error {
 		return fmt.Errorf("failed to initialize executor: %w", err)
 	}
 
-	planPath, err := executor.Plan(ctx)
+	planPath, resourceCounts, err := executor.Plan(ctx)
 	if err != nil {
 		stateErr := r.tx.Do(ctx, req.Branch, "fail plan", func(ctx context.Context) error {
 			return r.planRepo.UpdatePlanState(ctx, req.PlanID, TaskStateFailed)
@@ -274,6 +278,10 @@ func (r *RunPlan) Exec(ctx context.Context, req RunPlanRequest) error {
 	}
 
 	err = r.tx.Do(ctx, req.Branch, "complete plan", func(ctx context.Context) error {
+		updateErr := r.planRepo.UpdatePlanResourceCounts(ctx, req.PlanID, resourceCounts)
+		if updateErr != nil {
+			return fmt.Errorf("failed to update plan resource counts: %w", updateErr)
+		}
 		apply := &Apply{
 			PlanID:      req.PlanID,
 			ChangesetID: plan.ChangesetID,

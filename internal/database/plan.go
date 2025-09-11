@@ -80,3 +80,16 @@ func (r *GormPlanRepo) UpdatePlanState(ctx context.Context, planID uint, state i
 	}
 	return nil
 }
+
+func (r *GormPlanRepo) UpdatePlanResourceCounts(ctx context.Context, planID uint, counts internal.PlanResourceCounts) error {
+	db := getTxOrDb(ctx, r.db)
+	err := db.WithContext(ctx).Model(&internal.Plan{}).Where("id = ?", planID).Updates(map[string]any{
+		"add":     counts.AddCount,
+		"change":  counts.ChangeCount,
+		"destroy": counts.DestroyCount,
+	}).Error
+	if err != nil {
+		return fmt.Errorf("failed to update plan resource counts: %w", err)
+	}
+	return nil
+}

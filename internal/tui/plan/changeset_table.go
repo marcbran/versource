@@ -43,16 +43,35 @@ func (p *ChangesetTableData) ResolveData(data []internal.Plan) ([]table.Column, 
 		{Title: "Component", Width: 1},
 		{Title: "Changeset", Width: 6},
 		{Title: "State", Width: 2},
+		{Title: "Add", Width: 1},
+		{Title: "Change", Width: 1},
+		{Title: "Destroy", Width: 1},
 	}
 
 	var rows []table.Row
 	var elems []internal.Plan
 	for _, plan := range data {
+		addStr := "-"
+		if plan.Add != nil {
+			addStr = strconv.Itoa(*plan.Add)
+		}
+		changeStr := "-"
+		if plan.Change != nil {
+			changeStr = strconv.Itoa(*plan.Change)
+		}
+		destroyStr := "-"
+		if plan.Destroy != nil {
+			destroyStr = strconv.Itoa(*plan.Destroy)
+		}
+
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(plan.ID), 10),
 			strconv.FormatUint(uint64(plan.ComponentID), 10),
 			plan.Changeset.Name,
 			plan.State,
+			addStr,
+			changeStr,
+			destroyStr,
 		})
 		elems = append(elems, plan)
 	}

@@ -67,7 +67,7 @@ func (e *Executor) Init(ctx context.Context) error {
 	return e.delegate.Init(ctx)
 }
 
-func (e *Executor) Plan(ctx context.Context) (internal.PlanPath, error) {
+func (e *Executor) Plan(ctx context.Context) (internal.PlanPath, internal.PlanResourceCounts, error) {
 	return e.delegate.Plan(ctx)
 }
 

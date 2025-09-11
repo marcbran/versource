@@ -2,6 +2,7 @@ package component
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -72,5 +73,7 @@ func (p *ChangesetTableData) ResolveData(data []internal.Component) ([]table.Col
 }
 
 func (p *ChangesetTableData) KeyBindings(elem internal.Component) platform.KeyBindings {
-	return platform.KeyBindings{}
+	return platform.KeyBindings{
+		{Key: "P", Help: "Create plan for component", Command: fmt.Sprintf("changesets/%s/components/%d/plans/create", p.changesetName, elem.ID)},
+	}
 }

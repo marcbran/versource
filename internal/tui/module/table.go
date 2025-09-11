@@ -50,12 +50,17 @@ func (p *TableData) ResolveData(data []internal.Module) ([]table.Column, []table
 	return columns, rows, elems
 }
 
-func (p *TableData) KeyBindings(elem internal.Module) platform.KeyBindings {
+func (p *TableData) KeyBindings() platform.KeyBindings {
+	return platform.KeyBindings{
+		{Key: "C", Help: "Create module", Command: "modules/create"},
+	}
+}
+
+func (p *TableData) ElemKeyBindings(elem internal.Module) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "enter", Help: "View module detail", Command: fmt.Sprintf("modules/%d", elem.ID)},
 		{Key: "v", Help: "View module versions", Command: fmt.Sprintf("modules/%d/moduleversions", elem.ID)},
 		{Key: "c", Help: "View components", Command: fmt.Sprintf("components?module-id=%d", elem.ID)},
-		{Key: "C", Help: "Create module", Command: "modules/create"},
 		{Key: "D", Help: "Delete module", Command: fmt.Sprintf("modules/%d/delete", elem.ID)},
 	}
 }

@@ -72,7 +72,11 @@ func (p *TableData) ResolveData(data []internal.Plan) ([]table.Column, []table.R
 	return columns, rows, elems
 }
 
-func (p *TableData) KeyBindings(elem internal.Plan) platform.KeyBindings {
+func (p *TableData) KeyBindings() platform.KeyBindings {
+	return platform.KeyBindings{}
+}
+
+func (p *TableData) ElemKeyBindings(elem internal.Plan) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "l", Help: "View logs", Command: fmt.Sprintf("plans/%d/logs", elem.ID)},
 	}

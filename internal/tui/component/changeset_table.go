@@ -72,7 +72,11 @@ func (p *ChangesetTableData) ResolveData(data []internal.Component) ([]table.Col
 	return columns, rows, elems
 }
 
-func (p *ChangesetTableData) KeyBindings(elem internal.Component) platform.KeyBindings {
+func (p *ChangesetTableData) KeyBindings() platform.KeyBindings {
+	return platform.KeyBindings{}
+}
+
+func (p *ChangesetTableData) ElemKeyBindings(elem internal.Component) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "P", Help: "Create plan for component", Command: fmt.Sprintf("changesets/%s/components/%d/plans/create", p.changesetName, elem.ID)},
 	}

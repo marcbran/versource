@@ -52,6 +52,10 @@ func (p *TableData) ResolveData(data []internal.Apply) ([]table.Column, []table.
 	return columns, rows, elems
 }
 
-func (p *TableData) KeyBindings(elem internal.Apply) platform.KeyBindings {
+func (p *TableData) KeyBindings() platform.KeyBindings {
+	return platform.KeyBindings{}
+}
+
+func (p *TableData) ElemKeyBindings(elem internal.Apply) platform.KeyBindings {
 	return platform.KeyBindings{}
 }

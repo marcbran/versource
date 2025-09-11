@@ -62,7 +62,11 @@ func (p *VersionsForModuleTableData) ResolveData(data []internal.ModuleVersion) 
 	return columns, rows, elems
 }
 
-func (p *VersionsForModuleTableData) KeyBindings(elem internal.ModuleVersion) platform.KeyBindings {
+func (p *VersionsForModuleTableData) KeyBindings() platform.KeyBindings {
+	return platform.KeyBindings{}
+}
+
+func (p *VersionsForModuleTableData) ElemKeyBindings(elem internal.ModuleVersion) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "enter", Help: "View module version detail", Command: fmt.Sprintf("moduleversions/%d", elem.ID)},
 		{Key: "c", Help: "View components", Command: fmt.Sprintf("components?module-version-id=%d", elem.ID)},

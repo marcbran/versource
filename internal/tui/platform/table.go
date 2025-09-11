@@ -61,11 +61,15 @@ func (t DataTable[T]) View() string {
 }
 
 func (t DataTable[T]) KeyBindings() KeyBindings {
+	tableBindings := t.data.KeyBindings()
+
 	cursor := t.table.Cursor()
-	if cursor < 0 || cursor >= len(t.rows) {
-		return KeyBindings{}
+	if cursor < 0 || cursor >= len(t.elems) {
+		return tableBindings
 	}
-	return t.data.KeyBindings(t.elems[cursor])
+
+	elemBindings := t.data.ElemKeyBindings(t.elems[cursor])
+	return tableBindings.Overlay(elemBindings)
 }
 
 func (t *DataTable[T]) Focus() {
@@ -81,7 +85,8 @@ func (t *DataTable[T]) Blur() {
 type TableData[T any] interface {
 	LoadData() ([]T, error)
 	ResolveData(data []T) ([]table.Column, []table.Row, []T)
-	KeyBindings(elem T) KeyBindings
+	KeyBindings() KeyBindings
+	ElemKeyBindings(elem T) KeyBindings
 }
 
 func newTable(columns []table.Column, rows []table.Row, size Size) table.Model {

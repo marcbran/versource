@@ -512,6 +512,27 @@ func (k KeyBindings) With(key, help, command string) KeyBindings {
 	return append(k, KeyBinding{Key: key, Help: help, Command: command})
 }
 
+func (k KeyBindings) Overlay(overlay KeyBindings) KeyBindings {
+	result := make(KeyBindings, len(k))
+	copy(result, k)
+
+	for _, overlayBinding := range overlay {
+		found := false
+		for i, baseBinding := range result {
+			if baseBinding.Key == overlayBinding.Key {
+				result[i] = overlayBinding
+				found = true
+				break
+			}
+		}
+		if !found {
+			result = append(result, overlayBinding)
+		}
+	}
+
+	return result
+}
+
 type KeyBinding struct {
 	Key     string
 	Help    string

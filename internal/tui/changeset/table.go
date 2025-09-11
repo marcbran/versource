@@ -54,7 +54,11 @@ func (p *TableData) ResolveData(data []internal.Changeset) ([]table.Column, []ta
 	return columns, rows, elems
 }
 
-func (p *TableData) KeyBindings(elem internal.Changeset) platform.KeyBindings {
+func (p *TableData) KeyBindings() platform.KeyBindings {
+	return platform.KeyBindings{}
+}
+
+func (p *TableData) ElemKeyBindings(elem internal.Changeset) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "enter", Help: "View component diffs", Command: fmt.Sprintf("changesets/%s/components/diffs", elem.Name)},
 	}

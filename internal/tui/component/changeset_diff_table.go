@@ -100,6 +100,10 @@ func (p *DiffTableData) ResolveData(data []internal.ComponentDiff) ([]table.Colu
 	return columns, rows, elems
 }
 
-func (p *DiffTableData) KeyBindings(elem internal.ComponentDiff) platform.KeyBindings {
+func (p *DiffTableData) KeyBindings() platform.KeyBindings {
+	return platform.KeyBindings{}
+}
+
+func (p *DiffTableData) ElemKeyBindings(elem internal.ComponentDiff) platform.KeyBindings {
 	return platform.KeyBindings{}
 }

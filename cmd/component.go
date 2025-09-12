@@ -7,6 +7,7 @@ import (
 
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
+	"github.com/marcbran/versource/internal/tui/component"
 	"github.com/spf13/cobra"
 )
 
@@ -16,17 +17,56 @@ var componentCmd = &cobra.Command{
 	Long:  `Manage components`,
 }
 
-var componentCreateCmd = &cobra.Command{
-	Use:   "create [name]",
-	Short: "Create a new component",
-	Long:  `Create a new component with name, module ID and variables (uses latest module version)`,
+var componentGetCmd = &cobra.Command{
+	Use:   "get [component-id]",
+	Short: "Get a specific component",
+	Long:  `Get details for a specific component by ID`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
-		if name == "" {
-			return fmt.Errorf("name is required")
+		config, err := LoadConfig(cmd)
+		if err != nil {
+			return err
+		}
+		httpClient := client.NewClient(config)
+		detailData := component.NewDetailData(httpClient, args[0], nil)
+		return renderViewpointData(detailData)
+	},
+}
+
+var componentListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all components",
+	Long:  `List all components in the system`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		moduleIDStr, err := cmd.Flags().GetString("module-id")
+		if err != nil {
+			return fmt.Errorf("failed to get module-id flag: %w", err)
 		}
 
+		moduleVersionIDStr, err := cmd.Flags().GetString("module-version-id")
+		if err != nil {
+			return fmt.Errorf("failed to get module-version-id flag: %w", err)
+		}
+
+		config, err := LoadConfig(cmd)
+		if err != nil {
+			return err
+		}
+		httpClient := client.NewClient(config)
+		tableData := component.NewTableData(httpClient, moduleIDStr, moduleVersionIDStr)
+		return renderTableData(tableData)
+	},
+}
+
+var componentCreateCmd = &cobra.Command{
+	Use:   "create",
+	Short: "Create a new component",
+	Long:  `Create a new component with name, module ID and variables (uses latest module version)`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name, err := cmd.Flags().GetString("name")
+		if err != nil {
+			return fmt.Errorf("failed to get name flag: %w", err)
+		}
 		moduleIDStr, err := cmd.Flags().GetString("module-id")
 		if err != nil {
 			return fmt.Errorf("failed to get module-id flag: %w", err)
@@ -42,6 +82,9 @@ var componentCreateCmd = &cobra.Command{
 			return fmt.Errorf("failed to get variable flags: %w", err)
 		}
 
+		if name == "" {
+			return fmt.Errorf("name is required")
+		}
 		if moduleIDStr == "" {
 			return fmt.Errorf("module-id is required")
 		}
@@ -184,9 +227,14 @@ func parseVariables(variableMap map[string]string) (map[string]any, error) {
 }
 
 func init() {
+	componentListCmd.Flags().String("module-id", "", "Filter components by module ID")
+	componentListCmd.Flags().String("module-version-id", "", "Filter components by module version ID")
+
+	componentCreateCmd.Flags().String("name", "", "Component name")
 	componentCreateCmd.Flags().String("module-id", "", "Module ID (will use latest version)")
 	componentCreateCmd.Flags().String("changeset", "", "Component changeset")
 	componentCreateCmd.Flags().StringToString("variable", nil, "Component variable in key=value format (can be used multiple times)")
+	componentCreateCmd.MarkFlagRequired("name")
 	componentCreateCmd.MarkFlagRequired("module-id")
 	componentCreateCmd.MarkFlagRequired("changeset")
 
@@ -195,6 +243,8 @@ func init() {
 	componentUpdateCmd.Flags().StringToString("variable", nil, "Component variable in key=value format (can be used multiple times)")
 	componentUpdateCmd.MarkFlagRequired("changeset")
 
+	componentCmd.AddCommand(componentGetCmd)
+	componentCmd.AddCommand(componentListCmd)
 	componentCmd.AddCommand(componentCreateCmd)
 	componentCmd.AddCommand(componentUpdateCmd)
 }

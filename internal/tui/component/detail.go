@@ -38,11 +38,15 @@ func NewDetail(client *client.Client) func(params map[string]string) platform.Pa
 		if changesetParam := params["changeset"]; changesetParam != "" {
 			changeset = &changesetParam
 		}
-		return platform.NewDataViewport(&DetailData{
-			client:      client,
-			componentID: params["componentID"],
-			changeset:   changeset,
-		})
+		return platform.NewDataViewport(NewDetailData(client, params["componentID"], changeset))
+	}
+}
+
+func NewDetailData(client *client.Client, componentID string, changeset *string) *DetailData {
+	return &DetailData{
+		client:      client,
+		componentID: componentID,
+		changeset:   changeset,
 	}
 }
 

@@ -19,11 +19,23 @@ type TableData struct {
 
 func NewTable(client *client.Client) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataTable[internal.Component](&TableData{
-			client:          client,
-			moduleID:        params["module-id"],
-			moduleVersionID: params["module-version-id"],
-		})
+		var moduleId string
+		if moduleIdParam, ok := params["module-id"]; ok {
+			moduleId = moduleIdParam
+		}
+		var moduleVersionId string
+		if moduleVersionIdParam, ok := params["module-version-id"]; ok {
+			moduleVersionId = moduleVersionIdParam
+		}
+		return platform.NewDataTable(NewTableData(client, moduleId, moduleVersionId))
+	}
+}
+
+func NewTableData(client *client.Client, moduleID, moduleVersionID string) *TableData {
+	return &TableData{
+		client:          client,
+		moduleID:        moduleID,
+		moduleVersionID: moduleVersionID,
 	}
 }
 

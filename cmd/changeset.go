@@ -5,6 +5,7 @@ import (
 
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
+	"github.com/marcbran/versource/internal/tui/changeset"
 	"github.com/spf13/cobra"
 )
 
@@ -48,6 +49,21 @@ var changesetCreateCmd = &cobra.Command{
 	},
 }
 
+var changesetListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all changesets",
+	Long:  `List all changesets in the system`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		config, err := LoadConfig(cmd)
+		if err != nil {
+			return err
+		}
+		httpClient := client.NewClient(config)
+		tableData := changeset.NewTableData(httpClient)
+		return renderTableData(tableData)
+	},
+}
+
 var changesetMergeCmd = &cobra.Command{
 	Use:   "merge [changeset-name]",
 	Short: "Merge a changeset",
@@ -84,5 +100,6 @@ func init() {
 	changesetCreateCmd.MarkFlagRequired("name")
 
 	changesetCmd.AddCommand(changesetCreateCmd)
+	changesetCmd.AddCommand(changesetListCmd)
 	changesetCmd.AddCommand(changesetMergeCmd)
 }

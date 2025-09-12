@@ -57,19 +57,20 @@ func (r *GormResourceRepo) UpsertResources(ctx context.Context, resources []inte
 	db := getTxOrDb(ctx, r.db)
 
 	for _, resource := range resources {
+		resource.GenerateID()
+
 		var existingResource internal.Resource
-		err := db.WithContext(ctx).Where("provider = ? AND provider_alias = ? AND resource_type = ? AND namespace = ? AND name = ?", resource.Provider, resource.ProviderAlias, resource.ResourceType, resource.Namespace, resource.Name).First(&existingResource).Error
+		err := db.WithContext(ctx).Where("id = ?", resource.ID).First(&existingResource).Error
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return fmt.Errorf("failed to get existing resource: %w", err)
 		}
 
-		if existingResource.ID == 0 {
+		if existingResource.ID == "" {
 			err := db.WithContext(ctx).Create(&resource).Error
 			if err != nil {
 				return fmt.Errorf("failed to create resource: %w", err)
 			}
 		} else {
-			resource.ID = existingResource.ID
 			err := db.WithContext(ctx).Model(&existingResource).Updates(&resource).Error
 			if err != nil {
 				return fmt.Errorf("failed to update existing resource: %w", err)

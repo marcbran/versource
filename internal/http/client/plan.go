@@ -10,6 +10,32 @@ import (
 	http2 "github.com/marcbran/versource/internal/http/server"
 )
 
+func (c *Client) GetPlanLog(ctx context.Context, planID uint) (*internal.GetPlanLogResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/plans/%d/logs", c.baseURL, planID)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+		var errorResp http2.ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	return &internal.GetPlanLogResponse{
+		Content: resp.Body,
+	}, nil
+}
+
 func (c *Client) ListPlans(ctx context.Context, req internal.ListPlansRequest) (*internal.ListPlansResponse, error) {
 	var url string
 	if req.Changeset != nil {
@@ -73,30 +99,4 @@ func (c *Client) CreatePlan(ctx context.Context, req internal.CreatePlanRequest)
 	}
 
 	return &planResp, nil
-}
-
-func (c *Client) GetPlanLog(ctx context.Context, planID uint) (*internal.GetPlanLogResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/plans/%d/logs", c.baseURL, planID)
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	resp, err := c.client.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		defer resp.Body.Close()
-		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
-			return nil, fmt.Errorf("failed to decode error response: %w", err)
-		}
-		return nil, fmt.Errorf("server error: %s", errorResp.Message)
-	}
-
-	return &internal.GetPlanLogResponse{
-		Content: resp.Body,
-	}, nil
 }

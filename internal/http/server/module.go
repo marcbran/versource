@@ -10,16 +10,6 @@ import (
 	"github.com/marcbran/versource/internal"
 )
 
-func (s *Server) handleListModules(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.listModules.Exec(r.Context(), internal.ListModulesRequest{})
-	if err != nil {
-		returnError(w, err)
-		return
-	}
-
-	returnSuccess(w, resp)
-}
-
 func (s *Server) handleGetModule(w http.ResponseWriter, r *http.Request) {
 	moduleIDStr := chi.URLParam(r, "moduleID")
 	moduleID, err := strconv.ParseUint(moduleIDStr, 10, 32)
@@ -41,19 +31,8 @@ func (s *Server) handleGetModule(w http.ResponseWriter, r *http.Request) {
 	returnSuccess(w, resp)
 }
 
-func (s *Server) handleGetModuleVersion(w http.ResponseWriter, r *http.Request) {
-	moduleVersionIDStr := chi.URLParam(r, "moduleVersionID")
-	moduleVersionID, err := strconv.ParseUint(moduleVersionIDStr, 10, 32)
-	if err != nil {
-		returnBadRequest(w, fmt.Errorf("invalid module version ID"))
-		return
-	}
-
-	req := internal.GetModuleVersionRequest{
-		ModuleVersionID: uint(moduleVersionID),
-	}
-
-	resp, err := s.getModuleVersion.Exec(r.Context(), req)
+func (s *Server) handleListModules(w http.ResponseWriter, r *http.Request) {
+	resp, err := s.listModules.Exec(r.Context(), internal.ListModulesRequest{})
 	if err != nil {
 		returnError(w, err)
 		return
@@ -118,6 +97,27 @@ func (s *Server) handleDeleteModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := s.deleteModule.Exec(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
+func (s *Server) handleGetModuleVersion(w http.ResponseWriter, r *http.Request) {
+	moduleVersionIDStr := chi.URLParam(r, "moduleVersionID")
+	moduleVersionID, err := strconv.ParseUint(moduleVersionIDStr, 10, 32)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid module version ID"))
+		return
+	}
+
+	req := internal.GetModuleVersionRequest{
+		ModuleVersionID: uint(moduleVersionID),
+	}
+
+	resp, err := s.getModuleVersion.Exec(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return

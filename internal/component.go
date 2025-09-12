@@ -43,6 +43,49 @@ type ComponentDiffRepo interface {
 	ListComponentDiffs(ctx context.Context, fromCommit, toCommit string) ([]ComponentDiff, error)
 }
 
+type GetComponent struct {
+	componentRepo ComponentRepo
+	tx            TransactionManager
+}
+
+func NewGetComponent(componentRepo ComponentRepo, tx TransactionManager) *GetComponent {
+	return &GetComponent{
+		componentRepo: componentRepo,
+		tx:            tx,
+	}
+}
+
+type GetComponentRequest struct {
+	ComponentID uint    `json:"component_id"`
+	Changeset   *string `json:"changeset,omitempty"`
+}
+
+type GetComponentResponse struct {
+	Component Component `json:"component"`
+}
+
+func (g *GetComponent) Exec(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error) {
+	var component *Component
+	var err error
+
+	if req.Changeset != nil {
+		err = g.tx.Checkout(ctx, *req.Changeset, func(ctx context.Context) error {
+			component, err = g.componentRepo.GetComponent(ctx, req.ComponentID)
+			return err
+		})
+	} else {
+		component, err = g.componentRepo.GetComponent(ctx, req.ComponentID)
+	}
+
+	if err != nil {
+		return nil, InternalErrE("failed to get component", err)
+	}
+
+	return &GetComponentResponse{
+		Component: *component,
+	}, nil
+}
+
 type ListComponents struct {
 	componentRepo ComponentRepo
 	tx            TransactionManager
@@ -92,6 +135,63 @@ func (l *ListComponents) Exec(ctx context.Context, req ListComponentsRequest) (*
 
 	return &ListComponentsResponse{
 		Components: components,
+	}, nil
+}
+
+type ListComponentDiffs struct {
+	componentDiffRepo ComponentDiffRepo
+	tx                TransactionManager
+}
+
+func NewListComponentDiffs(componentDiffRepo ComponentDiffRepo, tx TransactionManager) *ListComponentDiffs {
+	return &ListComponentDiffs{
+		componentDiffRepo: componentDiffRepo,
+		tx:                tx,
+	}
+}
+
+type ListComponentDiffsRequest struct {
+	Changeset string `json:"changeset"`
+}
+
+type ListComponentDiffsResponse struct {
+	Diffs []ComponentDiff `json:"diffs"`
+}
+
+func (l *ListComponentDiffs) Exec(ctx context.Context, req ListComponentDiffsRequest) (*ListComponentDiffsResponse, error) {
+	if req.Changeset == "" {
+		return nil, UserErr("changeset is required")
+	}
+
+	var diffs []ComponentDiff
+	err := l.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
+		mergeBase, err := l.tx.GetMergeBase(ctx, MainBranch, req.Changeset)
+		if err != nil {
+			return InternalErrE("failed to get merge base", err)
+		}
+
+		head, err := l.tx.GetHead(ctx)
+		if err != nil {
+			return InternalErrE("failed to get head", err)
+		}
+
+		if !IsValidCommitHash(mergeBase) {
+			return InternalErrE("invalid merge base commit hash", fmt.Errorf("merge base '%s' is not a valid commit hash", mergeBase))
+		}
+
+		if !IsValidCommitHash(head) {
+			return InternalErrE("invalid head commit hash", fmt.Errorf("head '%s' is not a valid commit hash", head))
+		}
+
+		diffs, err = l.componentDiffRepo.ListComponentDiffs(ctx, mergeBase, head)
+		return err
+	})
+	if err != nil {
+		return nil, InternalErrE("failed to list component diffs", err)
+	}
+
+	return &ListComponentDiffsResponse{
+		Diffs: diffs,
 	}, nil
 }
 
@@ -294,104 +394,4 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 	}
 
 	return response, nil
-}
-
-type ListComponentDiffs struct {
-	componentDiffRepo ComponentDiffRepo
-	tx                TransactionManager
-}
-
-func NewListComponentDiffs(componentDiffRepo ComponentDiffRepo, tx TransactionManager) *ListComponentDiffs {
-	return &ListComponentDiffs{
-		componentDiffRepo: componentDiffRepo,
-		tx:                tx,
-	}
-}
-
-type ListComponentDiffsRequest struct {
-	Changeset string `json:"changeset"`
-}
-
-type ListComponentDiffsResponse struct {
-	Diffs []ComponentDiff `json:"diffs"`
-}
-
-func (l *ListComponentDiffs) Exec(ctx context.Context, req ListComponentDiffsRequest) (*ListComponentDiffsResponse, error) {
-	if req.Changeset == "" {
-		return nil, UserErr("changeset is required")
-	}
-
-	var diffs []ComponentDiff
-	err := l.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
-		mergeBase, err := l.tx.GetMergeBase(ctx, MainBranch, req.Changeset)
-		if err != nil {
-			return InternalErrE("failed to get merge base", err)
-		}
-
-		head, err := l.tx.GetHead(ctx)
-		if err != nil {
-			return InternalErrE("failed to get head", err)
-		}
-
-		if !IsValidCommitHash(mergeBase) {
-			return InternalErrE("invalid merge base commit hash", fmt.Errorf("merge base '%s' is not a valid commit hash", mergeBase))
-		}
-
-		if !IsValidCommitHash(head) {
-			return InternalErrE("invalid head commit hash", fmt.Errorf("head '%s' is not a valid commit hash", head))
-		}
-
-		diffs, err = l.componentDiffRepo.ListComponentDiffs(ctx, mergeBase, head)
-		return err
-	})
-	if err != nil {
-		return nil, InternalErrE("failed to list component diffs", err)
-	}
-
-	return &ListComponentDiffsResponse{
-		Diffs: diffs,
-	}, nil
-}
-
-type GetComponent struct {
-	componentRepo ComponentRepo
-	tx            TransactionManager
-}
-
-func NewGetComponent(componentRepo ComponentRepo, tx TransactionManager) *GetComponent {
-	return &GetComponent{
-		componentRepo: componentRepo,
-		tx:            tx,
-	}
-}
-
-type GetComponentRequest struct {
-	ComponentID uint    `json:"component_id"`
-	Changeset   *string `json:"changeset,omitempty"`
-}
-
-type GetComponentResponse struct {
-	Component Component `json:"component"`
-}
-
-func (g *GetComponent) Exec(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error) {
-	var component *Component
-	var err error
-
-	if req.Changeset != nil {
-		err = g.tx.Checkout(ctx, *req.Changeset, func(ctx context.Context) error {
-			component, err = g.componentRepo.GetComponent(ctx, req.ComponentID)
-			return err
-		})
-	} else {
-		component, err = g.componentRepo.GetComponent(ctx, req.ComponentID)
-	}
-
-	if err != nil {
-		return nil, InternalErrE("failed to get component", err)
-	}
-
-	return &GetComponentResponse{
-		Component: *component,
-	}, nil
 }

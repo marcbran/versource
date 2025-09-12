@@ -39,40 +39,6 @@ type ModuleVersionRepo interface {
 	CreateModuleVersion(ctx context.Context, moduleVersion *ModuleVersion) error
 }
 
-type ListModules struct {
-	moduleRepo ModuleRepo
-	tx         TransactionManager
-}
-
-func NewListModules(moduleRepo ModuleRepo, tx TransactionManager) *ListModules {
-	return &ListModules{
-		moduleRepo: moduleRepo,
-		tx:         tx,
-	}
-}
-
-type ListModulesRequest struct{}
-
-type ListModulesResponse struct {
-	Modules []Module `json:"modules"`
-}
-
-func (l *ListModules) Exec(ctx context.Context, req ListModulesRequest) (*ListModulesResponse, error) {
-	var modules []Module
-	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
-		var err error
-		modules, err = l.moduleRepo.ListModules(ctx)
-		return err
-	})
-	if err != nil {
-		return nil, InternalErrE("failed to list modules", err)
-	}
-
-	return &ListModulesResponse{
-		Modules: modules,
-	}, nil
-}
-
 type GetModule struct {
 	moduleRepo        ModuleRepo
 	moduleVersionRepo ModuleVersionRepo
@@ -123,113 +89,37 @@ func (g *GetModule) Exec(ctx context.Context, req GetModuleRequest) (*GetModuleR
 	}, nil
 }
 
-type GetModuleVersion struct {
-	moduleVersionRepo ModuleVersionRepo
-	tx                TransactionManager
+type ListModules struct {
+	moduleRepo ModuleRepo
+	tx         TransactionManager
 }
 
-func NewGetModuleVersion(moduleVersionRepo ModuleVersionRepo, tx TransactionManager) *GetModuleVersion {
-	return &GetModuleVersion{
-		moduleVersionRepo: moduleVersionRepo,
-		tx:                tx,
+func NewListModules(moduleRepo ModuleRepo, tx TransactionManager) *ListModules {
+	return &ListModules{
+		moduleRepo: moduleRepo,
+		tx:         tx,
 	}
 }
 
-type GetModuleVersionRequest struct {
-	ModuleVersionID uint `json:"module_version_id"`
+type ListModulesRequest struct{}
+
+type ListModulesResponse struct {
+	Modules []Module `json:"modules"`
 }
 
-type GetModuleVersionResponse struct {
-	ModuleVersion ModuleVersion `json:"module_version"`
-}
-
-func (g *GetModuleVersion) Exec(ctx context.Context, req GetModuleVersionRequest) (*GetModuleVersionResponse, error) {
-	var moduleVersion *ModuleVersion
-	err := g.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
-		var err error
-		moduleVersion, err = g.moduleVersionRepo.GetModuleVersion(ctx, req.ModuleVersionID)
-		return err
-	})
-	if err != nil {
-		return nil, InternalErrE("failed to get module version", err)
-	}
-
-	if moduleVersion == nil {
-		return nil, UserErr("module version not found")
-	}
-
-	return &GetModuleVersionResponse{
-		ModuleVersion: *moduleVersion,
-	}, nil
-}
-
-type ListModuleVersions struct {
-	moduleVersionRepo ModuleVersionRepo
-	tx                TransactionManager
-}
-
-func NewListModuleVersions(moduleVersionRepo ModuleVersionRepo, tx TransactionManager) *ListModuleVersions {
-	return &ListModuleVersions{
-		moduleVersionRepo: moduleVersionRepo,
-		tx:                tx,
-	}
-}
-
-type ListModuleVersionsRequest struct{}
-
-type ListModuleVersionsResponse struct {
-	ModuleVersions []ModuleVersion `json:"module_versions"`
-}
-
-func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error) {
-	var moduleVersions []ModuleVersion
+func (l *ListModules) Exec(ctx context.Context, req ListModulesRequest) (*ListModulesResponse, error) {
+	var modules []Module
 	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
-		moduleVersions, err = l.moduleVersionRepo.ListModuleVersions(ctx)
+		modules, err = l.moduleRepo.ListModules(ctx)
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to list module versions", err)
+		return nil, InternalErrE("failed to list modules", err)
 	}
 
-	return &ListModuleVersionsResponse{
-		ModuleVersions: moduleVersions,
-	}, nil
-}
-
-type ListModuleVersionsForModule struct {
-	moduleVersionRepo ModuleVersionRepo
-	tx                TransactionManager
-}
-
-func NewListModuleVersionsForModule(moduleVersionRepo ModuleVersionRepo, tx TransactionManager) *ListModuleVersionsForModule {
-	return &ListModuleVersionsForModule{
-		moduleVersionRepo: moduleVersionRepo,
-		tx:                tx,
-	}
-}
-
-type ListModuleVersionsForModuleRequest struct {
-	ModuleID uint `json:"module_id"`
-}
-
-type ListModuleVersionsForModuleResponse struct {
-	ModuleVersions []ModuleVersion `json:"module_versions"`
-}
-
-func (l *ListModuleVersionsForModule) Exec(ctx context.Context, req ListModuleVersionsForModuleRequest) (*ListModuleVersionsForModuleResponse, error) {
-	var moduleVersions []ModuleVersion
-	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
-		var err error
-		moduleVersions, err = l.moduleVersionRepo.ListModuleVersionsForModule(ctx, req.ModuleID)
-		return err
-	})
-	if err != nil {
-		return nil, InternalErrE("failed to list module versions for module", err)
-	}
-
-	return &ListModuleVersionsForModuleResponse{
-		ModuleVersions: moduleVersions,
+	return &ListModulesResponse{
+		Modules: modules,
 	}, nil
 }
 
@@ -455,4 +345,114 @@ func (d *DeleteModule) Exec(ctx context.Context, req DeleteModuleRequest) (*Dele
 	}
 
 	return response, nil
+}
+
+type GetModuleVersion struct {
+	moduleVersionRepo ModuleVersionRepo
+	tx                TransactionManager
+}
+
+func NewGetModuleVersion(moduleVersionRepo ModuleVersionRepo, tx TransactionManager) *GetModuleVersion {
+	return &GetModuleVersion{
+		moduleVersionRepo: moduleVersionRepo,
+		tx:                tx,
+	}
+}
+
+type GetModuleVersionRequest struct {
+	ModuleVersionID uint `json:"module_version_id"`
+}
+
+type GetModuleVersionResponse struct {
+	ModuleVersion ModuleVersion `json:"module_version"`
+}
+
+func (g *GetModuleVersion) Exec(ctx context.Context, req GetModuleVersionRequest) (*GetModuleVersionResponse, error) {
+	var moduleVersion *ModuleVersion
+	err := g.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+		var err error
+		moduleVersion, err = g.moduleVersionRepo.GetModuleVersion(ctx, req.ModuleVersionID)
+		return err
+	})
+	if err != nil {
+		return nil, InternalErrE("failed to get module version", err)
+	}
+
+	if moduleVersion == nil {
+		return nil, UserErr("module version not found")
+	}
+
+	return &GetModuleVersionResponse{
+		ModuleVersion: *moduleVersion,
+	}, nil
+}
+
+type ListModuleVersions struct {
+	moduleVersionRepo ModuleVersionRepo
+	tx                TransactionManager
+}
+
+func NewListModuleVersions(moduleVersionRepo ModuleVersionRepo, tx TransactionManager) *ListModuleVersions {
+	return &ListModuleVersions{
+		moduleVersionRepo: moduleVersionRepo,
+		tx:                tx,
+	}
+}
+
+type ListModuleVersionsRequest struct{}
+
+type ListModuleVersionsResponse struct {
+	ModuleVersions []ModuleVersion `json:"module_versions"`
+}
+
+func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error) {
+	var moduleVersions []ModuleVersion
+	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+		var err error
+		moduleVersions, err = l.moduleVersionRepo.ListModuleVersions(ctx)
+		return err
+	})
+	if err != nil {
+		return nil, InternalErrE("failed to list module versions", err)
+	}
+
+	return &ListModuleVersionsResponse{
+		ModuleVersions: moduleVersions,
+	}, nil
+}
+
+type ListModuleVersionsForModule struct {
+	moduleVersionRepo ModuleVersionRepo
+	tx                TransactionManager
+}
+
+func NewListModuleVersionsForModule(moduleVersionRepo ModuleVersionRepo, tx TransactionManager) *ListModuleVersionsForModule {
+	return &ListModuleVersionsForModule{
+		moduleVersionRepo: moduleVersionRepo,
+		tx:                tx,
+	}
+}
+
+type ListModuleVersionsForModuleRequest struct {
+	ModuleID uint `json:"module_id"`
+}
+
+type ListModuleVersionsForModuleResponse struct {
+	ModuleVersions []ModuleVersion `json:"module_versions"`
+}
+
+func (l *ListModuleVersionsForModule) Exec(ctx context.Context, req ListModuleVersionsForModuleRequest) (*ListModuleVersionsForModuleResponse, error) {
+	var moduleVersions []ModuleVersion
+	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+		var err error
+		moduleVersions, err = l.moduleVersionRepo.ListModuleVersionsForModule(ctx, req.ModuleID)
+		return err
+	})
+	if err != nil {
+		return nil, InternalErrE("failed to list module versions for module", err)
+	}
+
+	return &ListModuleVersionsForModuleResponse{
+		ModuleVersions: moduleVersions,
+	}, nil
 }

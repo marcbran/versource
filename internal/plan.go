@@ -37,6 +37,39 @@ type PlanStore interface {
 	LoadPlan(ctx context.Context, planID uint) (PlanPath, error)
 }
 
+type GetPlanLog struct {
+	logStore LogStore
+}
+
+func NewGetPlanLog(logStore LogStore) *GetPlanLog {
+	return &GetPlanLog{
+		logStore: logStore,
+	}
+}
+
+type GetPlanLogRequest struct {
+	PlanID uint `json:"plan_id"`
+}
+
+type GetPlanLogResponse struct {
+	Content io.ReadCloser
+}
+
+func (g *GetPlanLog) Exec(ctx context.Context, req GetPlanLogRequest) (*GetPlanLogResponse, error) {
+	if req.PlanID == 0 {
+		return nil, UserErr("plan ID is required")
+	}
+
+	reader, err := g.logStore.LoadLog(ctx, "plan", req.PlanID)
+	if err != nil {
+		return nil, InternalErrE("failed to load plan log", err)
+	}
+
+	return &GetPlanLogResponse{
+		Content: reader,
+	}, nil
+}
+
 type ListPlans struct {
 	planRepo PlanRepo
 	tx       TransactionManager
@@ -174,6 +207,79 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 	return response, nil
 }
 
+type PlanWorker struct {
+	runPlan  *RunPlan
+	planRepo PlanRepo
+	planChan chan RunPlanRequest
+}
+
+func NewPlanWorker(runPlan *RunPlan, planRepo PlanRepo) *PlanWorker {
+	return &PlanWorker{
+		runPlan:  runPlan,
+		planRepo: planRepo,
+		planChan: make(chan RunPlanRequest, 100),
+	}
+}
+
+func (pw *PlanWorker) Start(ctx context.Context) {
+	go pw.processPlans(ctx)
+}
+
+func (pw *PlanWorker) QueuePlan(planID uint, branch string) {
+	req := RunPlanRequest{
+		PlanID: planID,
+		Branch: branch,
+	}
+	select {
+	case pw.planChan <- req:
+		log.WithField("plan_id", planID).WithField("branch", branch).Debug("Queued plan for processing")
+	default:
+		log.WithField("plan_id", planID).WithField("branch", branch).Warn("Plan channel full, plan will be picked up by polling")
+	}
+}
+
+func (pw *PlanWorker) processPlans(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case req := <-pw.planChan:
+			pw.runPlanInBackground(ctx, req)
+		case <-ticker.C:
+			pw.processQueuedPlans(ctx)
+		}
+	}
+}
+
+func (pw *PlanWorker) runPlanInBackground(ctx context.Context, req RunPlanRequest) {
+	go func() {
+		workerCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
+		defer cancel()
+
+		err := pw.runPlan.Exec(workerCtx, req)
+		if err != nil {
+			log.WithError(err).WithField("plan_id", req.PlanID).Error("Failed to run plan")
+		} else {
+			log.WithField("plan_id", req.PlanID).Info("Plan completed successfully")
+		}
+	}()
+}
+
+func (pw *PlanWorker) processQueuedPlans(ctx context.Context) {
+	requests, err := pw.planRepo.GetQueuedPlans(ctx)
+	if err != nil {
+		log.WithError(err).Error("Failed to get queued plans")
+		return
+	}
+
+	for _, req := range requests {
+		pw.runPlanInBackground(ctx, req)
+	}
+}
+
 type RunPlan struct {
 	config      *Config
 	planRepo    PlanRepo
@@ -307,110 +413,4 @@ func (r *RunPlan) Exec(ctx context.Context, req RunPlanRequest) error {
 	})
 
 	return err
-}
-
-type GetPlanLog struct {
-	logStore LogStore
-}
-
-func NewGetPlanLog(logStore LogStore) *GetPlanLog {
-	return &GetPlanLog{
-		logStore: logStore,
-	}
-}
-
-type GetPlanLogRequest struct {
-	PlanID uint `json:"plan_id"`
-}
-
-type GetPlanLogResponse struct {
-	Content io.ReadCloser
-}
-
-func (g *GetPlanLog) Exec(ctx context.Context, req GetPlanLogRequest) (*GetPlanLogResponse, error) {
-	if req.PlanID == 0 {
-		return nil, UserErr("plan ID is required")
-	}
-
-	reader, err := g.logStore.LoadLog(ctx, "plan", req.PlanID)
-	if err != nil {
-		return nil, InternalErrE("failed to load plan log", err)
-	}
-
-	return &GetPlanLogResponse{
-		Content: reader,
-	}, nil
-}
-
-type PlanWorker struct {
-	runPlan  *RunPlan
-	planRepo PlanRepo
-	planChan chan RunPlanRequest
-}
-
-func NewPlanWorker(runPlan *RunPlan, planRepo PlanRepo) *PlanWorker {
-	return &PlanWorker{
-		runPlan:  runPlan,
-		planRepo: planRepo,
-		planChan: make(chan RunPlanRequest, 100),
-	}
-}
-
-func (pw *PlanWorker) Start(ctx context.Context) {
-	go pw.processPlans(ctx)
-}
-
-func (pw *PlanWorker) QueuePlan(planID uint, branch string) {
-	req := RunPlanRequest{
-		PlanID: planID,
-		Branch: branch,
-	}
-	select {
-	case pw.planChan <- req:
-		log.WithField("plan_id", planID).WithField("branch", branch).Debug("Queued plan for processing")
-	default:
-		log.WithField("plan_id", planID).WithField("branch", branch).Warn("Plan channel full, plan will be picked up by polling")
-	}
-}
-
-func (pw *PlanWorker) processPlans(ctx context.Context) {
-	ticker := time.NewTicker(30 * time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case req := <-pw.planChan:
-			pw.runPlanInBackground(ctx, req)
-		case <-ticker.C:
-			pw.processQueuedPlans(ctx)
-		}
-	}
-}
-
-func (pw *PlanWorker) runPlanInBackground(ctx context.Context, req RunPlanRequest) {
-	go func() {
-		workerCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
-		defer cancel()
-
-		err := pw.runPlan.Exec(workerCtx, req)
-		if err != nil {
-			log.WithError(err).WithField("plan_id", req.PlanID).Error("Failed to run plan")
-		} else {
-			log.WithField("plan_id", req.PlanID).Info("Plan completed successfully")
-		}
-	}()
-}
-
-func (pw *PlanWorker) processQueuedPlans(ctx context.Context) {
-	requests, err := pw.planRepo.GetQueuedPlans(ctx)
-	if err != nil {
-		log.WithError(err).Error("Failed to get queued plans")
-		return
-	}
-
-	for _, req := range requests {
-		pw.runPlanInBackground(ctx, req)
-	}
 }

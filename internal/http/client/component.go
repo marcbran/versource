@@ -12,6 +12,41 @@ import (
 	http2 "github.com/marcbran/versource/internal/http/server"
 )
 
+func (c *Client) GetComponent(ctx context.Context, componentID uint, changeset *string) (*internal.GetComponentResponse, error) {
+	var url string
+	if changeset != nil {
+		url = fmt.Sprintf("%s/api/v1/changesets/%s/components/%d", c.baseURL, *changeset, componentID)
+	} else {
+		url = fmt.Sprintf("%s/api/v1/components/%d", c.baseURL, componentID)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp http2.ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	var componentResp internal.GetComponentResponse
+	if err := json.NewDecoder(resp.Body).Decode(&componentResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &componentResp, nil
+}
+
 func (c *Client) ListComponents(ctx context.Context, req internal.ListComponentsRequest) (*internal.ListComponentsResponse, error) {
 	var url string
 	if req.Changeset != nil {
@@ -57,6 +92,36 @@ func (c *Client) ListComponents(ctx context.Context, req internal.ListComponents
 	}
 
 	return &componentsResp, nil
+}
+
+func (c *Client) ListComponentDiffs(ctx context.Context, req internal.ListComponentDiffsRequest) (*internal.ListComponentDiffsResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/diffs", c.baseURL, req.Changeset)
+
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp http2.ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	var diffsResp internal.ListComponentDiffsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&diffsResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &diffsResp, nil
 }
 
 func (c *Client) CreateComponent(ctx context.Context, req internal.CreateComponentRequest) (*internal.CreateComponentResponse, error) {
@@ -124,71 +189,6 @@ func (c *Client) UpdateComponent(ctx context.Context, req internal.UpdateCompone
 	}
 
 	var componentResp internal.UpdateComponentResponse
-	if err := json.NewDecoder(resp.Body).Decode(&componentResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return &componentResp, nil
-}
-
-func (c *Client) ListComponentDiffs(ctx context.Context, req internal.ListComponentDiffsRequest) (*internal.ListComponentDiffsResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/diffs", c.baseURL, req.Changeset)
-
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	resp, err := c.client.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
-			return nil, fmt.Errorf("failed to decode error response: %w", err)
-		}
-		return nil, fmt.Errorf("server error: %s", errorResp.Message)
-	}
-
-	var diffsResp internal.ListComponentDiffsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&diffsResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return &diffsResp, nil
-}
-
-func (c *Client) GetComponent(ctx context.Context, componentID uint, changeset *string) (*internal.GetComponentResponse, error) {
-	var url string
-	if changeset != nil {
-		url = fmt.Sprintf("%s/api/v1/changesets/%s/components/%d", c.baseURL, *changeset, componentID)
-	} else {
-		url = fmt.Sprintf("%s/api/v1/components/%d", c.baseURL, componentID)
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	resp, err := c.client.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
-			return nil, fmt.Errorf("failed to decode error response: %w", err)
-		}
-		return nil, fmt.Errorf("server error: %s", errorResp.Message)
-	}
-
-	var componentResp internal.GetComponentResponse
 	if err := json.NewDecoder(resp.Body).Decode(&componentResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}

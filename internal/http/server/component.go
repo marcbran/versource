@@ -10,6 +10,31 @@ import (
 	"github.com/marcbran/versource/internal"
 )
 
+func (s *Server) handleGetComponent(w http.ResponseWriter, r *http.Request) {
+	componentIDStr := chi.URLParam(r, "componentID")
+	componentID, err := strconv.ParseUint(componentIDStr, 10, 32)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid component ID"))
+		return
+	}
+
+	req := internal.GetComponentRequest{
+		ComponentID: uint(componentID),
+	}
+
+	if changesetName := chi.URLParam(r, "changesetName"); changesetName != "" {
+		req.Changeset = &changesetName
+	}
+
+	resp, err := s.getComponent.Exec(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
 func (s *Server) handleListComponents(w http.ResponseWriter, r *http.Request) {
 	req := internal.ListComponentsRequest{}
 
@@ -38,6 +63,26 @@ func (s *Server) handleListComponents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := s.listComponents.Exec(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
+func (s *Server) handleListComponentDiffs(w http.ResponseWriter, r *http.Request) {
+	changeset := chi.URLParam(r, "changesetName")
+	if changeset == "" {
+		returnBadRequest(w, fmt.Errorf("changeset name is required"))
+		return
+	}
+
+	req := internal.ListComponentDiffsRequest{
+		Changeset: changeset,
+	}
+
+	resp, err := s.listComponentDiffs.Exec(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -96,51 +141,6 @@ func (s *Server) handleUpdateComponent(w http.ResponseWriter, r *http.Request) {
 	req.ComponentID = uint(componentID)
 
 	resp, err := s.updateComponent.Exec(r.Context(), req)
-	if err != nil {
-		returnError(w, err)
-		return
-	}
-
-	returnSuccess(w, resp)
-}
-
-func (s *Server) handleListComponentDiffs(w http.ResponseWriter, r *http.Request) {
-	changeset := chi.URLParam(r, "changesetName")
-	if changeset == "" {
-		returnBadRequest(w, fmt.Errorf("changeset name is required"))
-		return
-	}
-
-	req := internal.ListComponentDiffsRequest{
-		Changeset: changeset,
-	}
-
-	resp, err := s.listComponentDiffs.Exec(r.Context(), req)
-	if err != nil {
-		returnError(w, err)
-		return
-	}
-
-	returnSuccess(w, resp)
-}
-
-func (s *Server) handleGetComponent(w http.ResponseWriter, r *http.Request) {
-	componentIDStr := chi.URLParam(r, "componentID")
-	componentID, err := strconv.ParseUint(componentIDStr, 10, 32)
-	if err != nil {
-		returnBadRequest(w, fmt.Errorf("invalid component ID"))
-		return
-	}
-
-	req := internal.GetComponentRequest{
-		ComponentID: uint(componentID),
-	}
-
-	if changesetName := chi.URLParam(r, "changesetName"); changesetName != "" {
-		req.Changeset = &changesetName
-	}
-
-	resp, err := s.getComponent.Exec(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return

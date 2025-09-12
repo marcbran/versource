@@ -11,16 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (s *Server) handleListApplies(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.listApplies.Exec(r.Context(), internal.ListAppliesRequest{})
-	if err != nil {
-		returnError(w, err)
-		return
-	}
-
-	returnSuccess(w, resp)
-}
-
 func (s *Server) handleGetApplyLog(w http.ResponseWriter, r *http.Request) {
 	applyIDStr := chi.URLParam(r, "applyID")
 
@@ -51,4 +41,14 @@ func (s *Server) handleGetApplyLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Content.Close()
+}
+
+func (s *Server) handleListApplies(w http.ResponseWriter, r *http.Request) {
+	resp, err := s.listApplies.Exec(r.Context(), internal.ListAppliesRequest{})
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
 }

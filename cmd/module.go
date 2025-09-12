@@ -22,23 +22,13 @@ var moduleGetCmd = &cobra.Command{
 	Long:  `Get details for a specific module by ID`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		moduleIDStr := args[0]
 		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}
-
 		httpClient := client.NewClient(config)
-		detailData := module.NewDetailData(httpClient, moduleIDStr)
-
-		resp, err := detailData.LoadData()
-		if err != nil {
-			return err
-		}
-
-		return renderValue(resp, func() string {
-			return detailData.ResolveData(*resp)
-		})
+		detailData := module.NewDetailData(httpClient, args[0])
+		return renderViewpointData(detailData)
 	},
 }
 
@@ -51,19 +41,9 @@ var moduleListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
 		httpClient := client.NewClient(config)
 		tableData := module.NewTableData(httpClient)
-
-		modules, err := tableData.LoadData()
-		if err != nil {
-			return err
-		}
-
-		return renderValue(&internal.ListModulesResponse{Modules: modules}, func() string {
-			columns, rows, _ := tableData.ResolveData(modules)
-			return renderTable(columns, rows)
-		})
+		return renderTableData(tableData)
 	},
 }
 

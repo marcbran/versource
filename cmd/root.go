@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/marcbran/versource/internal/tui/platform"
 	"github.com/spf13/cobra"
 )
 
@@ -44,6 +45,27 @@ func formatOutput(data any, textFormat string, textArgs ...any) error {
 		return fmt.Errorf("invalid output format: %s", outputFormat)
 	}
 	return nil
+}
+
+func renderViewpointData[T any](detailData platform.ViewportData[T]) error {
+	resp, err := detailData.LoadData()
+	if err != nil {
+		return err
+	}
+	return renderValue(resp, func() string {
+		return detailData.ResolveData(*resp)
+	})
+}
+
+func renderTableData[T any](tableData platform.TableData[T]) error {
+	modules, err := tableData.LoadData()
+	if err != nil {
+		return err
+	}
+	return renderValue(modules, func() string {
+		columns, rows, _ := tableData.ResolveData(modules)
+		return renderTable(columns, rows)
+	})
 }
 
 func renderValue(data any, textFunc func() string) error {

@@ -2,6 +2,8 @@ package internal
 
 import (
 	"context"
+
+	"gorm.io/datatypes"
 )
 
 type Module struct {
@@ -12,10 +14,12 @@ type Module struct {
 }
 
 type ModuleVersion struct {
-	ID       uint   `gorm:"primarykey"`
-	Module   Module `gorm:"foreignKey:ModuleID"`
-	ModuleID uint
-	Version  string
+	ID        uint   `gorm:"primarykey"`
+	Module    Module `gorm:"foreignKey:ModuleID"`
+	ModuleID  uint
+	Version   string
+	Variables datatypes.JSON `gorm:"type:jsonb"`
+	Outputs   datatypes.JSON `gorm:"type:jsonb"`
 }
 
 type ModuleRepo interface {

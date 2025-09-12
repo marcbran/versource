@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/spf13/cobra"
 )
 
@@ -42,6 +44,72 @@ func formatOutput(data any, textFormat string, textArgs ...any) error {
 		return fmt.Errorf("invalid output format: %s", outputFormat)
 	}
 	return nil
+}
+
+func renderValue(data any, textFunc func() string) error {
+	switch outputFormat {
+	case "json":
+		jsonData, err := json.Marshal(data)
+		if err != nil {
+			return fmt.Errorf("failed to marshal JSON: %w", err)
+		}
+		fmt.Println(string(jsonData))
+	case "text":
+		fmt.Print(textFunc())
+	default:
+		return fmt.Errorf("invalid output format: %s", outputFormat)
+	}
+	return nil
+}
+
+func renderTable(columns []table.Column, rows []table.Row) string {
+	if len(rows) == 0 {
+		return "No data found\n"
+	}
+
+	columnWidths := make([]int, len(columns))
+
+	for i, col := range columns {
+		columnWidths[i] = len(col.Title)
+	}
+
+	for _, row := range rows {
+		for i, cell := range row {
+			if i < len(columnWidths) && len(cell) > columnWidths[i] {
+				columnWidths[i] = len(cell)
+			}
+		}
+	}
+
+	for i := range columnWidths {
+		columnWidths[i] += 3
+	}
+
+	var result strings.Builder
+
+	var formatParts []string
+	for _, width := range columnWidths {
+		formatParts = append(formatParts, fmt.Sprintf("%%-%ds", width))
+	}
+
+	headerFormat := strings.Join(formatParts, " ")
+	headerValues := make([]interface{}, len(columns))
+	for i, col := range columns {
+		headerValues[i] = strings.ToUpper(col.Title)
+	}
+	header := fmt.Sprintf(headerFormat, headerValues...)
+	result.WriteString(header + "\n")
+
+	formatString := strings.Join(formatParts, " ")
+	for _, row := range rows {
+		rowValues := make([]interface{}, len(row))
+		for i, cell := range row {
+			rowValues[i] = cell
+		}
+		result.WriteString(fmt.Sprintf(formatString+"\n", rowValues...))
+	}
+
+	return result.String()
 }
 
 func Execute() {

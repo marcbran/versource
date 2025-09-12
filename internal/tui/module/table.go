@@ -17,8 +17,12 @@ type TableData struct {
 
 func NewTable(client *client.Client) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataTable[internal.Module](&TableData{client: client})
+		return platform.NewDataTable[internal.Module](NewTableData(client))
 	}
+}
+
+func NewTableData(client *client.Client) *TableData {
+	return &TableData{client: client}
 }
 
 func (p *TableData) LoadData() ([]internal.Module, error) {

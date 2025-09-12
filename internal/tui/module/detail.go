@@ -29,8 +29,12 @@ type DetailViewModel struct {
 
 func NewDetail(client *client.Client) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataViewport(&DetailData{client: client, moduleID: params["moduleID"]})
+		return platform.NewDataViewport(NewDetailData(client, params["moduleID"]))
 	}
+}
+
+func NewDetailData(client *client.Client, moduleID string) *DetailData {
+	return &DetailData{client: client, moduleID: moduleID}
 }
 
 func (p *DetailData) LoadData() (*internal.GetModuleResponse, error) {

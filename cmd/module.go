@@ -6,6 +6,7 @@ import (
 
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
+	"github.com/marcbran/versource/internal/tui/module"
 	"github.com/spf13/cobra"
 )
 
@@ -13,6 +14,57 @@ var moduleCmd = &cobra.Command{
 	Use:   "module",
 	Short: "Manage modules",
 	Long:  `Manage modules`,
+}
+
+var moduleGetCmd = &cobra.Command{
+	Use:   "get [module-id]",
+	Short: "Get a specific module",
+	Long:  `Get details for a specific module by ID`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		moduleIDStr := args[0]
+		config, err := LoadConfig(cmd)
+		if err != nil {
+			return err
+		}
+
+		httpClient := client.NewClient(config)
+		detailData := module.NewDetailData(httpClient, moduleIDStr)
+
+		resp, err := detailData.LoadData()
+		if err != nil {
+			return err
+		}
+
+		return renderValue(resp, func() string {
+			return detailData.ResolveData(*resp)
+		})
+	},
+}
+
+var moduleListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all modules",
+	Long:  `List all modules in the system`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		config, err := LoadConfig(cmd)
+		if err != nil {
+			return err
+		}
+
+		httpClient := client.NewClient(config)
+		tableData := module.NewTableData(httpClient)
+
+		modules, err := tableData.LoadData()
+		if err != nil {
+			return err
+		}
+
+		return renderValue(&internal.ListModulesResponse{Modules: modules}, func() string {
+			columns, rows, _ := tableData.ResolveData(modules)
+			return renderTable(columns, rows)
+		})
+	},
 }
 
 var moduleCreateCmd = &cobra.Command{
@@ -155,6 +207,8 @@ func init() {
 	moduleUpdateCmd.Flags().String("version", "", "Module version")
 	moduleUpdateCmd.MarkFlagRequired("version")
 
+	moduleCmd.AddCommand(moduleGetCmd)
+	moduleCmd.AddCommand(moduleListCmd)
 	moduleCmd.AddCommand(moduleCreateCmd)
 	moduleCmd.AddCommand(moduleUpdateCmd)
 	moduleCmd.AddCommand(moduleDeleteCmd)

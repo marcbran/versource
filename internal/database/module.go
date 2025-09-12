@@ -27,6 +27,16 @@ func (r *GormModuleRepo) GetModule(ctx context.Context, moduleID uint) (*interna
 	return &module, nil
 }
 
+func (r *GormModuleRepo) GetModuleByName(ctx context.Context, name string) (*internal.Module, error) {
+	db := getTxOrDb(ctx, r.db)
+	var module internal.Module
+	err := db.WithContext(ctx).Where("name = ?", name).First(&module).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get module by name: %w", err)
+	}
+	return &module, nil
+}
+
 func (r *GormModuleRepo) GetModuleBySource(ctx context.Context, source string) (*internal.Module, error) {
 	db := getTxOrDb(ctx, r.db)
 	var module internal.Module

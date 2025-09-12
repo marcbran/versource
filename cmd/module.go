@@ -20,6 +20,11 @@ var moduleCreateCmd = &cobra.Command{
 	Short: "Create a new module",
 	Long:  `Create a new module with source and version`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		name, err := cmd.Flags().GetString("name")
+		if err != nil {
+			return fmt.Errorf("failed to get name flag: %w", err)
+		}
+
 		source, err := cmd.Flags().GetString("source")
 		if err != nil {
 			return fmt.Errorf("failed to get source flag: %w", err)
@@ -35,6 +40,10 @@ var moduleCreateCmd = &cobra.Command{
 			return fmt.Errorf("failed to get executor flag: %w", err)
 		}
 
+		if name == "" {
+			return fmt.Errorf("name is required")
+		}
+
 		if source == "" {
 			return fmt.Errorf("source is required")
 		}
@@ -47,6 +56,7 @@ var moduleCreateCmd = &cobra.Command{
 		client := client.NewClient(config)
 
 		req := internal.CreateModuleRequest{
+			Name:         name,
 			Source:       source,
 			Version:      version,
 			ExecutorType: executorType,
@@ -134,9 +144,11 @@ var moduleDeleteCmd = &cobra.Command{
 }
 
 func init() {
+	moduleCreateCmd.Flags().String("name", "", "Module name")
 	moduleCreateCmd.Flags().String("source", "", "Module source")
 	moduleCreateCmd.Flags().String("version", "", "Module version (optional for some source types)")
 	moduleCreateCmd.Flags().String("executor", "terraform-module", "Executor type (terraform-module, terraform-jsonnet)")
+	moduleCreateCmd.MarkFlagRequired("name")
 	moduleCreateCmd.MarkFlagRequired("source")
 	moduleCreateCmd.MarkFlagRequired("executor")
 

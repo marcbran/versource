@@ -21,6 +21,7 @@ type VersionDetailViewModel struct {
 	Version string `yaml:"version"`
 	Module  struct {
 		ID           uint   `yaml:"id"`
+		Name         string `yaml:"name"`
 		Source       string `yaml:"source"`
 		ExecutorType string `yaml:"executorType"`
 	} `yaml:"module"`
@@ -54,10 +55,12 @@ func (p *VersionDetailData) ResolveData(data internal.GetModuleVersionResponse) 
 		Version: data.ModuleVersion.Version,
 		Module: struct {
 			ID           uint   `yaml:"id"`
+			Name         string `yaml:"name"`
 			Source       string `yaml:"source"`
 			ExecutorType string `yaml:"executorType"`
 		}{
 			ID:           data.ModuleVersion.Module.ID,
+			Name:         data.ModuleVersion.Module.Name,
 			Source:       data.ModuleVersion.Module.Source,
 			ExecutorType: data.ModuleVersion.Module.ExecutorType,
 		},

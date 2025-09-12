@@ -21,6 +21,7 @@ func NewCreateModule(client *client.Client) func(params map[string]string) platf
 
 func (c *CreateModuleData) GetInitialValue() internal.CreateModuleRequest {
 	return internal.CreateModuleRequest{
+		Name:         "",
 		Source:       "",
 		Version:      "",
 		ExecutorType: "terraform-jsonnet",
@@ -28,6 +29,10 @@ func (c *CreateModuleData) GetInitialValue() internal.CreateModuleRequest {
 }
 
 func (c *CreateModuleData) SaveData(ctx context.Context, data internal.CreateModuleRequest) (string, error) {
+	if data.Name == "" {
+		return "", fmt.Errorf("name is required")
+	}
+
 	if data.Source == "" {
 		return "", fmt.Errorf("source is required")
 	}

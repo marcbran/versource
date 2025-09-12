@@ -18,6 +18,7 @@ type DetailData struct {
 
 type DetailViewModel struct {
 	ID            uint   `yaml:"id"`
+	Name          string `yaml:"name"`
 	Source        string `yaml:"source"`
 	ExecutorType  string `yaml:"executorType"`
 	LatestVersion *struct {
@@ -65,6 +66,7 @@ func (p *DetailData) ResolveData(data internal.GetModuleResponse) string {
 
 	viewModel := DetailViewModel{
 		ID:            data.Module.ID,
+		Name:          data.Module.Name,
 		Source:        data.Module.Source,
 		ExecutorType:  data.Module.ExecutorType,
 		LatestVersion: latestVersion,

@@ -31,10 +31,10 @@ func (p *TableData) LoadData() ([]internal.Module, error) {
 }
 
 func (p *TableData) ResolveData(data []internal.Module) ([]table.Column, []table.Row, []internal.Module) {
-
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
-		{Title: "Source", Width: 9},
+		{Title: "Name", Width: 5},
+		{Title: "Source", Width: 15},
 	}
 
 	var rows []table.Row
@@ -42,6 +42,7 @@ func (p *TableData) ResolveData(data []internal.Module) ([]table.Column, []table
 	for _, module := range data {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(module.ID), 10),
+			module.Name,
 			module.Source,
 		})
 		elems = append(elems, module)

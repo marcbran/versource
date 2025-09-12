@@ -31,7 +31,6 @@ func (p *VersionsTableData) LoadData() ([]internal.ModuleVersion, error) {
 }
 
 func (p *VersionsTableData) ResolveData(data []internal.ModuleVersion) ([]table.Column, []table.Row, []internal.ModuleVersion) {
-
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Module", Width: 7},
@@ -41,13 +40,13 @@ func (p *VersionsTableData) ResolveData(data []internal.ModuleVersion) ([]table.
 	var rows []table.Row
 	var elems []internal.ModuleVersion
 	for _, moduleVersion := range data {
-		source := ""
-		if moduleVersion.Module.Source != "" {
-			source = moduleVersion.Module.Source
+		name := ""
+		if moduleVersion.Module.Name != "" {
+			name = moduleVersion.Module.Name
 		}
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(moduleVersion.ID), 10),
-			source,
+			name,
 			moduleVersion.Version,
 		})
 		elems = append(elems, moduleVersion)

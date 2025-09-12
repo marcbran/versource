@@ -5,7 +5,8 @@ import (
 )
 
 type Module struct {
-	ID           uint `gorm:"primarykey"`
+	ID           uint   `gorm:"primarykey"`
+	Name         string `gorm:"uniqueIndex;not null"`
 	Source       string
 	ExecutorType string `gorm:"not null;default:'terraform-module'"`
 }
@@ -19,6 +20,7 @@ type ModuleVersion struct {
 
 type ModuleRepo interface {
 	GetModule(ctx context.Context, moduleID uint) (*Module, error)
+	GetModuleByName(ctx context.Context, name string) (*Module, error)
 	GetModuleBySource(ctx context.Context, source string) (*Module, error)
 	ListModules(ctx context.Context) ([]Module, error)
 	CreateModule(ctx context.Context, module *Module) error
@@ -242,6 +244,7 @@ func NewCreateModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo,
 }
 
 type CreateModuleRequest struct {
+	Name         string `json:"name" yaml:"name"`
 	Source       string `json:"source" yaml:"source"`
 	Version      string `json:"version" yaml:"version"`
 	ExecutorType string `json:"executor_type,omitempty" yaml:"executorType,omitempty"`
@@ -249,12 +252,17 @@ type CreateModuleRequest struct {
 
 type CreateModuleResponse struct {
 	ID        uint   `json:"id"`
+	Name      string `json:"name"`
 	Source    string `json:"source"`
 	VersionID uint   `json:"version_id"`
 	Version   string `json:"version"`
 }
 
 func (c *CreateModule) Exec(ctx context.Context, req CreateModuleRequest) (*CreateModuleResponse, error) {
+	if req.Name == "" {
+		return nil, UserErr("name is required")
+	}
+
 	if req.Source == "" {
 		return nil, UserErr("source is required")
 	}
@@ -264,6 +272,7 @@ func (c *CreateModule) Exec(ctx context.Context, req CreateModuleRequest) (*Crea
 	}
 
 	module := &Module{
+		Name:         req.Name,
 		Source:       req.Source,
 		ExecutorType: req.ExecutorType,
 	}
@@ -288,6 +297,7 @@ func (c *CreateModule) Exec(ctx context.Context, req CreateModuleRequest) (*Crea
 
 		response = &CreateModuleResponse{
 			ID:        module.ID,
+			Name:      module.Name,
 			Source:    module.Source,
 			VersionID: moduleVersion.ID,
 			Version:   moduleVersion.Version,

@@ -70,6 +70,16 @@ func (r *GormChangesetRepo) HasOpenChangesetWithName(ctx context.Context, name s
 	return count > 0, nil
 }
 
+func (r *GormChangesetRepo) HasChangesetWithName(ctx context.Context, name string) (bool, error) {
+	db := getTxOrDb(ctx, r.db)
+	var count int64
+	err := db.WithContext(ctx).Model(&internal.Changeset{}).Where("name = ?", name).Count(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check for changesets: %w", err)
+	}
+	return count > 0, nil
+}
+
 func (r *GormChangesetRepo) CreateChangeset(ctx context.Context, changeset *internal.Changeset) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(changeset).Error

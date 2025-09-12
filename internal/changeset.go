@@ -37,6 +37,7 @@ type ChangesetRepo interface {
 	GetOpenChangesetByName(ctx context.Context, name string) (*Changeset, error)
 	ListChangesets(ctx context.Context) ([]Changeset, error)
 	HasOpenChangesetWithName(ctx context.Context, name string) (bool, error)
+	HasChangesetWithName(ctx context.Context, name string) (bool, error)
 	CreateChangeset(ctx context.Context, changeset *Changeset) error
 	UpdateChangesetState(ctx context.Context, changesetID uint, state ChangesetState) error
 }
@@ -104,12 +105,12 @@ func (c *CreateChangeset) Exec(ctx context.Context, req CreateChangesetRequest) 
 
 	var response *CreateChangesetResponse
 	err := c.tx.Do(ctx, MainBranch, "create changeset", func(ctx context.Context) error {
-		hasOpenChangesets, err := c.changesetRepo.HasOpenChangesetWithName(ctx, req.Name)
+		hasChangesets, err := c.changesetRepo.HasChangesetWithName(ctx, req.Name)
 		if err != nil {
-			return InternalErrE("failed to check for open changesets", err)
+			return InternalErrE("failed to check for changesets", err)
 		}
-		if hasOpenChangesets {
-			return UserErr("cannot create changeset: there are open changesets on main")
+		if hasChangesets {
+			return UserErr("cannot create changeset: changeset with this name already exists")
 		}
 
 		changeset := &Changeset{
@@ -175,7 +176,7 @@ func (e *EnsureChangeset) Exec(ctx context.Context, req EnsureChangesetRequest) 
 	var existingChangeset *Changeset
 	err := e.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
-		existingChangeset, err = e.changesetRepo.GetOpenChangesetByName(ctx, req.Name)
+		existingChangeset, err = e.changesetRepo.GetChangesetByName(ctx, req.Name)
 		if err != nil {
 			return InternalErrE("failed to get changeset", err)
 		}

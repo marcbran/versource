@@ -492,7 +492,11 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 		}
 
 		component.ModuleVersionID = mergeBaseComponent.ModuleVersionID
-		component.Variables = mergeBaseComponent.Variables
+		if mergeBaseComponent.Variables == nil {
+			component.Variables = datatypes.JSON("{}")
+		} else {
+			component.Variables = mergeBaseComponent.Variables
+		}
 		component.Status = ComponentStatusDeleted
 
 		err = d.componentRepo.UpdateComponent(ctx, component)
@@ -608,7 +612,11 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 		}
 
 		component.ModuleVersionID = mergeBaseComponent.ModuleVersionID
-		component.Variables = mergeBaseComponent.Variables
+		if mergeBaseComponent.Variables == nil {
+			component.Variables = datatypes.JSON("{}")
+		} else {
+			component.Variables = mergeBaseComponent.Variables
+		}
 		component.Status = ComponentStatusReady
 
 		err = r.componentRepo.UpdateComponent(ctx, component)

@@ -57,6 +57,7 @@ func RunApp(client *client.Client) error {
 		Route("changesets/{changesetName}/components", component.NewChangesetTable(client)).
 		Route("changesets/{changesetName}/components/diffs", component.NewChangesetDiffTable(client)).
 		Route("changesets/{changesetName}/components/{componentID}/plans/create", component.NewCreatePlan(client)).
+		Route("changesets/{changesetName}/components/{componentID}/delete", component.NewDelete(client)).
 		Route("changesets/{changesetName}/components/{componentID}/restore", component.NewRestore(client)).
 		Route("changesets/{changesetName}/plans", plan.NewChangesetTable(client))
 

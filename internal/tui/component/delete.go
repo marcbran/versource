@@ -11,22 +11,22 @@ import (
 )
 
 type DeleteData struct {
-	client      *client.Client
-	componentID string
-	changeset   string
+	client        *client.Client
+	componentID   string
+	changesetName string
 }
 
 func NewDelete(client *client.Client) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewConfirmationPage(NewDeleteData(client, params["componentID"], params["changeset"]))
+		return platform.NewConfirmationPage(NewDeleteData(client, params["componentID"], params["changesetName"]))
 	}
 }
 
-func NewDeleteData(client *client.Client, componentID, changeset string) *DeleteData {
+func NewDeleteData(client *client.Client, componentID, changesetName string) *DeleteData {
 	return &DeleteData{
-		client:      client,
-		componentID: componentID,
-		changeset:   changeset,
+		client:        client,
+		componentID:   componentID,
+		changesetName: changesetName,
 	}
 }
 
@@ -47,7 +47,7 @@ func (d *DeleteData) OnConfirm(ctx context.Context) (string, error) {
 
 	req := internal.DeleteComponentRequest{
 		ComponentID: uint(componentID),
-		Changeset:   d.changeset,
+		Changeset:   d.changesetName,
 	}
 
 	_, err = d.client.DeleteComponent(ctx, req)

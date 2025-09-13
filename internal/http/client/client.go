@@ -12,7 +12,7 @@ type Client struct {
 	client  *http.Client
 }
 
-func NewClient(config *internal.Config) *Client {
+func NewClient(config *internal.Config) internal.Facade {
 	baseURL := fmt.Sprintf("%s://%s:%s", config.HTTP.Scheme, config.HTTP.Hostname, config.HTTP.Port)
 	if config.HTTP.Hostname == "" {
 		baseURL = fmt.Sprintf("%s://localhost:%s", config.HTTP.Scheme, config.HTTP.Port)

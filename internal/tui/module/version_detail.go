@@ -6,13 +6,12 @@ import (
 	"strconv"
 
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 	"gopkg.in/yaml.v3"
 )
 
 type VersionDetailData struct {
-	client          *client.Client
+	facade          internal.Facade
 	moduleVersionID string
 }
 
@@ -27,14 +26,14 @@ type VersionDetailViewModel struct {
 	} `yaml:"module"`
 }
 
-func NewVersionDetail(client *client.Client) func(params map[string]string) platform.Page {
+func NewVersionDetail(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataViewport(NewVersionDetailData(client, params["moduleVersionID"]))
+		return platform.NewDataViewport(NewVersionDetailData(facade, params["moduleVersionID"]))
 	}
 }
 
-func NewVersionDetailData(client *client.Client, moduleVersionID string) *VersionDetailData {
-	return &VersionDetailData{client: client, moduleVersionID: moduleVersionID}
+func NewVersionDetailData(facade internal.Facade, moduleVersionID string) *VersionDetailData {
+	return &VersionDetailData{facade: facade, moduleVersionID: moduleVersionID}
 }
 
 func (p *VersionDetailData) LoadData() (*internal.GetModuleVersionResponse, error) {
@@ -45,7 +44,7 @@ func (p *VersionDetailData) LoadData() (*internal.GetModuleVersionResponse, erro
 		return nil, err
 	}
 
-	moduleVersionResp, err := p.client.GetModuleVersion(ctx, uint(moduleVersionIDUint))
+	moduleVersionResp, err := p.facade.GetModuleVersion(ctx, internal.GetModuleVersionRequest{ModuleVersionID: uint(moduleVersionIDUint)})
 	if err != nil {
 		return nil, err
 	}

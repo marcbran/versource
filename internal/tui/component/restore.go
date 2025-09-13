@@ -6,27 +6,30 @@ import (
 	"strconv"
 
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type RestoreData struct {
-	client      *client.Client
-	componentID string
-	changeset   string
+	facade        internal.Facade
+	componentID   string
+	changesetName string
 }
 
-func NewRestore(client *client.Client) func(params map[string]string) platform.Page {
+func NewRestore(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewConfirmationPage(NewRestoreData(client, params["componentID"], params["changeset"]))
+		return platform.NewConfirmationPage(NewRestoreData(
+			facade,
+			params["componentID"],
+			params["changesetName"],
+		))
 	}
 }
 
-func NewRestoreData(client *client.Client, componentID, changeset string) *RestoreData {
+func NewRestoreData(facade internal.Facade, componentID, changesetName string) *RestoreData {
 	return &RestoreData{
-		client:      client,
-		componentID: componentID,
-		changeset:   changeset,
+		facade:        facade,
+		componentID:   componentID,
+		changesetName: changesetName,
 	}
 }
 
@@ -47,10 +50,10 @@ func (r *RestoreData) OnConfirm(ctx context.Context) (string, error) {
 
 	req := internal.RestoreComponentRequest{
 		ComponentID: uint(componentID),
-		Changeset:   r.changeset,
+		Changeset:   r.changesetName,
 	}
 
-	_, err = r.client.RestoreComponent(ctx, req)
+	_, err = r.facade.RestoreComponent(ctx, req)
 	if err != nil {
 		return "", err
 	}

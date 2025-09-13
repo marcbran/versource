@@ -7,23 +7,22 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type VersionsForModuleTableData struct {
-	client   *client.Client
+	facade   internal.Facade
 	moduleID string
 }
 
-func NewVersionsForModuleTable(client *client.Client) func(params map[string]string) platform.Page {
+func NewVersionsForModuleTable(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataTable(NewVersionsForModuleTableData(client, params["moduleID"]))
+		return platform.NewDataTable(NewVersionsForModuleTableData(facade, params["moduleID"]))
 	}
 }
 
-func NewVersionsForModuleTableData(client *client.Client, moduleID string) *VersionsForModuleTableData {
-	return &VersionsForModuleTableData{client: client, moduleID: moduleID}
+func NewVersionsForModuleTableData(facade internal.Facade, moduleID string) *VersionsForModuleTableData {
+	return &VersionsForModuleTableData{facade: facade, moduleID: moduleID}
 }
 
 func (p *VersionsForModuleTableData) LoadData() ([]internal.ModuleVersion, error) {
@@ -33,7 +32,7 @@ func (p *VersionsForModuleTableData) LoadData() ([]internal.ModuleVersion, error
 	if err != nil {
 		return nil, err
 	}
-	resp, err := p.client.ListModuleVersionsForModule(ctx, uint(moduleIDUint))
+	resp, err := p.facade.ListModuleVersionsForModule(ctx, internal.ListModuleVersionsForModuleRequest{ModuleID: uint(moduleIDUint)})
 	if err != nil {
 		return nil, err
 	}

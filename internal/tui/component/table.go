@@ -7,17 +7,16 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type TableData struct {
-	client          *client.Client
+	facade          internal.Facade
 	moduleID        string
 	moduleVersionID string
 }
 
-func NewTable(client *client.Client) func(params map[string]string) platform.Page {
+func NewTable(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		var moduleId string
 		if moduleIdParam, ok := params["module-id"]; ok {
@@ -27,13 +26,13 @@ func NewTable(client *client.Client) func(params map[string]string) platform.Pag
 		if moduleVersionIdParam, ok := params["module-version-id"]; ok {
 			moduleVersionId = moduleVersionIdParam
 		}
-		return platform.NewDataTable(NewTableData(client, moduleId, moduleVersionId))
+		return platform.NewDataTable(NewTableData(facade, moduleId, moduleVersionId))
 	}
 }
 
-func NewTableData(client *client.Client, moduleID, moduleVersionID string) *TableData {
+func NewTableData(facade internal.Facade, moduleID, moduleVersionID string) *TableData {
 	return &TableData{
-		client:          client,
+		facade:          facade,
 		moduleID:        moduleID,
 		moduleVersionID: moduleVersionID,
 	}
@@ -58,7 +57,7 @@ func (p *TableData) LoadData() ([]internal.Component, error) {
 		}
 	}
 
-	resp, err := p.client.ListComponents(ctx, req)
+	resp, err := p.facade.ListComponents(ctx, req)
 	if err != nil {
 		return nil, err
 	}

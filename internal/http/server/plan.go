@@ -24,7 +24,7 @@ func (s *Server) handleGetPlanLog(w http.ResponseWriter, r *http.Request) {
 		PlanID: uint(planID),
 	}
 
-	response, err := s.getPlanLog.Exec(r.Context(), req)
+	response, err := s.facade.GetPlanLog(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -51,7 +51,7 @@ func (s *Server) handleListPlans(w http.ResponseWriter, r *http.Request) {
 		req.Changeset = &changesetName
 	}
 
-	resp, err := s.listPlans.Exec(r.Context(), req)
+	resp, err := s.facade.ListPlans(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -79,7 +79,7 @@ func (s *Server) handleCreatePlan(w http.ResponseWriter, r *http.Request) {
 		Changeset:   changesetName,
 	}
 
-	resp, err := s.createPlan.Exec(r.Context(), req)
+	resp, err := s.facade.CreatePlan(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return

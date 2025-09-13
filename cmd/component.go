@@ -28,7 +28,7 @@ var componentGetCmd = &cobra.Command{
 			return err
 		}
 		httpClient := client.NewClient(config)
-		detailData := component.NewDetailData(httpClient, args[0], nil)
+		detailData := component.NewDetailData(httpClient, args[0], "")
 		return renderViewpointData(detailData)
 	},
 }

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,8 +11,8 @@ import (
 	http2 "github.com/marcbran/versource/internal/http/server"
 )
 
-func (c *Client) GetPlanLog(ctx context.Context, planID uint) (*internal.GetPlanLogResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/plans/%d/logs", c.baseURL, planID)
+func (c *Client) GetPlanLog(ctx context.Context, req internal.GetPlanLogRequest) (*internal.GetPlanLogResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/plans/%d/logs", c.baseURL, req.PlanID)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -99,4 +100,35 @@ func (c *Client) CreatePlan(ctx context.Context, req internal.CreatePlanRequest)
 	}
 
 	return &planResp, nil
+}
+
+func (c *Client) RunPlan(ctx context.Context, req internal.RunPlanRequest) error {
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/api/v1/plans/run", c.baseURL)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp http2.ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	return nil
 }

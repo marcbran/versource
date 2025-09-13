@@ -7,27 +7,26 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type TableData struct {
-	client *client.Client
+	facade internal.Facade
 }
 
-func NewTable(client *client.Client) func(params map[string]string) platform.Page {
+func NewTable(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataTable(NewTableData(client))
+		return platform.NewDataTable(NewTableData(facade))
 	}
 }
 
-func NewTableData(client *client.Client) *TableData {
-	return &TableData{client: client}
+func NewTableData(facade internal.Facade) *TableData {
+	return &TableData{facade: facade}
 }
 
 func (p *TableData) LoadData() ([]internal.Changeset, error) {
 	ctx := context.Background()
-	resp, err := p.client.ListChangesets(ctx)
+	resp, err := p.facade.ListChangesets(ctx, internal.ListChangesetsRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +34,6 @@ func (p *TableData) LoadData() ([]internal.Changeset, error) {
 }
 
 func (p *TableData) ResolveData(data []internal.Changeset) ([]table.Column, []table.Row, []internal.Changeset) {
-
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Name", Width: 7},

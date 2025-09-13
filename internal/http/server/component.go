@@ -26,7 +26,7 @@ func (s *Server) handleGetComponent(w http.ResponseWriter, r *http.Request) {
 		req.Changeset = &changesetName
 	}
 
-	resp, err := s.getComponent.Exec(r.Context(), req)
+	resp, err := s.facade.GetComponent(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -62,7 +62,7 @@ func (s *Server) handleListComponents(w http.ResponseWriter, r *http.Request) {
 		req.ModuleVersionID = &moduleVersionIDUint
 	}
 
-	resp, err := s.listComponents.Exec(r.Context(), req)
+	resp, err := s.facade.ListComponents(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -82,7 +82,7 @@ func (s *Server) handleListComponentDiffs(w http.ResponseWriter, r *http.Request
 		Changeset: changeset,
 	}
 
-	resp, err := s.listComponentDiffs.Exec(r.Context(), req)
+	resp, err := s.facade.ListComponentDiffs(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -107,7 +107,7 @@ func (s *Server) handleCreateComponent(w http.ResponseWriter, r *http.Request) {
 
 	req.Changeset = changesetName
 
-	resp, err := s.createComponent.Exec(r.Context(), req)
+	resp, err := s.facade.CreateComponent(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -140,7 +140,7 @@ func (s *Server) handleUpdateComponent(w http.ResponseWriter, r *http.Request) {
 	req.Changeset = changesetName
 	req.ComponentID = uint(componentID)
 
-	resp, err := s.updateComponent.Exec(r.Context(), req)
+	resp, err := s.facade.UpdateComponent(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -168,7 +168,7 @@ func (s *Server) handleDeleteComponent(w http.ResponseWriter, r *http.Request) {
 		Changeset:   changesetName,
 	}
 
-	resp, err := s.deleteComponent.Exec(r.Context(), req)
+	resp, err := s.facade.DeleteComponent(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -196,7 +196,7 @@ func (s *Server) handleRestoreComponent(w http.ResponseWriter, r *http.Request) 
 		Changeset:   changesetName,
 	}
 
-	resp, err := s.restoreComponent.Exec(r.Context(), req)
+	resp, err := s.facade.RestoreComponent(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return

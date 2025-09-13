@@ -5,17 +5,16 @@ import (
 	"fmt"
 
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type CreateModuleData struct {
-	client *client.Client
+	facade internal.Facade
 }
 
-func NewCreateModule(client *client.Client) func(params map[string]string) platform.Page {
+func NewCreateModule(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewEditor(&CreateModuleData{client: client})
+		return platform.NewEditor(&CreateModuleData{facade: facade})
 	}
 }
 
@@ -45,7 +44,7 @@ func (c *CreateModuleData) SaveData(ctx context.Context, data internal.CreateMod
 		data.ExecutorType = "terraform-jsonnet"
 	}
 
-	resp, err := c.client.CreateModule(ctx, data)
+	resp, err := c.facade.CreateModule(ctx, data)
 	if err != nil {
 		return "", err
 	}

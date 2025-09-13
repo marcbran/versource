@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/marcbran/versource/internal/http/client"
+	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/apply"
 	"github.com/marcbran/versource/internal/tui/changeset"
 	"github.com/marcbran/versource/internal/tui/component"
@@ -14,7 +14,7 @@ import (
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
-func RunApp(client *client.Client) error {
+func RunApp(facade internal.Facade) error {
 	router := platform.NewRouter("components").
 		KeyBinding("", func(params map[string]string, currentPath string) platform.KeyBindings {
 			return platform.KeyBindings{
@@ -37,28 +37,28 @@ func RunApp(client *client.Client) error {
 				{Key: "p", Help: "View plans", Command: fmt.Sprintf("changesets/%s/plans", changesetName)},
 			}
 		}).
-		Route("modules", module.NewTable(client)).
-		Route("modules/create", module.NewCreateModule(client)).
-		Route("modules/{moduleID}", module.NewDetail(client)).
-		Route("modules/{moduleID}/delete", module.NewDeleteModule(client)).
-		Route("modules/{moduleID}/moduleversions", module.NewVersionsForModuleTable(client)).
-		Route("moduleversions", module.NewVersionsTable(client)).
-		Route("moduleversions/{moduleVersionID}", module.NewVersionDetail(client)).
-		Route("components", component.NewTable(client)).
-		Route("components/create", component.NewCreateComponent(client)).
-		Route("components/{componentID}", component.NewDetail(client)).
-		Route("components/{componentID}/delete", component.NewDelete(client)).
-		Route("plans", plan.NewTable(client)).
-		Route("plans/{planID}/logs", plan.NewLogs(client)).
-		Route("applies", apply.NewTable(client)).
-		Route("changesets", changeset.NewTable(client)).
-		Route("changesets/{changesetName}/components", component.NewChangesetTable(client)).
-		Route("changesets/{changesetName}/components/{componentID}/plans/create", component.NewCreatePlan(client)).
-		Route("changesets/{changesetName}/components/{componentID}/delete", component.NewDelete(client)).
-		Route("changesets/{changesetName}/components/{componentID}/restore", component.NewRestore(client)).
-		Route("changesets/{changesetName}/plans", plan.NewChangesetTable(client))
+		Route("modules", module.NewTable(facade)).
+		Route("modules/create", module.NewCreateModule(facade)).
+		Route("modules/{moduleID}", module.NewDetail(facade)).
+		Route("modules/{moduleID}/delete", module.NewDeleteModule(facade)).
+		Route("modules/{moduleID}/moduleversions", module.NewVersionsForModuleTable(facade)).
+		Route("moduleversions", module.NewVersionsTable(facade)).
+		Route("moduleversions/{moduleVersionID}", module.NewVersionDetail(facade)).
+		Route("components", component.NewTable(facade)).
+		Route("components/create", component.NewCreateComponent(facade)).
+		Route("components/{componentID}", component.NewDetail(facade)).
+		Route("components/{componentID}/delete", component.NewDelete(facade)).
+		Route("plans", plan.NewTable(facade)).
+		Route("plans/{planID}/logs", plan.NewLogs(facade)).
+		Route("applies", apply.NewTable(facade)).
+		Route("changesets", changeset.NewTable(facade)).
+		Route("changesets/{changesetName}/components", component.NewChangesetTable(facade)).
+		Route("changesets/{changesetName}/components/{componentID}/plans/create", component.NewCreatePlan(facade)).
+		Route("changesets/{changesetName}/components/{componentID}/delete", component.NewDelete(facade)).
+		Route("changesets/{changesetName}/components/{componentID}/restore", component.NewRestore(facade)).
+		Route("changesets/{changesetName}/plans", plan.NewChangesetTable(facade))
 
-	app := platform.NewCommandable(router, client)
+	app := platform.NewCommandable(router, facade)
 
 	p := tea.NewProgram(app, tea.WithAltScreen())
 	_, err := p.Run()

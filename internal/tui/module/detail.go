@@ -6,13 +6,12 @@ import (
 	"strconv"
 
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 	"gopkg.in/yaml.v3"
 )
 
 type DetailData struct {
-	client   *client.Client
+	facade   internal.Facade
 	moduleID string
 }
 
@@ -27,14 +26,14 @@ type DetailViewModel struct {
 	} `yaml:"latestVersion,omitempty"`
 }
 
-func NewDetail(client *client.Client) func(params map[string]string) platform.Page {
+func NewDetail(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataViewport(NewDetailData(client, params["moduleID"]))
+		return platform.NewDataViewport(NewDetailData(facade, params["moduleID"]))
 	}
 }
 
-func NewDetailData(client *client.Client, moduleID string) *DetailData {
-	return &DetailData{client: client, moduleID: moduleID}
+func NewDetailData(facade internal.Facade, moduleID string) *DetailData {
+	return &DetailData{facade: facade, moduleID: moduleID}
 }
 
 func (p *DetailData) LoadData() (*internal.GetModuleResponse, error) {
@@ -45,7 +44,7 @@ func (p *DetailData) LoadData() (*internal.GetModuleResponse, error) {
 		return nil, err
 	}
 
-	moduleResp, err := p.client.GetModule(ctx, uint(moduleIDUint))
+	moduleResp, err := p.facade.GetModule(ctx, internal.GetModuleRequest{ModuleID: uint(moduleIDUint)})
 	if err != nil {
 		return nil, err
 	}

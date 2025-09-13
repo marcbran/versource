@@ -6,20 +6,19 @@ import (
 	"strconv"
 
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type CreatePlanData struct {
-	client        *client.Client
+	facade        internal.Facade
 	changesetName string
 	componentID   string
 }
 
-func NewCreatePlan(client *client.Client) func(params map[string]string) platform.Page {
+func NewCreatePlan(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewConfirmationPage(&CreatePlanData{
-			client:        client,
+			facade:        facade,
 			changesetName: params["changesetName"],
 			componentID:   params["componentID"],
 		})
@@ -46,7 +45,7 @@ func (c *CreatePlanData) OnConfirm(ctx context.Context) (string, error) {
 		Changeset:   c.changesetName,
 	}
 
-	_, err = c.client.CreatePlan(ctx, req)
+	_, err = c.facade.CreatePlan(ctx, req)
 	if err != nil {
 		return "", err
 	}

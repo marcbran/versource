@@ -12,12 +12,12 @@ import (
 	http2 "github.com/marcbran/versource/internal/http/server"
 )
 
-func (c *Client) GetComponent(ctx context.Context, componentID uint, changeset *string) (*internal.GetComponentResponse, error) {
+func (c *Client) GetComponent(ctx context.Context, req internal.GetComponentRequest) (*internal.GetComponentResponse, error) {
 	var url string
-	if changeset != nil {
-		url = fmt.Sprintf("%s/api/v1/changesets/%s/components/%d", c.baseURL, *changeset, componentID)
+	if req.Changeset != nil {
+		url = fmt.Sprintf("%s/api/v1/changesets/%s/components/%d", c.baseURL, *req.Changeset, req.ComponentID)
 	} else {
-		url = fmt.Sprintf("%s/api/v1/components/%d", c.baseURL, componentID)
+		url = fmt.Sprintf("%s/api/v1/components/%d", c.baseURL, req.ComponentID)
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)

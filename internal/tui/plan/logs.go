@@ -6,18 +6,17 @@ import (
 	"strconv"
 
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type LogsData struct {
-	client *client.Client
+	facade internal.Facade
 	planID string
 }
 
-func NewLogs(client *client.Client) func(params map[string]string) platform.Page {
+func NewLogs(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataViewport(&LogsData{client: client, planID: params["planID"]})
+		return platform.NewDataViewport(&LogsData{facade: facade, planID: params["planID"]})
 	}
 }
 
@@ -29,7 +28,7 @@ func (p *LogsData) LoadData() (*internal.GetPlanLogResponse, error) {
 		return nil, err
 	}
 
-	resp, err := p.client.GetPlanLog(ctx, uint(planIDUint))
+	resp, err := p.facade.GetPlanLog(ctx, internal.GetPlanLogRequest{PlanID: uint(planIDUint)})
 	if err != nil {
 		return nil, err
 	}

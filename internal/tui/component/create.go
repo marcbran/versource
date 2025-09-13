@@ -6,19 +6,18 @@ import (
 	"strconv"
 
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type CreateComponentData struct {
-	client   *client.Client
+	facade   internal.Facade
 	moduleID string
 }
 
-func NewCreateComponent(client *client.Client) func(params map[string]string) platform.Page {
+func NewCreateComponent(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewEditor(&CreateComponentData{
-			client:   client,
+			facade:   facade,
 			moduleID: params["module-id"],
 		})
 	}
@@ -54,7 +53,7 @@ func (c *CreateComponentData) SaveData(ctx context.Context, data internal.Create
 		return "", fmt.Errorf("name is required")
 	}
 
-	resp, err := c.client.CreateComponent(ctx, data)
+	resp, err := c.facade.CreateComponent(ctx, data)
 	if err != nil {
 		return "", err
 	}

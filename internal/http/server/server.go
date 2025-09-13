@@ -59,35 +59,11 @@ func Serve(ctx context.Context, config *internal.Config) error {
 }
 
 type Server struct {
-	config                      *internal.Config
-	router                      *chi.Mux
-	listModules                 *internal.ListModules
-	getModule                   *internal.GetModule
-	getModuleVersion            *internal.GetModuleVersion
-	createModule                *internal.CreateModule
-	updateModule                *internal.UpdateModule
-	deleteModule                *internal.DeleteModule
-	listModuleVersions          *internal.ListModuleVersions
-	listModuleVersionsForModule *internal.ListModuleVersionsForModule
-	listChangesets              *internal.ListChangesets
-	createChangeset             *internal.CreateChangeset
-	mergeChangeset              *internal.MergeChangeset
-	listComponents              *internal.ListComponents
-	getComponent                *internal.GetComponent
-	createComponent             *internal.CreateComponent
-	updateComponent             *internal.UpdateComponent
-	deleteComponent             *internal.DeleteComponent
-	restoreComponent            *internal.RestoreComponent
-	listComponentDiffs          *internal.ListComponentDiffs
-	listPlans                   *internal.ListPlans
-	createPlan                  *internal.CreatePlan
-	runPlan                     *internal.RunPlan
-	runApply                    *internal.RunApply
-	listApplies                 *internal.ListApplies
-	getPlanLog                  *internal.GetPlanLog
-	getApplyLog                 *internal.GetApplyLog
-	planWorker                  *internal.PlanWorker
-	applyWorker                 *internal.ApplyWorker
+	config      *internal.Config
+	router      *chi.Mux
+	facade      internal.Facade
+	planWorker  *internal.PlanWorker
+	applyWorker *internal.ApplyWorker
 }
 
 func NewServer(config *internal.Config) (*Server, error) {
@@ -112,45 +88,35 @@ func NewServer(config *internal.Config) (*Server, error) {
 
 	newExecutor := infra.NewExecutor
 
+	facade := internal.NewFacade(
+		config,
+		componentRepo,
+		componentDiffRepo,
+		stateRepo,
+		stateResourceRepo,
+		resourceRepo,
+		planRepo,
+		planStore,
+		logStore,
+		applyRepo,
+		changesetRepo,
+		moduleRepo,
+		moduleVersionRepo,
+		transactionManager,
+		newExecutor,
+	)
+
 	runApply := internal.NewRunApply(config, applyRepo, stateRepo, stateResourceRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor)
 	applyWorker := internal.NewApplyWorker(runApply, applyRepo)
 	runPlan := internal.NewRunPlan(config, planRepo, planStore, logStore, applyRepo, transactionManager, newExecutor)
 	planWorker := internal.NewPlanWorker(runPlan, planRepo)
-	createPlan := internal.NewCreatePlan(componentRepo, planRepo, changesetRepo, transactionManager, planWorker)
-	getPlanLog := internal.NewGetPlanLog(logStore)
-	getApplyLog := internal.NewGetApplyLog(logStore)
-	ensureChangeset := internal.NewEnsureChangeset(changesetRepo, transactionManager)
 
 	s := &Server{
-		config:                      config,
-		router:                      chi.NewRouter(),
-		listModules:                 internal.NewListModules(moduleRepo, transactionManager),
-		getModule:                   internal.NewGetModule(moduleRepo, moduleVersionRepo, transactionManager),
-		getModuleVersion:            internal.NewGetModuleVersion(moduleVersionRepo, transactionManager),
-		createModule:                internal.NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
-		updateModule:                internal.NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
-		deleteModule:                internal.NewDeleteModule(moduleRepo, componentRepo, transactionManager),
-		listModuleVersions:          internal.NewListModuleVersions(moduleVersionRepo, transactionManager),
-		listModuleVersionsForModule: internal.NewListModuleVersionsForModule(moduleVersionRepo, transactionManager),
-		listChangesets:              internal.NewListChangesets(changesetRepo, transactionManager),
-		createChangeset:             internal.NewCreateChangeset(changesetRepo, transactionManager),
-		mergeChangeset:              internal.NewMergeChangeset(changesetRepo, applyRepo, applyWorker, transactionManager),
-		listComponents:              internal.NewListComponents(componentRepo, transactionManager),
-		getComponent:                internal.NewGetComponent(componentRepo, transactionManager),
-		createComponent:             internal.NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
-		updateComponent:             internal.NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
-		deleteComponent:             internal.NewDeleteComponent(componentRepo, ensureChangeset, createPlan, transactionManager),
-		restoreComponent:            internal.NewRestoreComponent(componentRepo, ensureChangeset, createPlan, transactionManager),
-		listComponentDiffs:          internal.NewListComponentDiffs(componentDiffRepo, transactionManager),
-		listPlans:                   internal.NewListPlans(planRepo, transactionManager),
-		createPlan:                  createPlan,
-		runPlan:                     runPlan,
-		runApply:                    runApply,
-		listApplies:                 internal.NewListApplies(applyRepo, transactionManager),
-		getPlanLog:                  getPlanLog,
-		getApplyLog:                 getApplyLog,
-		planWorker:                  planWorker,
-		applyWorker:                 applyWorker,
+		config:      config,
+		router:      chi.NewRouter(),
+		facade:      facade,
+		planWorker:  planWorker,
+		applyWorker: applyWorker,
 	}
 
 	s.setupMiddleware()

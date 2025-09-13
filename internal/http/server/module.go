@@ -22,7 +22,7 @@ func (s *Server) handleGetModule(w http.ResponseWriter, r *http.Request) {
 		ModuleID: uint(moduleID),
 	}
 
-	resp, err := s.getModule.Exec(r.Context(), req)
+	resp, err := s.facade.GetModule(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -32,7 +32,7 @@ func (s *Server) handleGetModule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListModules(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.listModules.Exec(r.Context(), internal.ListModulesRequest{})
+	resp, err := s.facade.ListModules(r.Context(), internal.ListModulesRequest{})
 	if err != nil {
 		returnError(w, err)
 		return
@@ -49,7 +49,7 @@ func (s *Server) handleCreateModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := s.createModule.Exec(r.Context(), req)
+	resp, err := s.facade.CreateModule(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -75,7 +75,7 @@ func (s *Server) handleUpdateModule(w http.ResponseWriter, r *http.Request) {
 
 	req.ModuleID = uint(moduleID)
 
-	resp, err := s.updateModule.Exec(r.Context(), req)
+	resp, err := s.facade.UpdateModule(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -96,7 +96,7 @@ func (s *Server) handleDeleteModule(w http.ResponseWriter, r *http.Request) {
 		ModuleID: uint(moduleID),
 	}
 
-	resp, err := s.deleteModule.Exec(r.Context(), req)
+	resp, err := s.facade.DeleteModule(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -117,7 +117,7 @@ func (s *Server) handleGetModuleVersion(w http.ResponseWriter, r *http.Request) 
 		ModuleVersionID: uint(moduleVersionID),
 	}
 
-	resp, err := s.getModuleVersion.Exec(r.Context(), req)
+	resp, err := s.facade.GetModuleVersion(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -127,7 +127,7 @@ func (s *Server) handleGetModuleVersion(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleListModuleVersions(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.listModuleVersions.Exec(r.Context(), internal.ListModuleVersionsRequest{})
+	resp, err := s.facade.ListModuleVersions(r.Context(), internal.ListModuleVersionsRequest{})
 	if err != nil {
 		returnError(w, err)
 		return
@@ -144,7 +144,7 @@ func (s *Server) handleListModuleVersionsForModule(w http.ResponseWriter, r *htt
 		return
 	}
 
-	resp, err := s.listModuleVersionsForModule.Exec(r.Context(), internal.ListModuleVersionsForModuleRequest{
+	resp, err := s.facade.ListModuleVersionsForModule(r.Context(), internal.ListModuleVersionsForModuleRequest{
 		ModuleID: uint(moduleID),
 	})
 	if err != nil {

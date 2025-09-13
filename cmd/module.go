@@ -135,10 +135,11 @@ var moduleUpdateCmd = &cobra.Command{
 		client := client.NewClient(config)
 
 		req := internal.UpdateModuleRequest{
-			Version: version,
+			ModuleID: uint(moduleID),
+			Version:  version,
 		}
 
-		module, err := client.UpdateModule(cmd.Context(), uint(moduleID), req)
+		module, err := client.UpdateModule(cmd.Context(), req)
 		if err != nil {
 			return err
 		}
@@ -166,7 +167,7 @@ var moduleDeleteCmd = &cobra.Command{
 
 		client := client.NewClient(config)
 
-		_, err = client.DeleteModule(cmd.Context(), uint(moduleID))
+		_, err = client.DeleteModule(cmd.Context(), internal.DeleteModuleRequest{ModuleID: uint(moduleID)})
 		if err != nil {
 			return err
 		}

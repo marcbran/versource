@@ -11,8 +11,8 @@ import (
 	http2 "github.com/marcbran/versource/internal/http/server"
 )
 
-func (c *Client) GetModule(ctx context.Context, moduleID uint) (*internal.GetModuleResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/modules/%d", c.baseURL, moduleID)
+func (c *Client) GetModule(ctx context.Context, req internal.GetModuleRequest) (*internal.GetModuleResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/modules/%d", c.baseURL, req.ModuleID)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -40,7 +40,7 @@ func (c *Client) GetModule(ctx context.Context, moduleID uint) (*internal.GetMod
 	return &moduleResp, nil
 }
 
-func (c *Client) ListModules(ctx context.Context) (*internal.ListModulesResponse, error) {
+func (c *Client) ListModules(ctx context.Context, req internal.ListModulesRequest) (*internal.ListModulesResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/modules", c.baseURL)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -105,13 +105,13 @@ func (c *Client) CreateModule(ctx context.Context, req internal.CreateModuleRequ
 	return &moduleResp, nil
 }
 
-func (c *Client) UpdateModule(ctx context.Context, moduleID uint, req internal.UpdateModuleRequest) (*internal.UpdateModuleResponse, error) {
+func (c *Client) UpdateModule(ctx context.Context, req internal.UpdateModuleRequest) (*internal.UpdateModuleResponse, error) {
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/api/v1/modules/%d", c.baseURL, moduleID)
+	url := fmt.Sprintf("%s/api/v1/modules/%d", c.baseURL, req.ModuleID)
 	httpReq, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -141,8 +141,8 @@ func (c *Client) UpdateModule(ctx context.Context, moduleID uint, req internal.U
 	return &moduleResp, nil
 }
 
-func (c *Client) DeleteModule(ctx context.Context, moduleID uint) (*internal.DeleteModuleResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/modules/%d", c.baseURL, moduleID)
+func (c *Client) DeleteModule(ctx context.Context, req internal.DeleteModuleRequest) (*internal.DeleteModuleResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/modules/%d", c.baseURL, req.ModuleID)
 	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -170,8 +170,8 @@ func (c *Client) DeleteModule(ctx context.Context, moduleID uint) (*internal.Del
 	return &moduleResp, nil
 }
 
-func (c *Client) GetModuleVersion(ctx context.Context, moduleVersionID uint) (*internal.GetModuleVersionResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/module-versions/%d", c.baseURL, moduleVersionID)
+func (c *Client) GetModuleVersion(ctx context.Context, req internal.GetModuleVersionRequest) (*internal.GetModuleVersionResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/module-versions/%d", c.baseURL, req.ModuleVersionID)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -199,7 +199,7 @@ func (c *Client) GetModuleVersion(ctx context.Context, moduleVersionID uint) (*i
 	return &moduleVersionResp, nil
 }
 
-func (c *Client) ListModuleVersions(ctx context.Context) (*internal.ListModuleVersionsResponse, error) {
+func (c *Client) ListModuleVersions(ctx context.Context, req internal.ListModuleVersionsRequest) (*internal.ListModuleVersionsResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/module-versions", c.baseURL)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -228,8 +228,8 @@ func (c *Client) ListModuleVersions(ctx context.Context) (*internal.ListModuleVe
 	return &moduleVersionsResp, nil
 }
 
-func (c *Client) ListModuleVersionsForModule(ctx context.Context, moduleID uint) (*internal.ListModuleVersionsForModuleResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/modules/%d/versions", c.baseURL, moduleID)
+func (c *Client) ListModuleVersionsForModule(ctx context.Context, req internal.ListModuleVersionsForModuleRequest) (*internal.ListModuleVersionsForModuleResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/modules/%d/versions", c.baseURL, req.ModuleID)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)

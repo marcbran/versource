@@ -6,25 +6,24 @@ import (
 	"strconv"
 
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type DeleteData struct {
-	client        *client.Client
+	facade        internal.Facade
 	componentID   string
 	changesetName string
 }
 
-func NewDelete(client *client.Client) func(params map[string]string) platform.Page {
+func NewDelete(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewConfirmationPage(NewDeleteData(client, params["componentID"], params["changesetName"]))
+		return platform.NewConfirmationPage(NewDeleteData(facade, params["componentID"], params["changesetName"]))
 	}
 }
 
-func NewDeleteData(client *client.Client, componentID, changesetName string) *DeleteData {
+func NewDeleteData(facade internal.Facade, componentID, changesetName string) *DeleteData {
 	return &DeleteData{
-		client:        client,
+		facade:        facade,
 		componentID:   componentID,
 		changesetName: changesetName,
 	}
@@ -50,7 +49,7 @@ func (d *DeleteData) OnConfirm(ctx context.Context) (string, error) {
 		Changeset:   d.changesetName,
 	}
 
-	_, err = d.client.DeleteComponent(ctx, req)
+	_, err = d.facade.DeleteComponent(ctx, req)
 	if err != nil {
 		return "", err
 	}

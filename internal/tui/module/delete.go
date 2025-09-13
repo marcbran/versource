@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal/http/client"
+	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type DeleteModuleData struct {
-	client   *client.Client
+	facade   internal.Facade
 	moduleID string
 }
 
-func NewDeleteModule(client *client.Client) func(params map[string]string) platform.Page {
+func NewDeleteModule(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewConfirmationPage(&DeleteModuleData{client: client, moduleID: params["moduleID"]})
+		return platform.NewConfirmationPage(&DeleteModuleData{facade: facade, moduleID: params["moduleID"]})
 	}
 }
 
@@ -34,7 +34,7 @@ func (d *DeleteModuleData) OnConfirm(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, err = d.client.DeleteModule(ctx, uint(moduleID))
+	_, err = d.facade.DeleteModule(ctx, internal.DeleteModuleRequest{ModuleID: uint(moduleID)})
 	if err != nil {
 		return "", err
 	}

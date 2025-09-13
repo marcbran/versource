@@ -7,23 +7,26 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type TableData struct {
-	client *client.Client
+	facade internal.Facade
 }
 
-func NewTable(client *client.Client) func(params map[string]string) platform.Page {
+func NewTable(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataTable[internal.Plan](&TableData{client: client})
+		return platform.NewDataTable(NewTableData(facade))
 	}
+}
+
+func NewTableData(facade internal.Facade) *TableData {
+	return &TableData{facade: facade}
 }
 
 func (p *TableData) LoadData() ([]internal.Plan, error) {
 	ctx := context.Background()
-	resp, err := p.client.ListPlans(ctx, internal.ListPlansRequest{})
+	resp, err := p.facade.ListPlans(ctx, internal.ListPlansRequest{})
 	if err != nil {
 		return nil, err
 	}

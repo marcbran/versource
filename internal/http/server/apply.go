@@ -24,7 +24,7 @@ func (s *Server) handleGetApplyLog(w http.ResponseWriter, r *http.Request) {
 		ApplyID: uint(applyID),
 	}
 
-	response, err := s.getApplyLog.Exec(r.Context(), req)
+	response, err := s.facade.GetApplyLog(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -44,7 +44,7 @@ func (s *Server) handleGetApplyLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListApplies(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.listApplies.Exec(r.Context(), internal.ListAppliesRequest{})
+	resp, err := s.facade.ListApplies(r.Context(), internal.ListAppliesRequest{})
 	if err != nil {
 		returnError(w, err)
 		return

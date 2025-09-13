@@ -10,7 +10,7 @@ import (
 )
 
 func (s *Server) handleListChangesets(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.listChangesets.Exec(r.Context(), internal.ListChangesetsRequest{})
+	resp, err := s.facade.ListChangesets(r.Context(), internal.ListChangesetsRequest{})
 	if err != nil {
 		returnError(w, err)
 		return
@@ -27,7 +27,7 @@ func (s *Server) handleCreateChangeset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := s.createChangeset.Exec(r.Context(), req)
+	resp, err := s.facade.CreateChangeset(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -47,7 +47,7 @@ func (s *Server) handleMergeChangeset(w http.ResponseWriter, r *http.Request) {
 		ChangesetName: changesetName,
 	}
 
-	resp, err := s.mergeChangeset.Exec(r.Context(), req)
+	resp, err := s.facade.MergeChangeset(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return

@@ -7,15 +7,14 @@ import (
 	"strconv"
 
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 	"gopkg.in/yaml.v3"
 )
 
 type DetailData struct {
-	client      *client.Client
-	componentID string
-	changeset   *string
+	facade        internal.Facade
+	componentID   string
+	changesetName string
 }
 
 type DetailViewModel struct {
@@ -33,21 +32,21 @@ type DetailViewModel struct {
 	Variables map[string]any `yaml:"variables,omitempty"`
 }
 
-func NewDetail(client *client.Client) func(params map[string]string) platform.Page {
+func NewDetail(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		var changeset *string
-		if changesetParam := params["changeset"]; changesetParam != "" {
-			changeset = &changesetParam
-		}
-		return platform.NewDataViewport(NewDetailData(client, params["componentID"], changeset))
+		return platform.NewDataViewport(NewDetailData(
+			facade,
+			params["componentID"],
+			params["changesetName"],
+		))
 	}
 }
 
-func NewDetailData(client *client.Client, componentID string, changeset *string) *DetailData {
+func NewDetailData(facade internal.Facade, componentID string, changesetName string) *DetailData {
 	return &DetailData{
-		client:      client,
-		componentID: componentID,
-		changeset:   changeset,
+		facade:        facade,
+		componentID:   componentID,
+		changesetName: changesetName,
 	}
 }
 
@@ -59,7 +58,7 @@ func (p *DetailData) LoadData() (*internal.GetComponentResponse, error) {
 		return nil, err
 	}
 
-	componentResp, err := p.client.GetComponent(ctx, uint(componentIDUint), p.changeset)
+	componentResp, err := p.facade.GetComponent(ctx, internal.GetComponentRequest{ComponentID: uint(componentIDUint), Changeset: &p.changesetName})
 	if err != nil {
 		return nil, err
 	}
@@ -135,9 +134,9 @@ func (p *DetailData) KeyBindings(elem internal.GetComponentResponse) platform.Ke
 		{Key: "v", Help: "View module versions", Command: fmt.Sprintf("modules/%d/moduleversions", elem.Component.ModuleVersion.Module.ID)},
 	}
 
-	if p.changeset != nil {
+	if p.changesetName != "" {
 		keyBindings = append(keyBindings, platform.KeyBinding{
-			Key: "D", Help: "Delete component", Command: fmt.Sprintf("components/%d/delete?changeset=%s", elem.Component.ID, *p.changeset),
+			Key: "D", Help: "Delete component", Command: fmt.Sprintf("components/%d/delete?changesetName=%s", elem.Component.ID, p.changesetName),
 		})
 	}
 

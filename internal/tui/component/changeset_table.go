@@ -6,30 +6,33 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type ChangesetTableData struct {
-	client    *client.Client
-	changeset string
+	facade        internal.Facade
+	changesetName string
 }
 
-func NewChangesetTable(client *client.Client) func(params map[string]string) platform.Page {
+func NewChangesetTable(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataTable(&ChangesetTableData{
-			client:    client,
-			changeset: params["changesetName"],
-		})
+		return platform.NewDataTable(NewChangesetTableData(facade, params["changesetName"]))
+	}
+}
+
+func NewChangesetTableData(facade internal.Facade, changesetName string) *ChangesetTableData {
+	return &ChangesetTableData{
+		facade:        facade,
+		changesetName: changesetName,
 	}
 }
 
 func (p *ChangesetTableData) LoadData() ([]internal.ComponentDiff, error) {
 	ctx := context.Background()
 	req := internal.ListComponentDiffsRequest{
-		Changeset: p.changeset,
+		Changeset: p.changesetName,
 	}
-	resp, err := p.client.ListComponentDiffs(ctx, req)
+	resp, err := p.facade.ListComponentDiffs(ctx, req)
 	if err != nil {
 		return nil, err
 	}

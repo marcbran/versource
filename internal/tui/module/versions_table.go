@@ -7,27 +7,26 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal"
-	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/platform"
 )
 
 type VersionsTableData struct {
-	client *client.Client
+	facade internal.Facade
 }
 
-func NewVersionsTable(client *client.Client) func(params map[string]string) platform.Page {
+func NewVersionsTable(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataTable(NewVersionsTableData(client))
+		return platform.NewDataTable(NewVersionsTableData(facade))
 	}
 }
 
-func NewVersionsTableData(client *client.Client) *VersionsTableData {
-	return &VersionsTableData{client: client}
+func NewVersionsTableData(facade internal.Facade) *VersionsTableData {
+	return &VersionsTableData{facade: facade}
 }
 
 func (p *VersionsTableData) LoadData() ([]internal.ModuleVersion, error) {
 	ctx := context.Background()
-	resp, err := p.client.ListModuleVersions(ctx)
+	resp, err := p.facade.ListModuleVersions(ctx, internal.ListModuleVersionsRequest{})
 	if err != nil {
 		return nil, err
 	}

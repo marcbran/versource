@@ -10,8 +10,8 @@ import (
 	http2 "github.com/marcbran/versource/internal/http/server"
 )
 
-func (c *Client) GetApplyLog(ctx context.Context, applyID uint) (*internal.GetApplyLogResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/applies/%d/logs", c.baseURL, applyID)
+func (c *Client) GetApplyLog(ctx context.Context, req internal.GetApplyLogRequest) (*internal.GetApplyLogResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/applies/%d/logs", c.baseURL, req.ApplyID)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -36,7 +36,7 @@ func (c *Client) GetApplyLog(ctx context.Context, applyID uint) (*internal.GetAp
 	}, nil
 }
 
-func (c *Client) ListApplies(ctx context.Context) (*internal.ListAppliesResponse, error) {
+func (c *Client) ListApplies(ctx context.Context, req internal.ListAppliesRequest) (*internal.ListAppliesResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/applies", c.baseURL)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -63,4 +63,28 @@ func (c *Client) ListApplies(ctx context.Context) (*internal.ListAppliesResponse
 	}
 
 	return &appliesResp, nil
+}
+
+func (c *Client) RunApply(ctx context.Context, applyID uint) error {
+	url := fmt.Sprintf("%s/api/v1/applies/%d/run", c.baseURL, applyID)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp http2.ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	return nil
 }

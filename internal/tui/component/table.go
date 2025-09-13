@@ -67,12 +67,12 @@ func (p *TableData) LoadData() ([]internal.Component, error) {
 }
 
 func (p *TableData) ResolveData(data []internal.Component) ([]table.Column, []table.Row, []internal.Component) {
-
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Name", Width: 3},
-		{Title: "Module", Width: 7},
+		{Title: "Module", Width: 6},
 		{Title: "Version", Width: 2},
+		{Title: "Status", Width: 1},
 	}
 
 	var rows []table.Row
@@ -91,6 +91,7 @@ func (p *TableData) ResolveData(data []internal.Component) ([]table.Column, []ta
 			component.Name,
 			source,
 			version,
+			string(component.Status),
 		})
 		elems = append(elems, component)
 	}

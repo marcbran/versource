@@ -28,6 +28,35 @@ func (r *GormComponentRepo) GetComponent(ctx context.Context, componentID uint) 
 	return &component, nil
 }
 
+func (r *GormComponentRepo) GetComponentAtCommit(ctx context.Context, componentID uint, commit string) (*internal.Component, error) {
+	db := getTxOrDb(ctx, r.db)
+	var component internal.Component
+	query := fmt.Sprintf("SELECT * FROM components AS OF '%s' WHERE id = ?", commit)
+	err := db.WithContext(ctx).Raw(query, componentID).Scan(&component).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get component at commit: %w", err)
+	}
+
+	var moduleVersion internal.ModuleVersion
+	moduleVersionQuery := fmt.Sprintf("SELECT * FROM module_versions AS OF '%s' WHERE id = ?", commit)
+	err = db.WithContext(ctx).Raw(moduleVersionQuery, component.ModuleVersionID).Scan(&moduleVersion).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get module version at commit: %w", err)
+	}
+
+	var module internal.Module
+	moduleQuery := fmt.Sprintf("SELECT * FROM modules AS OF '%s' WHERE id = ?", commit)
+	err = db.WithContext(ctx).Raw(moduleQuery, moduleVersion.ModuleID).Scan(&module).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get module at commit: %w", err)
+	}
+
+	moduleVersion.Module = module
+	component.ModuleVersion = moduleVersion
+
+	return &component, nil
+}
+
 func (r *GormComponentRepo) ListComponents(ctx context.Context) ([]internal.Component, error) {
 	db := getTxOrDb(ctx, r.db)
 	var components []internal.Component

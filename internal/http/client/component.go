@@ -195,3 +195,32 @@ func (c *Client) UpdateComponent(ctx context.Context, req internal.UpdateCompone
 
 	return &componentResp, nil
 }
+
+func (c *Client) DeleteComponent(ctx context.Context, req internal.DeleteComponentRequest) (*internal.DeleteComponentResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d", c.baseURL, req.Changeset, req.ComponentID)
+	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp http2.ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	var componentResp internal.DeleteComponentResponse
+	if err := json.NewDecoder(resp.Body).Decode(&componentResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &componentResp, nil
+}

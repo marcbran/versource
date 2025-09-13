@@ -13,8 +13,16 @@ type Component struct {
 	Name            string        `gorm:"not null;default:'';uniqueIndex"`
 	ModuleVersion   ModuleVersion `gorm:"foreignKey:ModuleVersionID"`
 	ModuleVersionID uint
-	Variables       datatypes.JSON `gorm:"type:jsonb"`
+	Variables       datatypes.JSON  `gorm:"type:jsonb"`
+	Status          ComponentStatus `gorm:"default:Ready"`
 }
+
+type ComponentStatus string
+
+const (
+	ComponentStatusReady   ComponentStatus = "Ready"
+	ComponentStatusDeleted ComponentStatus = "Deleted"
+)
 
 type ComponentDiff struct {
 	FromComponent Component
@@ -32,6 +40,7 @@ const (
 
 type ComponentRepo interface {
 	GetComponent(ctx context.Context, componentID uint) (*Component, error)
+	GetComponentAtCommit(ctx context.Context, componentID uint, commit string) (*Component, error)
 	ListComponents(ctx context.Context) ([]Component, error)
 	ListComponentsByModule(ctx context.Context, moduleID uint) ([]Component, error)
 	ListComponentsByModuleVersion(ctx context.Context, moduleVersionID uint) ([]Component, error)
@@ -413,6 +422,114 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 	planResp, err := u.createPlan.Exec(ctx, planReq)
 	if err != nil {
 		return nil, InternalErrE("failed to create plan after component creation", err)
+	}
+
+	response.PlanID = planResp.ID
+
+	return response, nil
+}
+
+type DeleteComponent struct {
+	componentRepo   ComponentRepo
+	ensureChangeset *EnsureChangeset
+	createPlan      *CreatePlan
+	tx              TransactionManager
+}
+
+func NewDeleteComponent(componentRepo ComponentRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *DeleteComponent {
+	return &DeleteComponent{
+		componentRepo:   componentRepo,
+		ensureChangeset: ensureChangeset,
+		createPlan:      createPlan,
+		tx:              tx,
+	}
+}
+
+type DeleteComponentRequest struct {
+	ComponentID uint   `json:"component_id"`
+	Changeset   string `json:"changeset"`
+}
+
+type DeleteComponentResponse struct {
+	ID        uint            `json:"id"`
+	Name      string          `json:"name"`
+	Source    string          `json:"source"`
+	Version   string          `json:"version"`
+	Variables map[string]any  `json:"variables"`
+	Status    ComponentStatus `json:"status"`
+	PlanID    uint            `json:"plan_id"`
+}
+
+func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) (*DeleteComponentResponse, error) {
+	if req.Changeset == "" {
+		return nil, UserErr("changeset is required")
+	}
+
+	ensureChangesetReq := EnsureChangesetRequest{
+		Name: req.Changeset,
+	}
+
+	_, err := d.ensureChangeset.Exec(ctx, ensureChangesetReq)
+	if err != nil {
+		return nil, InternalErrE("failed to ensure changeset", err)
+	}
+
+	var response *DeleteComponentResponse
+	err = d.tx.Do(ctx, req.Changeset, "delete component", func(ctx context.Context) error {
+		component, err := d.componentRepo.GetComponent(ctx, req.ComponentID)
+		if err != nil {
+			return UserErrE("component not found", err)
+		}
+
+		mergeBase, err := d.tx.GetMergeBase(ctx, MainBranch, req.Changeset)
+		if err != nil {
+			return InternalErrE("failed to get merge base", err)
+		}
+
+		mergeBaseComponent, err := d.componentRepo.GetComponentAtCommit(ctx, req.ComponentID, mergeBase)
+		if err != nil {
+			return InternalErrE("failed to get component at merge base", err)
+		}
+
+		component.ModuleVersionID = mergeBaseComponent.ModuleVersionID
+		component.Variables = mergeBaseComponent.Variables
+		component.Status = ComponentStatusDeleted
+
+		err = d.componentRepo.UpdateComponent(ctx, component)
+		if err != nil {
+			return InternalErrE("failed to update component", err)
+		}
+
+		var variables map[string]any
+		err = json.Unmarshal(component.Variables, &variables)
+		if err != nil {
+			return InternalErrE("failed to unmarshal variables", err)
+		}
+
+		response = &DeleteComponentResponse{
+			ID:        component.ID,
+			Name:      component.Name,
+			Source:    component.ModuleVersion.Module.Source,
+			Version:   component.ModuleVersion.Version,
+			Variables: variables,
+			Status:    component.Status,
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete component: %w", err)
+	}
+
+	planReq := CreatePlanRequest{
+		ComponentID: response.ID,
+		Changeset:   req.Changeset,
+	}
+
+	planResp, err := d.createPlan.Exec(ctx, planReq)
+	if err != nil {
+		return nil, InternalErrE("failed to create plan after component deletion", err)
 	}
 
 	response.PlanID = planResp.ID

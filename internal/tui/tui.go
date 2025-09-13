@@ -49,6 +49,7 @@ func RunApp(client *client.Client) error {
 		Route("components", component.NewTable(client)).
 		Route("components/create", component.NewCreateComponent(client)).
 		Route("components/{componentID}", component.NewDetail(client)).
+		Route("components/{componentID}/delete", component.NewDelete(client)).
 		Route("plans", plan.NewTable(client)).
 		Route("plans/{planID}/logs", plan.NewLogs(client)).
 		Route("applies", apply.NewTable(client)).

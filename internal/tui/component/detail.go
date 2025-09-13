@@ -21,6 +21,7 @@ type DetailData struct {
 type DetailViewModel struct {
 	ID     uint   `yaml:"id"`
 	Name   string `yaml:"name"`
+	Status string `yaml:"status"`
 	Module *struct {
 		ID      uint   `yaml:"id"`
 		Source  string `yaml:"source"`
@@ -115,6 +116,7 @@ func (p *DetailData) ResolveData(data internal.GetComponentResponse) string {
 	viewModel := DetailViewModel{
 		ID:        data.Component.ID,
 		Name:      data.Component.Name,
+		Status:    string(data.Component.Status),
 		Module:    module,
 		Variables: variables,
 	}
@@ -128,8 +130,16 @@ func (p *DetailData) ResolveData(data internal.GetComponentResponse) string {
 }
 
 func (p *DetailData) KeyBindings(elem internal.GetComponentResponse) platform.KeyBindings {
-	return platform.KeyBindings{
+	keyBindings := platform.KeyBindings{
 		{Key: "m", Help: "View module", Command: fmt.Sprintf("modules/%d", elem.Component.ModuleVersion.Module.ID)},
 		{Key: "v", Help: "View module versions", Command: fmt.Sprintf("modules/%d/moduleversions", elem.Component.ModuleVersion.Module.ID)},
 	}
+
+	if p.changeset != nil {
+		keyBindings = append(keyBindings, platform.KeyBinding{
+			Key: "D", Help: "Delete component", Command: fmt.Sprintf("components/%d/delete?changeset=%s", elem.Component.ID, *p.changeset),
+		})
+	}
+
+	return keyBindings
 }

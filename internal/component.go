@@ -536,3 +536,119 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 
 	return response, nil
 }
+
+type RestoreComponent struct {
+	componentRepo   ComponentRepo
+	ensureChangeset *EnsureChangeset
+	createPlan      *CreatePlan
+	tx              TransactionManager
+}
+
+func NewRestoreComponent(componentRepo ComponentRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *RestoreComponent {
+	return &RestoreComponent{
+		componentRepo:   componentRepo,
+		ensureChangeset: ensureChangeset,
+		createPlan:      createPlan,
+		tx:              tx,
+	}
+}
+
+type RestoreComponentRequest struct {
+	ComponentID uint   `json:"component_id"`
+	Changeset   string `json:"changeset"`
+}
+
+type RestoreComponentResponse struct {
+	ID        uint            `json:"id"`
+	Name      string          `json:"name"`
+	Source    string          `json:"source"`
+	Version   string          `json:"version"`
+	Variables map[string]any  `json:"variables"`
+	Status    ComponentStatus `json:"status"`
+	PlanID    uint            `json:"plan_id"`
+}
+
+func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest) (*RestoreComponentResponse, error) {
+	if req.Changeset == "" {
+		return nil, UserErr("changeset is required")
+	}
+
+	ensureChangesetReq := EnsureChangesetRequest{
+		Name: req.Changeset,
+	}
+
+	_, err := r.ensureChangeset.Exec(ctx, ensureChangesetReq)
+	if err != nil {
+		return nil, InternalErrE("failed to ensure changeset", err)
+	}
+
+	var response *RestoreComponentResponse
+	err = r.tx.Do(ctx, req.Changeset, "restore component", func(ctx context.Context) error {
+		component, err := r.componentRepo.GetComponent(ctx, req.ComponentID)
+		if err != nil {
+			return UserErrE("component not found", err)
+		}
+
+		if component.Status != ComponentStatusDeleted {
+			return UserErr("component is not deleted")
+		}
+
+		mergeBase, err := r.tx.GetMergeBase(ctx, MainBranch, req.Changeset)
+		if err != nil {
+			return InternalErrE("failed to get merge base", err)
+		}
+
+		mergeBaseComponent, err := r.componentRepo.GetComponentAtCommit(ctx, req.ComponentID, mergeBase)
+		if err != nil {
+			return InternalErrE("failed to get component at merge base", err)
+		}
+
+		if mergeBaseComponent.Status == ComponentStatusDeleted {
+			return UserErr("component is deleted in merge base")
+		}
+
+		component.ModuleVersionID = mergeBaseComponent.ModuleVersionID
+		component.Variables = mergeBaseComponent.Variables
+		component.Status = ComponentStatusReady
+
+		err = r.componentRepo.UpdateComponent(ctx, component)
+		if err != nil {
+			return InternalErrE("failed to update component", err)
+		}
+
+		var variables map[string]any
+		err = json.Unmarshal(component.Variables, &variables)
+		if err != nil {
+			return InternalErrE("failed to unmarshal variables", err)
+		}
+
+		response = &RestoreComponentResponse{
+			ID:        component.ID,
+			Name:      component.Name,
+			Source:    component.ModuleVersion.Module.Source,
+			Version:   component.ModuleVersion.Version,
+			Variables: variables,
+			Status:    component.Status,
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to restore component: %w", err)
+	}
+
+	planReq := CreatePlanRequest{
+		ComponentID: response.ID,
+		Changeset:   req.Changeset,
+	}
+
+	planResp, err := r.createPlan.Exec(ctx, planReq)
+	if err != nil {
+		return nil, InternalErrE("failed to create plan after component restoration", err)
+	}
+
+	response.PlanID = planResp.ID
+
+	return response, nil
+}

@@ -176,3 +176,31 @@ func (s *Server) handleDeleteComponent(w http.ResponseWriter, r *http.Request) {
 
 	returnSuccess(w, resp)
 }
+
+func (s *Server) handleRestoreComponent(w http.ResponseWriter, r *http.Request) {
+	changesetName := chi.URLParam(r, "changesetName")
+	if changesetName == "" {
+		returnBadRequest(w, fmt.Errorf("changeset name is required"))
+		return
+	}
+
+	componentIDStr := chi.URLParam(r, "componentID")
+	componentID, err := strconv.ParseUint(componentIDStr, 10, 64)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid component ID"))
+		return
+	}
+
+	req := internal.RestoreComponentRequest{
+		ComponentID: uint(componentID),
+		Changeset:   changesetName,
+	}
+
+	resp, err := s.restoreComponent.Exec(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}

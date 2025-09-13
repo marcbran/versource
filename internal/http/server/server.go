@@ -77,6 +77,7 @@ type Server struct {
 	createComponent             *internal.CreateComponent
 	updateComponent             *internal.UpdateComponent
 	deleteComponent             *internal.DeleteComponent
+	restoreComponent            *internal.RestoreComponent
 	listComponentDiffs          *internal.ListComponentDiffs
 	listPlans                   *internal.ListPlans
 	createPlan                  *internal.CreatePlan
@@ -139,6 +140,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		createComponent:             internal.NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
 		updateComponent:             internal.NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
 		deleteComponent:             internal.NewDeleteComponent(componentRepo, ensureChangeset, createPlan, transactionManager),
+		restoreComponent:            internal.NewRestoreComponent(componentRepo, ensureChangeset, createPlan, transactionManager),
 		listComponentDiffs:          internal.NewListComponentDiffs(componentDiffRepo, transactionManager),
 		listPlans:                   internal.NewListPlans(planRepo, transactionManager),
 		createPlan:                  createPlan,
@@ -194,6 +196,7 @@ func (s *Server) setupRoutes() {
 				r.Get("/", s.handleGetComponent)
 				r.Patch("/", s.handleUpdateComponent)
 				r.Delete("/", s.handleDeleteComponent)
+				r.Post("/restore", s.handleRestoreComponent)
 				r.Post("/plans", s.handleCreatePlan)
 			})
 			r.Post("/merge", s.handleMergeChangeset)

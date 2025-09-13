@@ -80,5 +80,6 @@ func (p *ChangesetTableData) ElemKeyBindings(elem internal.Component) platform.K
 	return platform.KeyBindings{
 		{Key: "P", Help: "Create plan for component", Command: fmt.Sprintf("changesets/%s/components/%d/plans/create", p.changesetName, elem.ID)},
 		{Key: "D", Help: "Delete component", Command: fmt.Sprintf("changesets/%s/components/%d/delete", p.changesetName, elem.ID)},
+		{Key: "R", Help: "Restore component", Command: fmt.Sprintf("changesets/%s/components/%d/restore", p.changesetName, elem.ID)},
 	}
 }

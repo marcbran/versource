@@ -310,14 +310,16 @@ type UpdateComponent struct {
 	componentRepo     ComponentRepo
 	moduleVersionRepo ModuleVersionRepo
 	ensureChangeset   *EnsureChangeset
+	createPlan        *CreatePlan
 	tx                TransactionManager
 }
 
-func NewUpdateComponent(componentRepo ComponentRepo, moduleVersionRepo ModuleVersionRepo, ensureChangeset *EnsureChangeset, tx TransactionManager) *UpdateComponent {
+func NewUpdateComponent(componentRepo ComponentRepo, moduleVersionRepo ModuleVersionRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *UpdateComponent {
 	return &UpdateComponent{
 		componentRepo:     componentRepo,
 		moduleVersionRepo: moduleVersionRepo,
 		ensureChangeset:   ensureChangeset,
+		createPlan:        createPlan,
 		tx:                tx,
 	}
 }
@@ -335,6 +337,7 @@ type UpdateComponentResponse struct {
 	Source    string         `json:"source"`
 	Version   string         `json:"version"`
 	Variables map[string]any `json:"variables"`
+	PlanID    uint           `json:"plan_id"`
 }
 
 func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) (*UpdateComponentResponse, error) {
@@ -342,8 +345,17 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 		return nil, UserErr("changeset is required")
 	}
 
+	ensureChangesetReq := EnsureChangesetRequest{
+		Name: req.Changeset,
+	}
+
+	_, err := u.ensureChangeset.Exec(ctx, ensureChangesetReq)
+	if err != nil {
+		return nil, InternalErrE("failed to ensure changeset", err)
+	}
+
 	var response *UpdateComponentResponse
-	err := u.tx.Do(ctx, req.Changeset, "update component", func(ctx context.Context) error {
+	err = u.tx.Do(ctx, req.Changeset, "update component", func(ctx context.Context) error {
 		component, err := u.componentRepo.GetComponent(ctx, req.ComponentID)
 		if err != nil {
 			return UserErrE("component not found", err)
@@ -392,6 +404,18 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to update component: %w", err)
 	}
+
+	planReq := CreatePlanRequest{
+		ComponentID: response.ID,
+		Changeset:   req.Changeset,
+	}
+
+	planResp, err := u.createPlan.Exec(ctx, planReq)
+	if err != nil {
+		return nil, InternalErrE("failed to create plan after component creation", err)
+	}
+
+	response.PlanID = planResp.ID
 
 	return response, nil
 }

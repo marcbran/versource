@@ -136,7 +136,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		listComponents:              internal.NewListComponents(componentRepo, transactionManager),
 		getComponent:                internal.NewGetComponent(componentRepo, transactionManager),
 		createComponent:             internal.NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
-		updateComponent:             internal.NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, transactionManager),
+		updateComponent:             internal.NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
 		listComponentDiffs:          internal.NewListComponentDiffs(componentDiffRepo, transactionManager),
 		listPlans:                   internal.NewListPlans(planRepo, transactionManager),
 		createPlan:                  createPlan,

@@ -29,8 +29,12 @@ type VersionDetailViewModel struct {
 
 func NewVersionDetail(client *client.Client) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataViewport(&VersionDetailData{client: client, moduleVersionID: params["moduleVersionID"]})
+		return platform.NewDataViewport(NewVersionDetailData(client, params["moduleVersionID"]))
 	}
+}
+
+func NewVersionDetailData(client *client.Client, moduleVersionID string) *VersionDetailData {
+	return &VersionDetailData{client: client, moduleVersionID: moduleVersionID}
 }
 
 func (p *VersionDetailData) LoadData() (*internal.GetModuleVersionResponse, error) {

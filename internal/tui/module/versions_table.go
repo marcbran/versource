@@ -17,8 +17,12 @@ type VersionsTableData struct {
 
 func NewVersionsTable(client *client.Client) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataTable[internal.ModuleVersion](&VersionsTableData{client: client})
+		return platform.NewDataTable(NewVersionsTableData(client))
 	}
+}
+
+func NewVersionsTableData(client *client.Client) *VersionsTableData {
+	return &VersionsTableData{client: client}
 }
 
 func (p *VersionsTableData) LoadData() ([]internal.ModuleVersion, error) {

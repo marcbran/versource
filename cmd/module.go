@@ -175,6 +175,55 @@ var moduleDeleteCmd = &cobra.Command{
 	},
 }
 
+var moduleVersionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Manage module versions",
+	Long:  `Manage module versions`,
+}
+
+var moduleVersionGetCmd = &cobra.Command{
+	Use:   "get [module-version-id]",
+	Short: "Get a specific module version",
+	Long:  `Get details for a specific module version by ID`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		config, err := LoadConfig(cmd)
+		if err != nil {
+			return err
+		}
+		httpClient := client.NewClient(config)
+		detailData := module.NewVersionDetailData(httpClient, args[0])
+		return renderViewpointData(detailData)
+	},
+}
+
+var moduleVersionListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List module versions",
+	Long:  `List all module versions or versions for a specific module`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		config, err := LoadConfig(cmd)
+		if err != nil {
+			return err
+		}
+
+		httpClient := client.NewClient(config)
+
+		moduleIDStr, err := cmd.Flags().GetString("module-id")
+		if err != nil {
+			return fmt.Errorf("failed to get module-id flag: %w", err)
+		}
+
+		if moduleIDStr != "" {
+			tableData := module.NewVersionsForModuleTableData(httpClient, moduleIDStr)
+			return renderTableData(tableData)
+		}
+
+		tableData := module.NewVersionsTableData(httpClient)
+		return renderTableData(tableData)
+	},
+}
+
 func init() {
 	moduleCreateCmd.Flags().String("name", "", "Module name")
 	moduleCreateCmd.Flags().String("source", "", "Module source")
@@ -187,9 +236,15 @@ func init() {
 	moduleUpdateCmd.Flags().String("version", "", "Module version")
 	moduleUpdateCmd.MarkFlagRequired("version")
 
+	moduleVersionListCmd.Flags().String("module-id", "", "Filter versions by module ID")
+
+	moduleVersionCmd.AddCommand(moduleVersionGetCmd)
+	moduleVersionCmd.AddCommand(moduleVersionListCmd)
+
 	moduleCmd.AddCommand(moduleGetCmd)
 	moduleCmd.AddCommand(moduleListCmd)
 	moduleCmd.AddCommand(moduleCreateCmd)
 	moduleCmd.AddCommand(moduleUpdateCmd)
 	moduleCmd.AddCommand(moduleDeleteCmd)
+	moduleCmd.AddCommand(moduleVersionCmd)
 }

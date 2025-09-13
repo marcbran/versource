@@ -2,7 +2,6 @@ package component
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -12,61 +11,80 @@ import (
 )
 
 type ChangesetTableData struct {
-	client        *client.Client
-	changesetName string
+	client    *client.Client
+	changeset string
 }
 
 func NewChangesetTable(client *client.Client) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataTable[internal.Component](&ChangesetTableData{
-			client:        client,
-			changesetName: params["changesetName"],
+		return platform.NewDataTable(&ChangesetTableData{
+			client:    client,
+			changeset: params["changesetName"],
 		})
 	}
 }
 
-func (p *ChangesetTableData) LoadData() ([]internal.Component, error) {
+func (p *ChangesetTableData) LoadData() ([]internal.ComponentDiff, error) {
 	ctx := context.Background()
-
-	req := internal.ListComponentsRequest{
-		Changeset: &p.changesetName,
+	req := internal.ListComponentDiffsRequest{
+		Changeset: p.changeset,
 	}
-
-	resp, err := p.client.ListComponents(ctx, req)
+	resp, err := p.client.ListComponentDiffs(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-
-	return resp.Components, nil
+	return resp.Diffs, nil
 }
 
-func (p *ChangesetTableData) ResolveData(data []internal.Component) ([]table.Column, []table.Row, []internal.Component) {
-
+func (p *ChangesetTableData) ResolveData(data []internal.ComponentDiff) ([]table.Column, []table.Row, []internal.ComponentDiff) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
-		{Title: "Name", Width: 3},
-		{Title: "Module", Width: 7},
-		{Title: "Version", Width: 2},
+		{Title: "Name", Width: 10},
+		{Title: "Type", Width: 8},
+		{Title: "Add", Width: 3},
+		{Title: "Change", Width: 5},
+		{Title: "Destroy", Width: 6},
 	}
 
 	var rows []table.Row
-	var elems []internal.Component
-	for _, component := range data {
-		source := ""
-		version := ""
-		if component.ModuleVersion.Module.Source != "" {
-			source = component.ModuleVersion.Module.Source
+	var elems []internal.ComponentDiff
+	for _, diff := range data {
+		toID := "N/A"
+		if diff.ToComponent.ID != 0 {
+			toID = strconv.FormatUint(uint64(diff.ToComponent.ID), 10)
 		}
-		if component.ModuleVersion.Version != "" {
-			version = component.ModuleVersion.Version
+
+		add := "?"
+		change := "?"
+		destroy := "?"
+
+		if diff.Plan != nil {
+			if diff.Plan.Add != nil {
+				add = strconv.Itoa(*diff.Plan.Add)
+			} else {
+				add = "0"
+			}
+			if diff.Plan.Change != nil {
+				change = strconv.Itoa(*diff.Plan.Change)
+			} else {
+				change = "0"
+			}
+			if diff.Plan.Destroy != nil {
+				destroy = strconv.Itoa(*diff.Plan.Destroy)
+			} else {
+				destroy = "0"
+			}
 		}
+
 		rows = append(rows, table.Row{
-			strconv.FormatUint(uint64(component.ID), 10),
-			component.Name,
-			source,
-			version,
+			toID,
+			diff.ToComponent.Name,
+			string(diff.DiffType),
+			add,
+			change,
+			destroy,
 		})
-		elems = append(elems, component)
+		elems = append(elems, diff)
 	}
 
 	return columns, rows, elems
@@ -76,10 +94,6 @@ func (p *ChangesetTableData) KeyBindings() platform.KeyBindings {
 	return platform.KeyBindings{}
 }
 
-func (p *ChangesetTableData) ElemKeyBindings(elem internal.Component) platform.KeyBindings {
-	return platform.KeyBindings{
-		{Key: "P", Help: "Create plan for component", Command: fmt.Sprintf("changesets/%s/components/%d/plans/create", p.changesetName, elem.ID)},
-		{Key: "D", Help: "Delete component", Command: fmt.Sprintf("changesets/%s/components/%d/delete", p.changesetName, elem.ID)},
-		{Key: "R", Help: "Restore component", Command: fmt.Sprintf("changesets/%s/components/%d/restore", p.changesetName, elem.ID)},
-	}
+func (p *ChangesetTableData) ElemKeyBindings(elem internal.ComponentDiff) platform.KeyBindings {
+	return platform.KeyBindings{}
 }

@@ -189,10 +189,26 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, fromComm
 		}
 		toComponent.Variables = raw.ToVariables
 
+		var plan *internal.Plan
+		componentID := toComponent.ID
+		if componentID == 0 && raw.ToID != nil {
+			componentID = *raw.ToID
+		}
+		if componentID != 0 {
+			var foundPlan internal.Plan
+			err := db.WithContext(ctx).
+				Where("component_id = ? AND merge_base = ? AND head = ?", componentID, fromCommit, toCommit).
+				First(&foundPlan).Error
+			if err == nil {
+				plan = &foundPlan
+			}
+		}
+
 		diffs[i] = internal.ComponentDiff{
 			FromComponent: fromComponent,
 			ToComponent:   toComponent,
 			DiffType:      internal.DiffType(raw.DiffType),
+			Plan:          plan,
 		}
 	}
 

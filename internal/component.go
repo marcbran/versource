@@ -28,6 +28,7 @@ type ComponentDiff struct {
 	FromComponent Component
 	ToComponent   Component
 	DiffType      DiffType
+	Plan          *Plan
 }
 
 type DiffType string

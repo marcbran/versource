@@ -65,7 +65,6 @@ func (p *TableData) ElemKeyBindings(elem internal.Module) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "enter", Help: "View module detail", Command: fmt.Sprintf("modules/%d", elem.ID)},
 		{Key: "v", Help: "View module versions", Command: fmt.Sprintf("modules/%d/moduleversions", elem.ID)},
-		{Key: "c", Help: "View components", Command: fmt.Sprintf("components?module-id=%d", elem.ID)},
 		{Key: "D", Help: "Delete module", Command: fmt.Sprintf("modules/%d/delete", elem.ID)},
 	}
 }

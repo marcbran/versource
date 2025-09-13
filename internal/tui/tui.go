@@ -34,9 +34,7 @@ func RunApp(client *client.Client) error {
 				{Key: "esc", Help: "Back to changesets", Command: pathWithoutChangeset},
 				{Key: "m", Help: "View modules", Command: fmt.Sprintf("changesets/%s/modules", changesetName)},
 				{Key: "c", Help: "View components", Command: fmt.Sprintf("changesets/%s/components", changesetName)},
-				{Key: "d", Help: "View component diffs", Command: fmt.Sprintf("changesets/%s/components/diffs", changesetName)},
 				{Key: "p", Help: "View plans", Command: fmt.Sprintf("changesets/%s/plans", changesetName)},
-				{Key: "a", Help: "View applies", Command: fmt.Sprintf("changesets/%s/applies", changesetName)},
 			}
 		}).
 		Route("modules", module.NewTable(client)).
@@ -55,7 +53,6 @@ func RunApp(client *client.Client) error {
 		Route("applies", apply.NewTable(client)).
 		Route("changesets", changeset.NewTable(client)).
 		Route("changesets/{changesetName}/components", component.NewChangesetTable(client)).
-		Route("changesets/{changesetName}/components/diffs", component.NewChangesetDiffTable(client)).
 		Route("changesets/{changesetName}/components/{componentID}/plans/create", component.NewCreatePlan(client)).
 		Route("changesets/{changesetName}/components/{componentID}/delete", component.NewDelete(client)).
 		Route("changesets/{changesetName}/components/{componentID}/restore", component.NewRestore(client)).

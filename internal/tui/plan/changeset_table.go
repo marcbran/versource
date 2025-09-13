@@ -66,7 +66,7 @@ func (p *ChangesetTableData) ResolveData(data []internal.Plan) ([]table.Column, 
 
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(plan.ID), 10),
-			strconv.FormatUint(uint64(plan.ComponentID), 10),
+			plan.Component.Name,
 			plan.Changeset.Name,
 			plan.State,
 			addStr,

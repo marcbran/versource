@@ -33,8 +33,8 @@ func (p *TableData) LoadData() ([]internal.Plan, error) {
 func (p *TableData) ResolveData(data []internal.Plan) ([]table.Column, []table.Row, []internal.Plan) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
-		{Title: "Component", Width: 1},
-		{Title: "Changeset", Width: 6},
+		{Title: "Component", Width: 4},
+		{Title: "Changeset", Width: 4},
 		{Title: "State", Width: 2},
 		{Title: "Add", Width: 1},
 		{Title: "Change", Width: 1},
@@ -59,7 +59,7 @@ func (p *TableData) ResolveData(data []internal.Plan) ([]table.Column, []table.R
 
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(plan.ID), 10),
-			strconv.FormatUint(uint64(plan.ComponentID), 10),
+			plan.Component.Name,
 			plan.Changeset.Name,
 			plan.State,
 			addStr,

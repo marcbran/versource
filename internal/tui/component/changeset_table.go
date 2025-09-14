@@ -84,6 +84,7 @@ func (p *ChangesetTableData) ElemKeyBindings(elem internal.Component) platform.K
 		{Key: "enter", Help: "View component detail", Command: fmt.Sprintf("changesets/%s/components/%d", p.changesetName, elem.ID)},
 		{Key: "E", Help: "Edit component", Command: fmt.Sprintf("changesets/%s/components/%d/edit", p.changesetName, elem.ID)},
 		{Key: "D", Help: "Delete component", Command: fmt.Sprintf("changesets/%s/components/%d/delete", p.changesetName, elem.ID)},
+		{Key: "S", Help: "Restore component", Command: fmt.Sprintf("changesets/%s/components/%d/restore", p.changesetName, elem.ID)},
 		{Key: "P", Help: "Create plan", Command: fmt.Sprintf("changesets/%s/components/%d/plans/create", p.changesetName, elem.ID)},
 	}
 }

@@ -163,33 +163,6 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, changese
 		WHERE rn = 1;
 	`
 
-	type rawDiff struct {
-		ToID                *uint          `json:"to_id"`
-		ToModuleVersionID   *uint          `json:"to_module_version_id"`
-		ToName              *string        `json:"to_name"`
-		ToVariables         datatypes.JSON `json:"to_variables"`
-		ToStatus            *string        `json:"to_status"`
-		ToCommit            string         `json:"to_commit"`
-		ToCommitDate        string         `json:"to_commit_date"`
-		FromID              *uint          `json:"from_id"`
-		FromModuleVersionID *uint          `json:"from_module_version_id"`
-		FromName            *string        `json:"from_name"`
-		FromVariables       datatypes.JSON `json:"from_variables"`
-		FromStatus          *string        `json:"from_status"`
-		FromCommit          string         `json:"from_commit"`
-		FromCommitDate      string         `json:"from_commit_date"`
-		DiffType            string         `json:"diff_type"`
-		PlanID              *uint          `json:"plan_id"`
-		PlanComponentID     *uint          `json:"plan_component_id"`
-		PlanChangesetID     *uint          `json:"plan_changeset_id"`
-		PlanMergeBase       *string        `json:"plan_merge_base"`
-		PlanHead            *string        `json:"plan_head"`
-		PlanState           *string        `json:"plan_state"`
-		PlanAdd             *int           `json:"plan_add"`
-		PlanChange          *int           `json:"plan_change"`
-		PlanDestroy         *int           `json:"plan_destroy"`
-	}
-
 	var rawDiffs []rawDiff
 	err := db.WithContext(ctx).Raw(query, changeset).Scan(&rawDiffs).Error
 	if err != nil {
@@ -198,11 +171,94 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, changese
 
 	diffs := make([]internal.ComponentDiff, len(rawDiffs))
 	for i, raw := range rawDiffs {
-		var fromComponent, toComponent internal.Component
+		diffs[i] = convertRawDiffToComponentDiff(raw)
+	}
 
-		if raw.FromID != nil {
-			fromComponent.ID = *raw.FromID
-		}
+	return diffs, nil
+}
+
+func (r *GormComponentDiffRepo) GetComponentDiff(ctx context.Context, componentID uint, changeset string) (*internal.ComponentDiff, error) {
+	db := getTxOrDb(ctx, r.db)
+
+	query := `
+		SELECT
+			d.to_id,
+			d.to_module_version_id,
+			d.to_name,
+			d.to_variables,
+			d.to_status,
+			d.to_commit,
+			d.to_commit_date,
+			d.from_id,
+			d.from_module_version_id,
+			d.from_name,
+			d.from_variables,
+			d.from_status,
+			d.from_commit,
+			d.from_commit_date,
+			d.diff_type,
+			p.id as plan_id,
+			p.component_id as plan_component_id,
+			p.changeset_id as plan_changeset_id,
+			p.merge_base as plan_merge_base,
+			p.head as plan_head,
+			p.state as plan_state,
+			p.add as plan_add,
+			p.change as plan_change,
+			p.destroy as plan_destroy
+		FROM dolt_diff_components d
+		JOIN dolt_log(?, "--not", "main", "--tables", "components") l
+			ON d.to_commit = l.commit_hash
+		LEFT JOIN plans p
+			ON d.to_id = p.component_id AND d.to_commit = p.head
+		WHERE d.to_id = ?
+		ORDER BY d.to_commit_date DESC
+		LIMIT 1;
+	`
+
+	var singleRawDiff rawDiff
+	err := db.WithContext(ctx).Raw(query, changeset, componentID).Scan(&singleRawDiff).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get component diff: %w", err)
+	}
+
+	diff := convertRawDiffToComponentDiff(singleRawDiff)
+	return &diff, nil
+}
+
+type rawDiff struct {
+	ToID                *uint          `json:"to_id"`
+	ToModuleVersionID   *uint          `json:"to_module_version_id"`
+	ToName              *string        `json:"to_name"`
+	ToVariables         datatypes.JSON `json:"to_variables"`
+	ToStatus            *string        `json:"to_status"`
+	ToCommit            string         `json:"to_commit"`
+	ToCommitDate        string         `json:"to_commit_date"`
+	FromID              *uint          `json:"from_id"`
+	FromModuleVersionID *uint          `json:"from_module_version_id"`
+	FromName            *string        `json:"from_name"`
+	FromVariables       datatypes.JSON `json:"from_variables"`
+	FromStatus          *string        `json:"from_status"`
+	FromCommit          string         `json:"from_commit"`
+	FromCommitDate      string         `json:"from_commit_date"`
+	DiffType            string         `json:"diff_type"`
+	PlanID              *uint          `json:"plan_id"`
+	PlanComponentID     *uint          `json:"plan_component_id"`
+	PlanChangesetID     *uint          `json:"plan_changeset_id"`
+	PlanMergeBase       *string        `json:"plan_merge_base"`
+	PlanHead            *string        `json:"plan_head"`
+	PlanState           *string        `json:"plan_state"`
+	PlanAdd             *int           `json:"plan_add"`
+	PlanChange          *int           `json:"plan_change"`
+	PlanDestroy         *int           `json:"plan_destroy"`
+}
+
+func convertRawDiffToComponentDiff(raw rawDiff) internal.ComponentDiff {
+	var fromComponent, toComponent *internal.Component
+
+	if raw.FromID != nil {
+		fromComponent = &internal.Component{}
+		fromComponent.ID = *raw.FromID
 		if raw.FromModuleVersionID != nil {
 			fromComponent.ModuleVersionID = *raw.FromModuleVersionID
 		}
@@ -213,10 +269,11 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, changese
 		if raw.FromStatus != nil {
 			fromComponent.Status = internal.ComponentStatus(*raw.FromStatus)
 		}
+	}
 
-		if raw.ToID != nil {
-			toComponent.ID = *raw.ToID
-		}
+	if raw.ToID != nil {
+		toComponent = &internal.Component{}
+		toComponent.ID = *raw.ToID
 		if raw.ToModuleVersionID != nil {
 			toComponent.ModuleVersionID = *raw.ToModuleVersionID
 		}
@@ -227,38 +284,36 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, changese
 		if raw.ToStatus != nil {
 			toComponent.Status = internal.ComponentStatus(*raw.ToStatus)
 		}
+	}
 
-		diffType := internal.DiffType(raw.DiffType)
-		if raw.ToStatus != nil && *raw.ToStatus == string(internal.ComponentStatusDeleted) {
-			diffType = internal.DiffTypeDeleted
-		} else if raw.DiffType == "added" {
-			diffType = internal.DiffTypeCreated
-		} else if raw.DiffType == "modified" {
-			diffType = internal.DiffTypeModified
-		}
+	diffType := internal.DiffType(raw.DiffType)
+	if raw.ToStatus != nil && *raw.ToStatus == string(internal.ComponentStatusDeleted) {
+		diffType = internal.DiffTypeDeleted
+	} else if raw.DiffType == "added" {
+		diffType = internal.DiffTypeCreated
+	} else if raw.DiffType == "modified" {
+		diffType = internal.DiffTypeModified
+	}
 
-		var plan *internal.Plan
-		if raw.PlanID != nil {
-			plan = &internal.Plan{
-				ID:          *raw.PlanID,
-				ComponentID: *raw.PlanComponentID,
-				ChangesetID: *raw.PlanChangesetID,
-				MergeBase:   *raw.PlanMergeBase,
-				Head:        *raw.PlanHead,
-				State:       *raw.PlanState,
-				Add:         raw.PlanAdd,
-				Change:      raw.PlanChange,
-				Destroy:     raw.PlanDestroy,
-			}
-		}
-
-		diffs[i] = internal.ComponentDiff{
-			FromComponent: fromComponent,
-			ToComponent:   toComponent,
-			DiffType:      diffType,
-			Plan:          plan,
+	var plan *internal.Plan
+	if raw.PlanID != nil {
+		plan = &internal.Plan{
+			ID:          *raw.PlanID,
+			ComponentID: *raw.PlanComponentID,
+			ChangesetID: *raw.PlanChangesetID,
+			MergeBase:   *raw.PlanMergeBase,
+			Head:        *raw.PlanHead,
+			State:       *raw.PlanState,
+			Add:         raw.PlanAdd,
+			Change:      raw.PlanChange,
+			Destroy:     raw.PlanDestroy,
 		}
 	}
 
-	return diffs, nil
+	return internal.ComponentDiff{
+		FromComponent: fromComponent,
+		ToComponent:   toComponent,
+		DiffType:      diffType,
+		Plan:          plan,
+	}
 }

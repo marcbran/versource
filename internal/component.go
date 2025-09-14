@@ -25,8 +25,8 @@ const (
 )
 
 type ComponentDiff struct {
-	FromComponent Component
-	ToComponent   Component
+	FromComponent *Component
+	ToComponent   *Component
 	DiffType      DiffType
 	Plan          *Plan
 }
@@ -51,6 +51,7 @@ type ComponentRepo interface {
 
 type ComponentDiffRepo interface {
 	ListComponentDiffs(ctx context.Context, changeset string) ([]ComponentDiff, error)
+	GetComponentDiff(ctx context.Context, componentID uint, changeset string) (*ComponentDiff, error)
 }
 
 type GetComponent struct {
@@ -414,18 +415,20 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 }
 
 type DeleteComponent struct {
-	componentRepo   ComponentRepo
-	ensureChangeset *EnsureChangeset
-	createPlan      *CreatePlan
-	tx              TransactionManager
+	componentRepo     ComponentRepo
+	componentDiffRepo ComponentDiffRepo
+	ensureChangeset   *EnsureChangeset
+	createPlan        *CreatePlan
+	tx                TransactionManager
 }
 
-func NewDeleteComponent(componentRepo ComponentRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *DeleteComponent {
+func NewDeleteComponent(componentRepo ComponentRepo, componentDiffRepo ComponentDiffRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *DeleteComponent {
 	return &DeleteComponent{
-		componentRepo:   componentRepo,
-		ensureChangeset: ensureChangeset,
-		createPlan:      createPlan,
-		tx:              tx,
+		componentRepo:     componentRepo,
+		componentDiffRepo: componentDiffRepo,
+		ensureChangeset:   ensureChangeset,
+		createPlan:        createPlan,
+		tx:                tx,
 	}
 }
 
@@ -460,26 +463,24 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 
 	var response *DeleteComponentResponse
 	err = d.tx.Do(ctx, req.Changeset, "delete component", func(ctx context.Context) error {
-		component, err := d.componentRepo.GetComponent(ctx, req.ComponentID)
+		componentDiff, err := d.componentDiffRepo.GetComponentDiff(ctx, req.ComponentID, req.Changeset)
 		if err != nil {
+			return InternalErrE("failed to get component diff", err)
+		}
+
+		if componentDiff.ToComponent == nil {
 			return UserErrE("component not found", err)
 		}
 
-		mergeBase, err := d.tx.GetMergeBase(ctx, MainBranch, req.Changeset)
-		if err != nil {
-			return InternalErrE("failed to get merge base", err)
-		}
+		component := componentDiff.ToComponent
 
-		mergeBaseComponent, err := d.componentRepo.GetComponentAtCommit(ctx, req.ComponentID, mergeBase)
-		if err != nil {
-			return InternalErrE("failed to get component at merge base", err)
-		}
-
-		component.ModuleVersionID = mergeBaseComponent.ModuleVersionID
-		if mergeBaseComponent.Variables == nil {
-			component.Variables = datatypes.JSON("{}")
-		} else {
-			component.Variables = mergeBaseComponent.Variables
+		if componentDiff.FromComponent != nil {
+			component.ModuleVersionID = componentDiff.FromComponent.ModuleVersionID
+			if componentDiff.FromComponent.Variables == nil {
+				component.Variables = datatypes.JSON("{}")
+			} else {
+				component.Variables = componentDiff.FromComponent.Variables
+			}
 		}
 		component.Status = ComponentStatusDeleted
 
@@ -526,18 +527,20 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 }
 
 type RestoreComponent struct {
-	componentRepo   ComponentRepo
-	ensureChangeset *EnsureChangeset
-	createPlan      *CreatePlan
-	tx              TransactionManager
+	componentRepo     ComponentRepo
+	componentDiffRepo ComponentDiffRepo
+	ensureChangeset   *EnsureChangeset
+	createPlan        *CreatePlan
+	tx                TransactionManager
 }
 
-func NewRestoreComponent(componentRepo ComponentRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *RestoreComponent {
+func NewRestoreComponent(componentRepo ComponentRepo, componentDiffRepo ComponentDiffRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *RestoreComponent {
 	return &RestoreComponent{
-		componentRepo:   componentRepo,
-		ensureChangeset: ensureChangeset,
-		createPlan:      createPlan,
-		tx:              tx,
+		componentRepo:     componentRepo,
+		componentDiffRepo: componentDiffRepo,
+		ensureChangeset:   ensureChangeset,
+		createPlan:        createPlan,
+		tx:                tx,
 	}
 }
 
@@ -572,34 +575,33 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 
 	var response *RestoreComponentResponse
 	err = r.tx.Do(ctx, req.Changeset, "restore component", func(ctx context.Context) error {
-		component, err := r.componentRepo.GetComponent(ctx, req.ComponentID)
+		componentDiff, err := r.componentDiffRepo.GetComponentDiff(ctx, req.ComponentID, req.Changeset)
 		if err != nil {
+			return InternalErrE("failed to get component diff", err)
+		}
+
+		if componentDiff.ToComponent == nil {
 			return UserErrE("component not found", err)
 		}
 
-		if component.Status != ComponentStatusDeleted {
+		if componentDiff.ToComponent.Status != ComponentStatusDeleted {
 			return UserErr("component is not deleted")
 		}
 
-		mergeBase, err := r.tx.GetMergeBase(ctx, MainBranch, req.Changeset)
-		if err != nil {
-			return InternalErrE("failed to get merge base", err)
+		if componentDiff.FromComponent == nil {
+			return UserErr("component does not exist in merge base")
 		}
 
-		mergeBaseComponent, err := r.componentRepo.GetComponentAtCommit(ctx, req.ComponentID, mergeBase)
-		if err != nil {
-			return InternalErrE("failed to get component at merge base", err)
-		}
-
-		if mergeBaseComponent.Status == ComponentStatusDeleted {
+		if componentDiff.FromComponent.Status == ComponentStatusDeleted {
 			return UserErr("component is deleted in merge base")
 		}
 
-		component.ModuleVersionID = mergeBaseComponent.ModuleVersionID
-		if mergeBaseComponent.Variables == nil {
+		component := componentDiff.ToComponent
+		component.ModuleVersionID = componentDiff.FromComponent.ModuleVersionID
+		if componentDiff.FromComponent.Variables == nil {
 			component.Variables = datatypes.JSON("{}")
 		} else {
-			component.Variables = mergeBaseComponent.Variables
+			component.Variables = componentDiff.FromComponent.Variables
 		}
 		component.Status = ComponentStatusReady
 

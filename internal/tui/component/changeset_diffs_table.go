@@ -54,8 +54,13 @@ func (p *ChangesetDiffsTableData) ResolveData(data []internal.ComponentDiff) ([]
 	var elems []internal.ComponentDiff
 	for _, diff := range data {
 		toID := "N/A"
-		if diff.ToComponent.ID != 0 {
+		if diff.ToComponent != nil && diff.ToComponent.ID != 0 {
 			toID = strconv.FormatUint(uint64(diff.ToComponent.ID), 10)
+		}
+
+		toName := "N/A"
+		if diff.ToComponent != nil {
+			toName = diff.ToComponent.Name
 		}
 
 		planState := "None"
@@ -90,7 +95,7 @@ func (p *ChangesetDiffsTableData) ResolveData(data []internal.ComponentDiff) ([]
 
 		rows = append(rows, table.Row{
 			toID,
-			diff.ToComponent.Name,
+			toName,
 			string(diff.DiffType),
 			planState,
 			add,

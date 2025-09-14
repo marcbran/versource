@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -22,4 +23,7 @@ func NewClient(config *internal.Config) internal.Facade {
 		baseURL: baseURL,
 		client:  &http.Client{},
 	}
+}
+
+func (c *Client) Start(ctx context.Context) {
 }

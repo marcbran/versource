@@ -25,8 +25,7 @@ func Serve(ctx context.Context, config *internal.Config) error {
 		return err
 	}
 
-	server.planWorker.Start(ctx)
-	server.applyWorker.Start(ctx)
+	server.facade.Start(ctx)
 
 	addr := config.HTTP.Hostname + ":" + config.HTTP.Port
 	httpServer := &http.Server{
@@ -59,11 +58,9 @@ func Serve(ctx context.Context, config *internal.Config) error {
 }
 
 type Server struct {
-	config      *internal.Config
-	router      *chi.Mux
-	facade      internal.Facade
-	planWorker  *internal.PlanWorker
-	applyWorker *internal.ApplyWorker
+	config *internal.Config
+	router *chi.Mux
+	facade internal.Facade
 }
 
 func NewServer(config *internal.Config) (*Server, error) {
@@ -106,17 +103,10 @@ func NewServer(config *internal.Config) (*Server, error) {
 		newExecutor,
 	)
 
-	runApply := internal.NewRunApply(config, applyRepo, stateRepo, stateResourceRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor)
-	applyWorker := internal.NewApplyWorker(runApply, applyRepo)
-	runPlan := internal.NewRunPlan(config, planRepo, planStore, logStore, applyRepo, transactionManager, newExecutor)
-	planWorker := internal.NewPlanWorker(runPlan, planRepo)
-
 	s := &Server{
-		config:      config,
-		router:      chi.NewRouter(),
-		facade:      facade,
-		planWorker:  planWorker,
-		applyWorker: applyWorker,
+		config: config,
+		router: chi.NewRouter(),
+		facade: facade,
 	}
 
 	s.setupMiddleware()

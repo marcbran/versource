@@ -5,6 +5,8 @@ import (
 )
 
 type Facade interface {
+	Start(ctx context.Context)
+
 	GetModule(ctx context.Context, req GetModuleRequest) (*GetModuleResponse, error)
 	ListModules(ctx context.Context, req ListModulesRequest) (*ListModulesResponse, error)
 	CreateModule(ctx context.Context, req CreateModuleRequest) (*CreateModuleResponse, error)
@@ -66,6 +68,9 @@ type facade struct {
 	getApplyLog *GetApplyLog
 	listApplies *ListApplies
 	runApply    *RunApply
+
+	planWorker  *PlanWorker
+	applyWorker *ApplyWorker
 }
 
 func NewFacade(
@@ -86,8 +91,8 @@ func NewFacade(
 	newExecutor NewExecutor,
 ) Facade {
 	runApply := NewRunApply(config, applyRepo, stateRepo, stateResourceRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor)
-	applyWorker := NewApplyWorker(runApply, applyRepo)
 	runPlan := NewRunPlan(config, planRepo, planStore, logStore, applyRepo, transactionManager, newExecutor)
+	applyWorker := NewApplyWorker(runApply, applyRepo)
 	planWorker := NewPlanWorker(runPlan, planRepo)
 	createPlan := NewCreatePlan(componentRepo, planRepo, changesetRepo, transactionManager, planWorker)
 	getPlanLog := NewGetPlanLog(logStore)
@@ -120,6 +125,8 @@ func NewFacade(
 		getApplyLog:        getApplyLog,
 		listApplies:        NewListApplies(applyRepo, transactionManager),
 		runApply:           runApply,
+		planWorker:         planWorker,
+		applyWorker:        applyWorker,
 	}
 }
 
@@ -221,4 +228,9 @@ func (f *facade) ListApplies(ctx context.Context, req ListAppliesRequest) (*List
 
 func (f *facade) RunApply(ctx context.Context, applyID uint) error {
 	return f.runApply.Exec(ctx, applyID)
+}
+
+func (f *facade) Start(ctx context.Context) {
+	f.planWorker.Start(ctx)
+	f.applyWorker.Start(ctx)
 }

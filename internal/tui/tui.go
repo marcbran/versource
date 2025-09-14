@@ -48,6 +48,7 @@ func RunApp(facade internal.Facade) error {
 		Route("components", component.NewTable(facade)).
 		Route("components/create", component.NewCreateComponent(facade)).
 		Route("components/{componentID}", component.NewDetail(facade)).
+		Route("components/{componentID}/edit", component.NewEdit(facade)).
 		Route("components/{componentID}/delete", component.NewDelete(facade)).
 		Route("plans", plan.NewTable(facade)).
 		Route("plans/{planID}/logs", plan.NewLogs(facade)).
@@ -56,6 +57,7 @@ func RunApp(facade internal.Facade) error {
 		Route("changesets/{changesetName}/components", component.NewChangesetTable(facade)).
 		Route("changesets/{changesetName}/diffs", component.NewChangesetDiffsTable(facade)).
 		Route("changesets/{changesetName}/components/{componentID}/plans/create", component.NewCreatePlan(facade)).
+		Route("changesets/{changesetName}/components/{componentID}/edit", component.NewEdit(facade)).
 		Route("changesets/{changesetName}/components/{componentID}/delete", component.NewDelete(facade)).
 		Route("changesets/{changesetName}/components/{componentID}/restore", component.NewRestore(facade)).
 		Route("changesets/{changesetName}/plans", plan.NewChangesetTable(facade))

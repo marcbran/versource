@@ -135,9 +135,15 @@ func (p *DetailData) KeyBindings(elem internal.GetComponentResponse) platform.Ke
 	}
 
 	if p.changesetName != "" {
-		keyBindings = append(keyBindings, platform.KeyBinding{
-			Key: "D", Help: "Delete component", Command: fmt.Sprintf("components/%d/delete?changesetName=%s", elem.Component.ID, p.changesetName),
-		})
+		keyBindings = append(keyBindings, []platform.KeyBinding{
+			{Key: "E", Help: "Edit component", Command: fmt.Sprintf("changesets/%s/components/%d/edit", p.changesetName, elem.Component.ID)},
+			{Key: "D", Help: "Delete component", Command: fmt.Sprintf("changesets/%s/components/%d/delete", p.changesetName, elem.Component.ID)},
+		}...)
+	} else {
+		keyBindings = append(keyBindings, []platform.KeyBinding{
+			{Key: "e", Help: "Edit component", Command: fmt.Sprintf("components/%d/edit", elem.Component.ID)},
+			{Key: "D", Help: "Delete component", Command: fmt.Sprintf("components/%d/delete", elem.Component.ID)},
+		}...)
 	}
 
 	return keyBindings

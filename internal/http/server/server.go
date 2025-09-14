@@ -150,6 +150,7 @@ func (s *Server) setupRoutes() {
 			r.Get("/plans", s.handleListPlans)
 			r.Route("/components/{componentID}", func(r chi.Router) {
 				r.Get("/", s.handleGetComponent)
+				r.Get("/diff", s.handleGetComponentDiff)
 				r.Patch("/", s.handleUpdateComponent)
 				r.Delete("/", s.handleDeleteComponent)
 				r.Post("/restore", s.handleRestoreComponent)

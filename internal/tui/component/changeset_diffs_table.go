@@ -2,6 +2,7 @@ package component
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -113,5 +114,11 @@ func (p *ChangesetDiffsTableData) KeyBindings() platform.KeyBindings {
 }
 
 func (p *ChangesetDiffsTableData) ElemKeyBindings(elem internal.ComponentDiff) platform.KeyBindings {
-	return platform.KeyBindings{}
+	if elem.ToComponent == nil {
+		return platform.KeyBindings{}
+	}
+
+	return platform.KeyBindings{
+		{Key: "enter", Help: "View diff detail", Command: fmt.Sprintf("changesets/%s/diffs/%d", p.changesetName, elem.ToComponent.ID)},
+	}
 }

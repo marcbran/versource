@@ -71,6 +71,34 @@ func (s *Server) handleListComponents(w http.ResponseWriter, r *http.Request) {
 	returnSuccess(w, resp)
 }
 
+func (s *Server) handleGetComponentDiff(w http.ResponseWriter, r *http.Request) {
+	changesetName := chi.URLParam(r, "changesetName")
+	if changesetName == "" {
+		returnBadRequest(w, fmt.Errorf("changeset name is required"))
+		return
+	}
+
+	componentIDStr := chi.URLParam(r, "componentID")
+	componentID, err := strconv.ParseUint(componentIDStr, 10, 32)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid component ID"))
+		return
+	}
+
+	req := internal.GetComponentDiffRequest{
+		ComponentID: uint(componentID),
+		Changeset:   changesetName,
+	}
+
+	resp, err := s.facade.GetComponentDiff(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
 func (s *Server) handleListComponentDiffs(w http.ResponseWriter, r *http.Request) {
 	changeset := chi.URLParam(r, "changesetName")
 	if changeset == "" {

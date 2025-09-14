@@ -22,6 +22,7 @@ type Facade interface {
 
 	GetComponent(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error)
 	ListComponents(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error)
+	GetComponentDiff(ctx context.Context, req GetComponentDiffRequest) (*GetComponentDiffResponse, error)
 	ListComponentDiffs(ctx context.Context, req ListComponentDiffsRequest) (*ListComponentDiffsResponse, error)
 	CreateComponent(ctx context.Context, req CreateComponentRequest) (*CreateComponentResponse, error)
 	UpdateComponent(ctx context.Context, req UpdateComponentRequest) (*UpdateComponentResponse, error)
@@ -54,6 +55,7 @@ type facade struct {
 
 	getComponent       *GetComponent
 	listComponents     *ListComponents
+	getComponentDiff   *GetComponentDiff
 	listComponentDiffs *ListComponentDiffs
 	createComponent    *CreateComponent
 	updateComponent    *UpdateComponent
@@ -113,6 +115,7 @@ func NewFacade(
 		mergeChangeset:     NewMergeChangeset(changesetRepo, applyRepo, applyWorker, transactionManager),
 		getComponent:       NewGetComponent(componentRepo, transactionManager),
 		listComponents:     NewListComponents(componentRepo, transactionManager),
+		getComponentDiff:   NewGetComponentDiff(componentDiffRepo, transactionManager),
 		listComponentDiffs: NewListComponentDiffs(componentDiffRepo, transactionManager),
 		createComponent:    NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
 		updateComponent:    NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
@@ -180,6 +183,10 @@ func (f *facade) GetComponent(ctx context.Context, req GetComponentRequest) (*Ge
 
 func (f *facade) ListComponents(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error) {
 	return f.listComponents.Exec(ctx, req)
+}
+
+func (f *facade) GetComponentDiff(ctx context.Context, req GetComponentDiffRequest) (*GetComponentDiffResponse, error) {
+	return f.getComponentDiff.Exec(ctx, req)
 }
 
 func (f *facade) ListComponentDiffs(ctx context.Context, req ListComponentDiffsRequest) (*ListComponentDiffsResponse, error) {

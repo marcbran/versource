@@ -94,6 +94,36 @@ func (c *Client) ListComponents(ctx context.Context, req internal.ListComponents
 	return &componentsResp, nil
 }
 
+func (c *Client) GetComponentDiff(ctx context.Context, req internal.GetComponentDiffRequest) (*internal.GetComponentDiffResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d/diff", c.baseURL, req.Changeset, req.ComponentID)
+
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp http2.ErrorResponse
+		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+		return nil, fmt.Errorf("server error: %s", errorResp.Message)
+	}
+
+	var diffResp internal.GetComponentDiffResponse
+	if err := json.NewDecoder(resp.Body).Decode(&diffResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &diffResp, nil
+}
+
 func (c *Client) ListComponentDiffs(ctx context.Context, req internal.ListComponentDiffsRequest) (*internal.ListComponentDiffsResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/diffs", c.baseURL, req.Changeset)
 

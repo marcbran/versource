@@ -149,6 +149,47 @@ func (l *ListComponents) Exec(ctx context.Context, req ListComponentsRequest) (*
 	}, nil
 }
 
+type GetComponentDiff struct {
+	componentDiffRepo ComponentDiffRepo
+	tx                TransactionManager
+}
+
+func NewGetComponentDiff(componentDiffRepo ComponentDiffRepo, tx TransactionManager) *GetComponentDiff {
+	return &GetComponentDiff{
+		componentDiffRepo: componentDiffRepo,
+		tx:                tx,
+	}
+}
+
+type GetComponentDiffRequest struct {
+	ComponentID uint   `json:"component_id"`
+	Changeset   string `json:"changeset"`
+}
+
+type GetComponentDiffResponse struct {
+	Diff ComponentDiff `json:"diff"`
+}
+
+func (g *GetComponentDiff) Exec(ctx context.Context, req GetComponentDiffRequest) (*GetComponentDiffResponse, error) {
+	if req.Changeset == "" {
+		return nil, UserErr("changeset is required")
+	}
+
+	var diff *ComponentDiff
+	err := g.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
+		var err error
+		diff, err = g.componentDiffRepo.GetComponentDiff(ctx, req.ComponentID, req.Changeset)
+		return err
+	})
+	if err != nil {
+		return nil, InternalErrE("failed to get component diff", err)
+	}
+
+	return &GetComponentDiffResponse{
+		Diff: *diff,
+	}, nil
+}
+
 type ListComponentDiffs struct {
 	componentDiffRepo ComponentDiffRepo
 	tx                TransactionManager

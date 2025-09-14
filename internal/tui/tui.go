@@ -34,6 +34,7 @@ func RunApp(facade internal.Facade) error {
 				{Key: "esc", Help: "Back to changesets", Command: pathWithoutChangeset},
 				{Key: "m", Help: "View modules", Command: fmt.Sprintf("changesets/%s/modules", changesetName)},
 				{Key: "c", Help: "View components", Command: fmt.Sprintf("changesets/%s/components", changesetName)},
+				{Key: "d", Help: "View diffs", Command: fmt.Sprintf("changesets/%s/diffs", changesetName)},
 				{Key: "p", Help: "View plans", Command: fmt.Sprintf("changesets/%s/plans", changesetName)},
 			}
 		}).
@@ -53,6 +54,7 @@ func RunApp(facade internal.Facade) error {
 		Route("applies", apply.NewTable(facade)).
 		Route("changesets", changeset.NewTable(facade)).
 		Route("changesets/{changesetName}/components", component.NewChangesetTable(facade)).
+		Route("changesets/{changesetName}/diffs", component.NewChangesetDiffsTable(facade)).
 		Route("changesets/{changesetName}/components/{componentID}/plans/create", component.NewCreatePlan(facade)).
 		Route("changesets/{changesetName}/components/{componentID}/delete", component.NewDelete(facade)).
 		Route("changesets/{changesetName}/components/{componentID}/restore", component.NewRestore(facade)).

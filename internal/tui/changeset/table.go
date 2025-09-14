@@ -62,6 +62,6 @@ func (p *TableData) KeyBindings() platform.KeyBindings {
 
 func (p *TableData) ElemKeyBindings(elem internal.Changeset) platform.KeyBindings {
 	return platform.KeyBindings{
-		{Key: "enter", Help: "View component diffs", Command: fmt.Sprintf("changesets/%s/components", elem.Name)},
+		{Key: "enter", Help: "View diffs", Command: fmt.Sprintf("changesets/%s/diffs", elem.Name)},
 	}
 }

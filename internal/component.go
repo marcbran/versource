@@ -34,9 +34,9 @@ type ComponentDiff struct {
 type DiffType string
 
 const (
-	DiffTypeAdded    DiffType = "added"
-	DiffTypeRemoved  DiffType = "removed"
-	DiffTypeModified DiffType = "modified"
+	DiffTypeCreated  DiffType = "Created"
+	DiffTypeDeleted  DiffType = "Deleted"
+	DiffTypeModified DiffType = "Modified"
 )
 
 type ComponentRepo interface {
@@ -50,7 +50,7 @@ type ComponentRepo interface {
 }
 
 type ComponentDiffRepo interface {
-	ListComponentDiffs(ctx context.Context, fromCommit, toCommit string) ([]ComponentDiff, error)
+	ListComponentDiffs(ctx context.Context, changeset string) ([]ComponentDiff, error)
 }
 
 type GetComponent struct {
@@ -175,25 +175,8 @@ func (l *ListComponentDiffs) Exec(ctx context.Context, req ListComponentDiffsReq
 
 	var diffs []ComponentDiff
 	err := l.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
-		mergeBase, err := l.tx.GetMergeBase(ctx, MainBranch, req.Changeset)
-		if err != nil {
-			return InternalErrE("failed to get merge base", err)
-		}
-
-		head, err := l.tx.GetHead(ctx)
-		if err != nil {
-			return InternalErrE("failed to get head", err)
-		}
-
-		if !IsValidCommitHash(mergeBase) {
-			return InternalErrE("invalid merge base commit hash", fmt.Errorf("merge base '%s' is not a valid commit hash", mergeBase))
-		}
-
-		if !IsValidCommitHash(head) {
-			return InternalErrE("invalid head commit hash", fmt.Errorf("head '%s' is not a valid commit hash", head))
-		}
-
-		diffs, err = l.componentDiffRepo.ListComponentDiffs(ctx, mergeBase, head)
+		var err error
+		diffs, err = l.componentDiffRepo.ListComponentDiffs(ctx, req.Changeset)
 		return err
 	})
 	if err != nil {

@@ -8,6 +8,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/go-chi/chi/v5 v5.2.3
 	github.com/go-sql-driver/mysql v1.9.3
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/terraform-exec v0.23.1
 	github.com/hashicorp/terraform-json v0.26.0
 	github.com/jsonnet-bundler/jsonnet-bundler v0.6.0
@@ -17,6 +18,7 @@ require (
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.11.0
+	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/datatypes v1.2.6
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.30.3
@@ -39,7 +41,6 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-jsonnet v0.21.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-plugin v1.7.0 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
@@ -80,6 +81,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250826171959-ef028d996bc1 // indirect
 	google.golang.org/grpc v1.75.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )

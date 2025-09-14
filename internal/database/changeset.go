@@ -32,6 +32,9 @@ func (r *GormChangesetRepo) GetChangesetByName(ctx context.Context, name string)
 	var changeset internal.Changeset
 	err := db.WithContext(ctx).Where("name = ?", name).First(&changeset).Error
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to get changeset by name: %w", err)
 	}
 	return &changeset, nil

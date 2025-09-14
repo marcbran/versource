@@ -53,10 +53,10 @@ func (c *CreateComponentData) SaveData(ctx context.Context, data internal.Create
 		return "", fmt.Errorf("name is required")
 	}
 
-	resp, err := c.facade.CreateComponent(ctx, data)
+	_, err := c.facade.CreateComponent(ctx, data)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf("changesets/%s/components/%d", data.Changeset, resp.ID), nil
+	return fmt.Sprintf("changesets/%s/diffs", data.Changeset), nil
 }

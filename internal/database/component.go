@@ -124,7 +124,8 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, changese
 	db := getTxOrDb(ctx, r.db)
 
 	query := `
-		SELECT
+		WITH ranked AS (
+		  SELECT
 			d.to_id,
 			d.to_module_version_id,
 			d.to_name,
@@ -148,14 +149,18 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, changese
 			p.state as plan_state,
 			p.add as plan_add,
 			p.change as plan_change,
-			p.destroy as plan_destroy
-		FROM dolt_diff_components d
-		JOIN dolt_log(?, "--not", "main", "--tables", "components") l
-		ON d.to_commit = l.commit_hash
-		LEFT JOIN plans p
-		ON d.to_id = p.component_id AND d.to_commit = p.head
-		ORDER BY d.to_commit_date DESC
-		LIMIT 1
+			p.destroy as plan_destroy,
+			ROW_NUMBER() OVER (PARTITION BY d.to_id ORDER BY d.to_commit_date DESC) AS rn
+		  FROM dolt_diff_components d
+		  JOIN dolt_log(?, "--not", "main", "--tables", "components") l
+			ON d.to_commit = l.commit_hash
+		  LEFT JOIN plans p
+			ON d.to_id = p.component_id AND d.to_commit = p.head
+		  ORDER BY d.to_id
+		)
+		SELECT *
+		FROM ranked
+		WHERE rn = 1;
 	`
 
 	type rawDiff struct {

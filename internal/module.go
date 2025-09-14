@@ -399,7 +399,9 @@ func NewListModuleVersions(moduleVersionRepo ModuleVersionRepo, tx TransactionMa
 	}
 }
 
-type ListModuleVersionsRequest struct{}
+type ListModuleVersionsRequest struct {
+	ModuleID *uint `json:"module_id,omitempty"`
+}
 
 type ListModuleVersionsResponse struct {
 	ModuleVersions []ModuleVersion `json:"module_versions"`
@@ -409,7 +411,11 @@ func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsReq
 	var moduleVersions []ModuleVersion
 	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
-		moduleVersions, err = l.moduleVersionRepo.ListModuleVersions(ctx)
+		if req.ModuleID != nil {
+			moduleVersions, err = l.moduleVersionRepo.ListModuleVersionsForModule(ctx, *req.ModuleID)
+		} else {
+			moduleVersions, err = l.moduleVersionRepo.ListModuleVersions(ctx)
+		}
 		return err
 	})
 	if err != nil {
@@ -417,42 +423,6 @@ func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsReq
 	}
 
 	return &ListModuleVersionsResponse{
-		ModuleVersions: moduleVersions,
-	}, nil
-}
-
-type ListModuleVersionsForModule struct {
-	moduleVersionRepo ModuleVersionRepo
-	tx                TransactionManager
-}
-
-func NewListModuleVersionsForModule(moduleVersionRepo ModuleVersionRepo, tx TransactionManager) *ListModuleVersionsForModule {
-	return &ListModuleVersionsForModule{
-		moduleVersionRepo: moduleVersionRepo,
-		tx:                tx,
-	}
-}
-
-type ListModuleVersionsForModuleRequest struct {
-	ModuleID uint `json:"module_id"`
-}
-
-type ListModuleVersionsForModuleResponse struct {
-	ModuleVersions []ModuleVersion `json:"module_versions"`
-}
-
-func (l *ListModuleVersionsForModule) Exec(ctx context.Context, req ListModuleVersionsForModuleRequest) (*ListModuleVersionsForModuleResponse, error) {
-	var moduleVersions []ModuleVersion
-	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
-		var err error
-		moduleVersions, err = l.moduleVersionRepo.ListModuleVersionsForModule(ctx, req.ModuleID)
-		return err
-	})
-	if err != nil {
-		return nil, InternalErrE("failed to list module versions for module", err)
-	}
-
-	return &ListModuleVersionsForModuleResponse{
 		ModuleVersions: moduleVersions,
 	}, nil
 }

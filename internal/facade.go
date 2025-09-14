@@ -12,7 +12,6 @@ type Facade interface {
 	DeleteModule(ctx context.Context, req DeleteModuleRequest) (*DeleteModuleResponse, error)
 	GetModuleVersion(ctx context.Context, req GetModuleVersionRequest) (*GetModuleVersionResponse, error)
 	ListModuleVersions(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error)
-	ListModuleVersionsForModule(ctx context.Context, req ListModuleVersionsForModuleRequest) (*ListModuleVersionsForModuleResponse, error)
 
 	ListChangesets(ctx context.Context, req ListChangesetsRequest) (*ListChangesetsResponse, error)
 	CreateChangeset(ctx context.Context, req CreateChangesetRequest) (*CreateChangesetResponse, error)
@@ -38,14 +37,13 @@ type Facade interface {
 }
 
 type facade struct {
-	getModule                   *GetModule
-	listModules                 *ListModules
-	createModule                *CreateModule
-	updateModule                *UpdateModule
-	deleteModule                *DeleteModule
-	getModuleVersion            *GetModuleVersion
-	listModuleVersions          *ListModuleVersions
-	listModuleVersionsForModule *ListModuleVersionsForModule
+	getModule          *GetModule
+	listModules        *ListModules
+	createModule       *CreateModule
+	updateModule       *UpdateModule
+	deleteModule       *DeleteModule
+	getModuleVersion   *GetModuleVersion
+	listModuleVersions *ListModuleVersions
 
 	listChangesets  *ListChangesets
 	createChangeset *CreateChangeset
@@ -97,32 +95,31 @@ func NewFacade(
 	ensureChangeset := NewEnsureChangeset(changesetRepo, transactionManager)
 
 	return &facade{
-		getModule:                   NewGetModule(moduleRepo, moduleVersionRepo, transactionManager),
-		listModules:                 NewListModules(moduleRepo, transactionManager),
-		createModule:                NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
-		updateModule:                NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
-		deleteModule:                NewDeleteModule(moduleRepo, componentRepo, transactionManager),
-		getModuleVersion:            NewGetModuleVersion(moduleVersionRepo, transactionManager),
-		listModuleVersions:          NewListModuleVersions(moduleVersionRepo, transactionManager),
-		listModuleVersionsForModule: NewListModuleVersionsForModule(moduleVersionRepo, transactionManager),
-		listChangesets:              NewListChangesets(changesetRepo, transactionManager),
-		createChangeset:             NewCreateChangeset(changesetRepo, transactionManager),
-		ensureChangeset:             ensureChangeset,
-		mergeChangeset:              NewMergeChangeset(changesetRepo, applyRepo, applyWorker, transactionManager),
-		getComponent:                NewGetComponent(componentRepo, transactionManager),
-		listComponents:              NewListComponents(componentRepo, transactionManager),
-		listComponentDiffs:          NewListComponentDiffs(componentDiffRepo, transactionManager),
-		createComponent:             NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
-		updateComponent:             NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
-		deleteComponent:             NewDeleteComponent(componentRepo, ensureChangeset, createPlan, transactionManager),
-		restoreComponent:            NewRestoreComponent(componentRepo, ensureChangeset, createPlan, transactionManager),
-		getPlanLog:                  getPlanLog,
-		listPlans:                   NewListPlans(planRepo, transactionManager),
-		createPlan:                  createPlan,
-		runPlan:                     runPlan,
-		getApplyLog:                 getApplyLog,
-		listApplies:                 NewListApplies(applyRepo, transactionManager),
-		runApply:                    runApply,
+		getModule:          NewGetModule(moduleRepo, moduleVersionRepo, transactionManager),
+		listModules:        NewListModules(moduleRepo, transactionManager),
+		createModule:       NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
+		updateModule:       NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
+		deleteModule:       NewDeleteModule(moduleRepo, componentRepo, transactionManager),
+		getModuleVersion:   NewGetModuleVersion(moduleVersionRepo, transactionManager),
+		listModuleVersions: NewListModuleVersions(moduleVersionRepo, transactionManager),
+		listChangesets:     NewListChangesets(changesetRepo, transactionManager),
+		createChangeset:    NewCreateChangeset(changesetRepo, transactionManager),
+		ensureChangeset:    ensureChangeset,
+		mergeChangeset:     NewMergeChangeset(changesetRepo, applyRepo, applyWorker, transactionManager),
+		getComponent:       NewGetComponent(componentRepo, transactionManager),
+		listComponents:     NewListComponents(componentRepo, transactionManager),
+		listComponentDiffs: NewListComponentDiffs(componentDiffRepo, transactionManager),
+		createComponent:    NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
+		updateComponent:    NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
+		deleteComponent:    NewDeleteComponent(componentRepo, ensureChangeset, createPlan, transactionManager),
+		restoreComponent:   NewRestoreComponent(componentRepo, ensureChangeset, createPlan, transactionManager),
+		getPlanLog:         getPlanLog,
+		listPlans:          NewListPlans(planRepo, transactionManager),
+		createPlan:         createPlan,
+		runPlan:            runPlan,
+		getApplyLog:        getApplyLog,
+		listApplies:        NewListApplies(applyRepo, transactionManager),
+		runApply:           runApply,
 	}
 }
 
@@ -152,10 +149,6 @@ func (f *facade) GetModuleVersion(ctx context.Context, req GetModuleVersionReque
 
 func (f *facade) ListModuleVersions(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error) {
 	return f.listModuleVersions.Exec(ctx, req)
-}
-
-func (f *facade) ListModuleVersionsForModule(ctx context.Context, req ListModuleVersionsForModuleRequest) (*ListModuleVersionsForModuleResponse, error) {
-	return f.listModuleVersionsForModule.Exec(ctx, req)
 }
 
 func (f *facade) ListChangesets(ctx context.Context, req ListChangesetsRequest) (*ListChangesetsResponse, error) {

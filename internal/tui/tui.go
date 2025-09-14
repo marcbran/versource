@@ -41,7 +41,7 @@ func RunApp(facade internal.Facade) error {
 		Route("modules/create", module.NewCreateModule(facade)).
 		Route("modules/{moduleID}", module.NewDetail(facade)).
 		Route("modules/{moduleID}/delete", module.NewDeleteModule(facade)).
-		Route("modules/{moduleID}/moduleversions", module.NewVersionsForModuleTable(facade)).
+		Route("modules/{moduleID}/moduleversions", module.NewVersionsTable(facade)).
 		Route("moduleversions", module.NewVersionsTable(facade)).
 		Route("moduleversions/{moduleVersionID}", module.NewVersionDetail(facade)).
 		Route("components", component.NewTable(facade)).

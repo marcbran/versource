@@ -208,19 +208,14 @@ var moduleVersionListCmd = &cobra.Command{
 			return err
 		}
 
-		httpClient := client.NewClient(config)
-
+		var moduleID *string
 		moduleIDStr, err := cmd.Flags().GetString("module-id")
-		if err != nil {
-			return fmt.Errorf("failed to get module-id flag: %w", err)
+		if err == nil && moduleIDStr != "" {
+			moduleID = &moduleIDStr
 		}
 
-		if moduleIDStr != "" {
-			tableData := module.NewVersionsForModuleTableData(httpClient, moduleIDStr)
-			return renderTableData(tableData)
-		}
-
-		tableData := module.NewVersionsTableData(httpClient)
+		httpClient := client.NewClient(config)
+		tableData := module.NewVersionsTableData(httpClient, moduleID)
 		return renderTableData(tableData)
 	},
 }

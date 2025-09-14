@@ -11,22 +11,38 @@ import (
 )
 
 type VersionsTableData struct {
-	facade internal.Facade
+	facade   internal.Facade
+	moduleID *string
 }
 
 func NewVersionsTable(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataTable(NewVersionsTableData(facade))
+		var moduleID *string
+		if moduleIDStr, exists := params["moduleID"]; exists && moduleIDStr != "" {
+			moduleID = &moduleIDStr
+		}
+		return platform.NewDataTable(NewVersionsTableData(facade, moduleID))
 	}
 }
 
-func NewVersionsTableData(facade internal.Facade) *VersionsTableData {
-	return &VersionsTableData{facade: facade}
+func NewVersionsTableData(facade internal.Facade, moduleID *string) *VersionsTableData {
+	return &VersionsTableData{facade: facade, moduleID: moduleID}
 }
 
 func (p *VersionsTableData) LoadData() ([]internal.ModuleVersion, error) {
 	ctx := context.Background()
-	resp, err := p.facade.ListModuleVersions(ctx, internal.ListModuleVersionsRequest{})
+
+	req := internal.ListModuleVersionsRequest{}
+	if p.moduleID != nil {
+		moduleIDUint, err := strconv.ParseUint(*p.moduleID, 10, 32)
+		if err != nil {
+			return nil, err
+		}
+		moduleID := uint(moduleIDUint)
+		req.ModuleID = &moduleID
+	}
+
+	resp, err := p.facade.ListModuleVersions(ctx, req)
 	if err != nil {
 		return nil, err
 	}

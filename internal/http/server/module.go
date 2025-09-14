@@ -144,9 +144,10 @@ func (s *Server) handleListModuleVersionsForModule(w http.ResponseWriter, r *htt
 		return
 	}
 
-	resp, err := s.facade.ListModuleVersionsForModule(r.Context(), internal.ListModuleVersionsForModuleRequest{
-		ModuleID: uint(moduleID),
-	})
+	moduleIDUint := uint(moduleID)
+	req := internal.ListModuleVersionsRequest{ModuleID: &moduleIDUint}
+
+	resp, err := s.facade.ListModuleVersions(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return

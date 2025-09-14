@@ -16,7 +16,8 @@ import (
 )
 
 type Executor struct {
-	tf *tfexec.Terraform
+	component *internal.Component
+	tf        *tfexec.Terraform
 }
 
 func NewExecutor(component *internal.Component, workdir string, logs io.Writer) (internal.Executor, error) {
@@ -31,7 +32,8 @@ func NewExecutor(component *internal.Component, workdir string, logs io.Writer) 
 	}
 
 	return &Executor{
-		tf: tf,
+		component: component,
+		tf:        tf,
 	}, nil
 }
 
@@ -47,7 +49,15 @@ func (t *Executor) Plan(ctx context.Context) (internal.PlanPath, internal.PlanRe
 	defer tempFile.Close()
 
 	planPath := tempFile.Name()
-	_, err = t.tf.Plan(ctx, tfexec.Out(planPath))
+
+	var planOptions []tfexec.PlanOption
+	planOptions = append(planOptions, tfexec.Out(planPath))
+
+	if t.component.Status == internal.ComponentStatusDeleted {
+		planOptions = append(planOptions, tfexec.Destroy(true))
+	}
+
+	_, err = t.tf.Plan(ctx, planOptions...)
 	if err != nil {
 		os.Remove(planPath)
 		return "", internal.PlanResourceCounts{}, fmt.Errorf("failed to plan terraform: %w", err)

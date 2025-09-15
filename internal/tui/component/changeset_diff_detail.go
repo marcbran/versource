@@ -17,48 +17,9 @@ type ChangesetDiffDetailData struct {
 	changesetName string
 }
 
-type ChangesetDiffDetailViewModel struct {
-	DiffType string `yaml:"diffType"`
-	From     *struct {
-		ID     uint   `yaml:"id,omitempty"`
-		Name   string `yaml:"name,omitempty"`
-		Status string `yaml:"status,omitempty"`
-		Module *struct {
-			ID      uint   `yaml:"id"`
-			Source  string `yaml:"source"`
-			Version *struct {
-				ID      uint   `yaml:"id"`
-				Version string `yaml:"version"`
-			} `yaml:"version,omitempty"`
-		} `yaml:"module,omitempty"`
-		Variables map[string]any `yaml:"variables,omitempty"`
-	} `yaml:"from,omitempty"`
-	To *struct {
-		ID     uint   `yaml:"id,omitempty"`
-		Name   string `yaml:"name,omitempty"`
-		Status string `yaml:"status,omitempty"`
-		Module *struct {
-			ID      uint   `yaml:"id"`
-			Source  string `yaml:"source"`
-			Version *struct {
-				ID      uint   `yaml:"id"`
-				Version string `yaml:"version"`
-			} `yaml:"version,omitempty"`
-		} `yaml:"module,omitempty"`
-		Variables map[string]any `yaml:"variables,omitempty"`
-	} `yaml:"to,omitempty"`
-	Plan *struct {
-		ID      uint   `yaml:"id"`
-		State   string `yaml:"state"`
-		Add     *int   `yaml:"add,omitempty"`
-		Change  *int   `yaml:"change,omitempty"`
-		Destroy *int   `yaml:"destroy,omitempty"`
-	} `yaml:"plan,omitempty"`
-}
-
 func NewChangesetDiffDetail(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataViewport(NewChangesetDiffDetailData(
+		return platform.NewDiffView(NewChangesetDiffDetailData(
 			facade,
 			params["componentID"],
 			params["changesetName"],
@@ -93,171 +54,99 @@ func (p *ChangesetDiffDetailData) LoadData() (*internal.GetComponentDiffResponse
 	return diffResp, nil
 }
 
-func (p *ChangesetDiffDetailData) ResolveData(data internal.GetComponentDiffResponse) string {
-	viewModel := ChangesetDiffDetailViewModel{
-		DiffType: string(data.Diff.DiffType),
-	}
+func (p *ChangesetDiffDetailData) ResolveData(data internal.GetComponentDiffResponse) platform.Diff {
+	var leftYAML, rightYAML string
 
 	if data.Diff.FromComponent != nil {
-		fromComponent := data.Diff.FromComponent
-		var fromModule *struct {
-			ID      uint   `yaml:"id"`
-			Source  string `yaml:"source"`
-			Version *struct {
-				ID      uint   `yaml:"id"`
-				Version string `yaml:"version"`
-			} `yaml:"version,omitempty"`
+		fromYAML, err := p.componentToYAML(data.Diff.FromComponent)
+		if err != nil {
+			leftYAML = fmt.Sprintf("Error: %v", err)
+		} else {
+			leftYAML = fromYAML
 		}
-		if fromComponent.ModuleVersion.Module.ID != 0 {
-			var version *struct {
-				ID      uint   `yaml:"id"`
-				Version string `yaml:"version"`
-			}
-			if fromComponent.ModuleVersion.ID != 0 {
-				version = &struct {
-					ID      uint   `yaml:"id"`
-					Version string `yaml:"version"`
-				}{
-					ID:      fromComponent.ModuleVersion.ID,
-					Version: fromComponent.ModuleVersion.Version,
-				}
-			}
-
-			fromModule = &struct {
-				ID      uint   `yaml:"id"`
-				Source  string `yaml:"source"`
-				Version *struct {
-					ID      uint   `yaml:"id"`
-					Version string `yaml:"version"`
-				} `yaml:"version,omitempty"`
-			}{
-				ID:      fromComponent.ModuleVersion.Module.ID,
-				Source:  fromComponent.ModuleVersion.Module.Source,
-				Version: version,
-			}
-		}
-
-		var fromVariables map[string]any
-		if fromComponent.Variables != nil {
-			err := json.Unmarshal(fromComponent.Variables, &fromVariables)
-			if err != nil {
-				fromVariables = nil
-			}
-		}
-
-		viewModel.From = &struct {
-			ID     uint   `yaml:"id,omitempty"`
-			Name   string `yaml:"name,omitempty"`
-			Status string `yaml:"status,omitempty"`
-			Module *struct {
-				ID      uint   `yaml:"id"`
-				Source  string `yaml:"source"`
-				Version *struct {
-					ID      uint   `yaml:"id"`
-					Version string `yaml:"version"`
-				} `yaml:"version,omitempty"`
-			} `yaml:"module,omitempty"`
-			Variables map[string]any `yaml:"variables,omitempty"`
-		}{
-			ID:        fromComponent.ID,
-			Name:      fromComponent.Name,
-			Status:    string(fromComponent.Status),
-			Module:    fromModule,
-			Variables: fromVariables,
-		}
+	} else {
+		leftYAML = ""
 	}
 
 	if data.Diff.ToComponent != nil {
-		toComponent := data.Diff.ToComponent
-		var toModule *struct {
+		toYAML, err := p.componentToYAML(data.Diff.ToComponent)
+		if err != nil {
+			rightYAML = fmt.Sprintf("Error: %v", err)
+		} else {
+			rightYAML = toYAML
+		}
+	} else {
+		rightYAML = ""
+	}
+
+	return platform.Diff{
+		Left:  leftYAML,
+		Right: rightYAML,
+	}
+}
+
+func (p *ChangesetDiffDetailData) componentToYAML(component *internal.Component) (string, error) {
+	viewModel := struct {
+		ID     uint   `yaml:"id"`
+		Name   string `yaml:"name"`
+		Status string `yaml:"status"`
+		Module *struct {
 			ID      uint   `yaml:"id"`
 			Source  string `yaml:"source"`
 			Version *struct {
 				ID      uint   `yaml:"id"`
 				Version string `yaml:"version"`
 			} `yaml:"version,omitempty"`
+		} `yaml:"module,omitempty"`
+		Variables map[string]any `yaml:"variables,omitempty"`
+	}{
+		ID:     component.ID,
+		Name:   component.Name,
+		Status: string(component.Status),
+	}
+
+	if component.ModuleVersion.Module.ID != 0 {
+		var version *struct {
+			ID      uint   `yaml:"id"`
+			Version string `yaml:"version"`
 		}
-		if toComponent.ModuleVersion.Module.ID != 0 {
-			var version *struct {
+		if component.ModuleVersion.ID != 0 {
+			version = &struct {
 				ID      uint   `yaml:"id"`
 				Version string `yaml:"version"`
-			}
-			if toComponent.ModuleVersion.ID != 0 {
-				version = &struct {
-					ID      uint   `yaml:"id"`
-					Version string `yaml:"version"`
-				}{
-					ID:      toComponent.ModuleVersion.ID,
-					Version: toComponent.ModuleVersion.Version,
-				}
-			}
-
-			toModule = &struct {
-				ID      uint   `yaml:"id"`
-				Source  string `yaml:"source"`
-				Version *struct {
-					ID      uint   `yaml:"id"`
-					Version string `yaml:"version"`
-				} `yaml:"version,omitempty"`
 			}{
-				ID:      toComponent.ModuleVersion.Module.ID,
-				Source:  toComponent.ModuleVersion.Module.Source,
-				Version: version,
+				ID:      component.ModuleVersion.ID,
+				Version: component.ModuleVersion.Version,
 			}
 		}
 
-		var toVariables map[string]any
-		if toComponent.Variables != nil {
-			err := json.Unmarshal(toComponent.Variables, &toVariables)
-			if err != nil {
-				toVariables = nil
-			}
-		}
-
-		viewModel.To = &struct {
-			ID     uint   `yaml:"id,omitempty"`
-			Name   string `yaml:"name,omitempty"`
-			Status string `yaml:"status,omitempty"`
-			Module *struct {
+		viewModel.Module = &struct {
+			ID      uint   `yaml:"id"`
+			Source  string `yaml:"source"`
+			Version *struct {
 				ID      uint   `yaml:"id"`
-				Source  string `yaml:"source"`
-				Version *struct {
-					ID      uint   `yaml:"id"`
-					Version string `yaml:"version"`
-				} `yaml:"version,omitempty"`
-			} `yaml:"module,omitempty"`
-			Variables map[string]any `yaml:"variables,omitempty"`
+				Version string `yaml:"version"`
+			} `yaml:"version,omitempty"`
 		}{
-			ID:        toComponent.ID,
-			Name:      toComponent.Name,
-			Status:    string(toComponent.Status),
-			Module:    toModule,
-			Variables: toVariables,
+			ID:      component.ModuleVersion.Module.ID,
+			Source:  component.ModuleVersion.Module.Source,
+			Version: version,
 		}
 	}
 
-	if data.Diff.Plan != nil {
-		viewModel.Plan = &struct {
-			ID      uint   `yaml:"id"`
-			State   string `yaml:"state"`
-			Add     *int   `yaml:"add,omitempty"`
-			Change  *int   `yaml:"change,omitempty"`
-			Destroy *int   `yaml:"destroy,omitempty"`
-		}{
-			ID:      data.Diff.Plan.ID,
-			State:   data.Diff.Plan.State,
-			Add:     data.Diff.Plan.Add,
-			Change:  data.Diff.Plan.Change,
-			Destroy: data.Diff.Plan.Destroy,
+	if component.Variables != nil {
+		err := json.Unmarshal(component.Variables, &viewModel.Variables)
+		if err != nil {
+			viewModel.Variables = nil
 		}
 	}
 
 	yamlData, err := yaml.Marshal(viewModel)
 	if err != nil {
-		return fmt.Sprintf("Error marshaling to YAML: %v", err)
+		return "", err
 	}
 
-	return string(yamlData)
+	return string(yamlData), nil
 }
 
 func (p *ChangesetDiffDetailData) KeyBindings(elem internal.GetComponentDiffResponse) platform.KeyBindings {

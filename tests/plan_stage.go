@@ -3,22 +3,24 @@
 package tests
 
 func (s *Stage) a_plan_has_been_created() *Stage {
-	return s.a_plan_is_created().and().
+	return s.a_plan_is_created_for_the_changeset_and_component().and().
 		the_plan_creation_has_succeeded()
 }
 
-func (s *Stage) a_plan_is_created() *Stage {
-	return s.execCommand("plan", "--component-id", s.ComponentID, "--changeset", s.ChangesetName)
+func (s *Stage) a_plan_is_created_for_the_changeset_and_component() *Stage {
+	return s.a_plan_is_created(s.ChangesetName, s.ComponentID)
 }
 
-func (s *Stage) a_plan_is_created_for_the_component(componentID string) *Stage {
-	s.ComponentID = componentID
-	return s.execCommand("plan", "--component-id", componentID, "--changeset", s.ChangesetName)
+func (s *Stage) a_plan_is_created_for_the_changeset(componentID string) *Stage {
+	return s.a_plan_is_created(s.ChangesetName, componentID)
 }
 
-func (s *Stage) a_plan_is_created_for_the_changeset(changeset string) *Stage {
-	s.ChangesetName = changeset
-	return s.execCommand("plan", "--component-id", s.ComponentID, "--changeset", changeset)
+func (s *Stage) a_plan_is_created_for_the_component(changeset string) *Stage {
+	return s.a_plan_is_created(changeset, s.ComponentID)
+}
+
+func (s *Stage) a_plan_is_created(changeset, componentID string) *Stage {
+	return s.execCommand("plan", "--changeset", changeset, "--component-id", componentID)
 }
 
 func (s *Stage) a_plan_is_created_without_changeset() *Stage {

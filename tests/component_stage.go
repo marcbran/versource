@@ -12,7 +12,7 @@ func (s *Stage) a_component_has_been_created(name, variables string) *Stage {
 }
 
 func (s *Stage) a_component_is_created_for_the_module(changeset, name, variables string) *Stage {
-	args := []string{"component", "create", name, "--changeset", changeset, "--module-id", s.ModuleID}
+	args := []string{"component", "create", "--name", name, "--changeset", changeset, "--module-id", s.ModuleID}
 	args = append(args, s.parseVariablesToArgs(variables)...)
 	s.execCommand(args...)
 	if s.LastOutputMap != nil {
@@ -26,7 +26,7 @@ func (s *Stage) a_component_is_created_for_the_module(changeset, name, variables
 }
 
 func (s *Stage) a_component_is_created_for_the_module_and_changeset(name, variables string) *Stage {
-	args := []string{"component", "create", name, "--changeset", s.ChangesetName, "--module-id", s.ModuleID}
+	args := []string{"component", "create", "--name", name, "--changeset", s.ChangesetName, "--module-id", s.ModuleID}
 	args = append(args, s.parseVariablesToArgs(variables)...)
 	s.execCommand(args...)
 	if s.LastOutputMap != nil {
@@ -58,9 +58,7 @@ func (s *Stage) the_component_is_updated(variables string) *Stage {
 }
 
 func (s *Stage) a_component_is_updated_for_the_changeset(componentID, variables string) *Stage {
-	args := []string{"component", "update", componentID, "--changeset", s.ChangesetName}
-	args = append(args, s.parseVariablesToArgs(variables)...)
-	return s.execCommand(args...)
+	return s.a_component_is_updated(componentID, s.ChangesetName, variables)
 }
 
 func (s *Stage) a_component_is_updated(componentID, changeset, variables string) *Stage {

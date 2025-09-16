@@ -224,10 +224,9 @@ func init() {
 	moduleCreateCmd.Flags().String("name", "", "Module name")
 	moduleCreateCmd.Flags().String("source", "", "Module source")
 	moduleCreateCmd.Flags().String("version", "", "Module version (optional for some source types)")
-	moduleCreateCmd.Flags().String("executor", "terraform-module", "Executor type (terraform-module, terraform-jsonnet)")
+	moduleCreateCmd.Flags().String("executor", "terraform-jsonnet", "Executor type (terraform-module, terraform-jsonnet)")
 	moduleCreateCmd.MarkFlagRequired("name")
 	moduleCreateCmd.MarkFlagRequired("source")
-	moduleCreateCmd.MarkFlagRequired("executor")
 
 	moduleUpdateCmd.Flags().String("version", "", "Module version")
 	moduleUpdateCmd.MarkFlagRequired("version")

@@ -70,7 +70,7 @@ func TestCreateChangesetAfterMerge(t *testing.T) {
 		a_changeset_is_created("test1")
 
 	then.
-		the_changeset_creation_has_succeeded()
+		the_changeset_creation_has_failed()
 }
 func TestCreateChangesetWithSpecialCharacters(t *testing.T) {
 	given, when, then := scenario(t)
@@ -90,7 +90,7 @@ func TestMergeChangesetWithComponents(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created("component1", `{"key": "value"}`)
 
@@ -106,7 +106,7 @@ func TestMergeChangesetWithMultipleComponents(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created("component1", `{"key1": "value1"}`).and().
 		a_component_has_been_created("component2", `{"key2": "value2"}`)

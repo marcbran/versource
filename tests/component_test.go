@@ -11,7 +11,7 @@ func TestCreateComponent(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1")
 
 	when.
@@ -27,7 +27,7 @@ func TestCreateComponentWithoutModuleInChangeset(t *testing.T) {
 	given.
 		the_blank_instance_dataset().and().
 		a_changeset_has_been_created("test1").and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0")
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0")
 
 	when.
 		a_component_is_created_for_the_module_and_changeset("component1", `{"key": "value"}`)
@@ -41,7 +41,7 @@ func TestCreateComponentWithoutChangeset(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0")
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0")
 
 	when.
 		a_component_is_created_for_the_module("test1", "component1", `{"key": "value"}`)
@@ -55,7 +55,7 @@ func TestCreateComponentWithInvalidVariables(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1")
 
 	when.
@@ -70,7 +70,7 @@ func TestUpdateComponent(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created("component1", `{"key": "value"}`)
 
@@ -86,7 +86,7 @@ func TestUpdateComponentWithNonexistentID(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created("component1", `{"key": "value"}`)
 
@@ -102,7 +102,7 @@ func TestUpdateComponentWithInvalidChangeset(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created("component1", `{"key": "value"}`)
 
@@ -118,7 +118,7 @@ func TestUpdateComponentWithInvalidVariables(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created("component1", `{"key": "value"}`)
 
@@ -134,7 +134,7 @@ func TestUpdateComponentWithNoFields(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created("component1", `{"key": "value"}`)
 
@@ -150,7 +150,7 @@ func TestCreateMultipleComponentsInSameChangeset(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1")
 
 	when.
@@ -166,7 +166,7 @@ func TestCreateComponentsInDifferentChangesets(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("changeset1").and().
 		a_changeset_has_been_created("changeset2")
 
@@ -183,7 +183,7 @@ func TestCreateComponentWithComplexVariables(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1")
 
 	when.
@@ -198,7 +198,7 @@ func TestCreateComponentWithDuplicateName(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("hashicorp/consul/aws", "0.1.0").and().
+		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created("component", `{"key": "value"}`)
 

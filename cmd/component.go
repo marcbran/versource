@@ -293,4 +293,5 @@ func init() {
 	componentCmd.AddCommand(componentCreateCmd)
 	componentCmd.AddCommand(componentUpdateCmd)
 	componentCmd.AddCommand(componentDeleteCmd)
+	componentCmd.AddCommand(componentPlanCmd)
 }

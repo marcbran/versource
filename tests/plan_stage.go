@@ -20,15 +20,15 @@ func (s *Stage) a_plan_is_created_for_the_component(changeset string) *Stage {
 }
 
 func (s *Stage) a_plan_is_created(changeset, componentID string) *Stage {
-	return s.execCommand("plan", "--changeset", changeset, "--component-id", componentID)
+	return s.execCommand("component", "plan", componentID, "--changeset", changeset)
 }
 
 func (s *Stage) a_plan_is_created_without_changeset() *Stage {
-	return s.execCommand("plan", "--component-id", s.ComponentID)
+	return s.execCommand("component", "plan", s.ComponentID)
 }
 
 func (s *Stage) a_plan_is_created_without_component_id() *Stage {
-	return s.execCommand("plan", "--changeset", s.ChangesetName)
+	return s.execCommand("component", "plan", "--changeset", s.ChangesetName)
 }
 
 func (s *Stage) the_plan_creation_has_succeeded() *Stage {

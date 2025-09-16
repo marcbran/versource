@@ -2,20 +2,23 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/spf13/cobra"
 )
 
-var planCmd = &cobra.Command{
-	Use:   "plan",
+var componentPlanCmd = &cobra.Command{
+	Use:   "plan [component-id]",
 	Short: "Create a new plan for a component",
 	Long:  `Create a new plan for a specific component by its ID with branch name`,
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		componentID, err := cmd.Flags().GetUint("component-id")
+		componentIDStr := args[0]
+		componentID, err := strconv.ParseUint(componentIDStr, 10, 64)
 		if err != nil {
-			return fmt.Errorf("failed to get component-id flag: %w", err)
+			return fmt.Errorf("invalid component ID: %w", err)
 		}
 
 		changeset, err := cmd.Flags().GetString("changeset")
@@ -23,9 +26,6 @@ var planCmd = &cobra.Command{
 			return fmt.Errorf("failed to get changeset flag: %w", err)
 		}
 
-		if componentID == 0 {
-			return fmt.Errorf("component-id is required")
-		}
 		if changeset == "" {
 			return fmt.Errorf("changeset is required")
 		}
@@ -38,7 +38,7 @@ var planCmd = &cobra.Command{
 		client := client.NewClient(config)
 
 		req := internal.CreatePlanRequest{
-			ComponentID: componentID,
+			ComponentID: uint(componentID),
 			Changeset:   changeset,
 		}
 
@@ -52,8 +52,6 @@ var planCmd = &cobra.Command{
 }
 
 func init() {
-	planCmd.Flags().Uint("component-id", 0, "Component ID")
-	planCmd.Flags().String("changeset", "", "Changeset name for the plan")
-	planCmd.MarkFlagRequired("component-id")
-	planCmd.MarkFlagRequired("changeset")
+	componentPlanCmd.Flags().String("changeset", "", "Changeset name for the plan")
+	componentPlanCmd.MarkFlagRequired("changeset")
 }

@@ -64,7 +64,7 @@ func (p *TableData) ResolveData(data []internal.Plan) ([]table.Column, []table.R
 			strconv.FormatUint(uint64(plan.ID), 10),
 			plan.Component.Name,
 			plan.Changeset.Name,
-			plan.State,
+			string(plan.State),
 			addStr,
 			changeStr,
 			destroyStr,

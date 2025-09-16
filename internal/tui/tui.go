@@ -54,6 +54,7 @@ func RunApp(facade internal.Facade) error {
 		Route("plans/{planID}/logs", plan.NewLogs(facade)).
 		Route("applies", apply.NewTable(facade)).
 		Route("changesets", changeset.NewTable(facade)).
+		Route("changesets/{changesetName}/merge", changeset.NewMergeChangeset(facade)).
 		Route("changesets/{changesetName}/components", component.NewChangesetTable(facade)).
 		Route("changesets/{changesetName}/components/{componentID}", component.NewDetail(facade)).
 		Route("changesets/{changesetName}/diffs", component.NewChangesetDiffsTable(facade)).

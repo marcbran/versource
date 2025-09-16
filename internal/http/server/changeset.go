@@ -43,11 +43,11 @@ func (s *Server) handleMergeChangeset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.MergeChangesetRequest{
+	req := internal.CreateMergeRequest{
 		ChangesetName: changesetName,
 	}
 
-	resp, err := s.facade.MergeChangeset(r.Context(), req)
+	resp, err := s.facade.CreateMerge(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return

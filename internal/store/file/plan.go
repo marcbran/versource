@@ -80,3 +80,17 @@ func (s *PlanStore) LoadPlan(ctx context.Context, planID uint) (internal.PlanPat
 
 	return internal.PlanPath(tempFile.Name()), nil
 }
+
+func (s *PlanStore) DeletePlan(ctx context.Context, planID uint) error {
+	planPath := filepath.Join(s.workDir, "plans", fmt.Sprintf("%d.tfplan", planID))
+
+	err := os.Remove(planPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to delete plan file: %w", err)
+	}
+
+	return nil
+}

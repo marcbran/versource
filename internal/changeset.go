@@ -3,8 +3,6 @@ package internal
 import (
 	"context"
 	"fmt"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type ChangesetState string
@@ -40,6 +38,7 @@ type ChangesetRepo interface {
 	HasChangesetWithName(ctx context.Context, name string) (bool, error)
 	CreateChangeset(ctx context.Context, changeset *Changeset) error
 	UpdateChangesetState(ctx context.Context, changesetID uint, state ChangesetState) error
+	UpdateChangesetReviewState(ctx context.Context, changesetID uint, reviewState ChangesetReviewState) error
 }
 
 type ListChangesets struct {
@@ -203,95 +202,4 @@ func (e *EnsureChangeset) Exec(ctx context.Context, req EnsureChangesetRequest) 
 		Name:  createResp.Name,
 		State: createResp.State,
 	}, nil
-}
-
-type MergeChangeset struct {
-	changesetRepo ChangesetRepo
-	applyRepo     ApplyRepo
-	applyWorker   *ApplyWorker
-	tx            TransactionManager
-}
-
-func NewMergeChangeset(changesetRepo ChangesetRepo, applyRepo ApplyRepo, applyWorker *ApplyWorker, tx TransactionManager) *MergeChangeset {
-	return &MergeChangeset{
-		changesetRepo: changesetRepo,
-		applyRepo:     applyRepo,
-		applyWorker:   applyWorker,
-		tx:            tx,
-	}
-}
-
-type MergeChangesetRequest struct {
-	ChangesetName string `json:"changeset_name"`
-}
-
-type MergeChangesetResponse struct {
-	ID    uint           `json:"id"`
-	Name  string         `json:"name"`
-	State ChangesetState `json:"state"`
-}
-
-func (m *MergeChangeset) Exec(ctx context.Context, req MergeChangesetRequest) (*MergeChangesetResponse, error) {
-	if req.ChangesetName == "" {
-		return nil, UserErr("changeset_name is required")
-	}
-
-	var response *MergeChangesetResponse
-	err := m.tx.Checkout(ctx, req.ChangesetName, func(ctx context.Context) error {
-		changeset, err := m.changesetRepo.GetChangesetByName(ctx, req.ChangesetName)
-		if err != nil {
-			return UserErrE("changeset not found", err)
-		}
-
-		response = &MergeChangesetResponse{
-			ID:    changeset.ID,
-			Name:  changeset.Name,
-			State: changeset.State,
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to merge changeset: %w", err)
-	}
-
-	err = m.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
-		err := m.tx.MergeBranch(ctx, req.ChangesetName)
-		if err != nil {
-			return InternalErrE("failed to merge changeset branch", err)
-		}
-
-		err = m.tx.DeleteBranch(ctx, req.ChangesetName)
-		if err != nil {
-			return InternalErrE("failed to delete changeset branch", err)
-		}
-
-		err = m.changesetRepo.UpdateChangesetState(ctx, response.ID, ChangesetStateMerged)
-		if err != nil {
-			return InternalErrE("failed to update changeset state to merged", err)
-		}
-
-		response.State = ChangesetStateMerged
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to merge changeset: %w", err)
-	}
-
-	if m.applyWorker != nil {
-		applyIDs, err := m.applyRepo.GetQueuedAppliesByChangeset(ctx, response.ID)
-		if err != nil {
-			log.WithError(err).WithField("changeset_id", response.ID).Error("Failed to get queued applies for changeset")
-			return response, nil
-		}
-		for _, applyID := range applyIDs {
-			m.applyWorker.QueueApply(applyID)
-		}
-		log.WithField("changeset_id", response.ID).WithField("apply_count", len(applyIDs)).Info("Enqueued applies for merged changeset")
-	}
-
-	return response, nil
 }

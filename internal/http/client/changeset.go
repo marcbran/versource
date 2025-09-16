@@ -76,7 +76,7 @@ func (c *Client) CreateChangeset(ctx context.Context, req internal.CreateChanges
 	return &changesetResp, nil
 }
 
-func (c *Client) MergeChangeset(ctx context.Context, req internal.MergeChangesetRequest) (*internal.MergeChangesetResponse, error) {
+func (c *Client) CreateMerge(ctx context.Context, req internal.CreateMergeRequest) (*internal.CreateMergeResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/changesets/%s/merge", c.baseURL, req.ChangesetName)
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 	if err != nil {
@@ -99,12 +99,12 @@ func (c *Client) MergeChangeset(ctx context.Context, req internal.MergeChangeset
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var changesetResp internal.MergeChangesetResponse
-	if err := json.NewDecoder(resp.Body).Decode(&changesetResp); err != nil {
+	var mergeResp internal.CreateMergeResponse
+	if err := json.NewDecoder(resp.Body).Decode(&mergeResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return &changesetResp, nil
+	return &mergeResp, nil
 }
 
 func (c *Client) EnsureChangeset(ctx context.Context, req internal.EnsureChangesetRequest) (*internal.EnsureChangesetResponse, error) {

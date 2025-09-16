@@ -63,6 +63,21 @@ func (r *GormPlanRepo) ListPlans(ctx context.Context) ([]internal.Plan, error) {
 	return plans, nil
 }
 
+func (r *GormPlanRepo) ListPlansByChangeset(ctx context.Context, changesetID uint) ([]internal.Plan, error) {
+	db := getTxOrDb(ctx, r.db)
+	var plans []internal.Plan
+	err := db.WithContext(ctx).
+		Preload("Component.ModuleVersion.Module").
+		Preload("Component.ModuleVersion").
+		Preload("Changeset").
+		Where("changeset_id = ?", changesetID).
+		Find(&plans).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list plans by changeset: %w", err)
+	}
+	return plans, nil
+}
+
 func (r *GormPlanRepo) CreatePlan(ctx context.Context, plan *internal.Plan) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(plan).Error
@@ -90,6 +105,15 @@ func (r *GormPlanRepo) UpdatePlanResourceCounts(ctx context.Context, planID uint
 	}).Error
 	if err != nil {
 		return fmt.Errorf("failed to update plan resource counts: %w", err)
+	}
+	return nil
+}
+
+func (r *GormPlanRepo) DeletePlan(ctx context.Context, planID uint) error {
+	db := getTxOrDb(ctx, r.db)
+	err := db.WithContext(ctx).Delete(&internal.Plan{}, planID).Error
+	if err != nil {
+		return fmt.Errorf("failed to delete plan: %w", err)
 	}
 	return nil
 }

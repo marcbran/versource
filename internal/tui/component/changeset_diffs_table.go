@@ -70,7 +70,7 @@ func (p *ChangesetDiffsTableData) ResolveData(data []internal.ComponentDiff) ([]
 		destroy := "?"
 
 		if diff.Plan != nil {
-			planState = diff.Plan.State
+			planState = string(diff.Plan.State)
 			if planState == "Failed" {
 				add = "-"
 				change = "-"

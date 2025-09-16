@@ -78,6 +78,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 	planStore := file.NewPlanStore(config.Terraform.WorkDir)
 	logStore := file.NewLogStore(config.Terraform.WorkDir)
 	applyRepo := database.NewGormApplyRepo(db)
+	mergeRepo := database.NewGormMergeRepo(db)
 	changesetRepo := database.NewGormChangesetRepo(db)
 	moduleRepo := database.NewGormModuleRepo(db)
 	moduleVersionRepo := database.NewGormModuleVersionRepo(db)
@@ -96,6 +97,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		planStore,
 		logStore,
 		applyRepo,
+		mergeRepo,
 		changesetRepo,
 		moduleRepo,
 		moduleVersionRepo,

@@ -184,3 +184,27 @@ func (tm *GormTransactionManager) GetHead(ctx context.Context) (string, error) {
 
 	return head, nil
 }
+
+func (tm *GormTransactionManager) GetBranchHead(ctx context.Context, branch string) (string, error) {
+	tx := getTxOrDb(ctx, tm.db)
+
+	var head string
+	err := tx.Raw("SELECT DOLT_HASHOF(?)", branch).Scan(&head).Error
+	if err != nil {
+		return "", fmt.Errorf("failed to get head of branch %s: %w", branch, err)
+	}
+
+	return head, nil
+}
+
+func (tm *GormTransactionManager) HasCommitsAfter(ctx context.Context, branch, commit string) (bool, error) {
+	tx := getTxOrDb(ctx, tm.db)
+
+	var count int64
+	err := tx.Raw("SELECT COUNT(*) FROM dolt_log(?, '--not', ?)", branch, commit).Scan(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check commits after %s: %w", commit, err)
+	}
+
+	return count > 0, nil
+}

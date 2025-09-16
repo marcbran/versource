@@ -303,7 +303,7 @@ func convertRawDiffToComponentDiff(raw rawDiff) internal.ComponentDiff {
 			ChangesetID: *raw.PlanChangesetID,
 			MergeBase:   *raw.PlanMergeBase,
 			Head:        *raw.PlanHead,
-			State:       *raw.PlanState,
+			State:       internal.TaskState(*raw.PlanState),
 			Add:         raw.PlanAdd,
 			Change:      raw.PlanChange,
 			Destroy:     raw.PlanDestroy,

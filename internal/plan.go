@@ -15,26 +15,29 @@ type Plan struct {
 	ComponentID uint
 	Changeset   Changeset `gorm:"foreignKey:ChangesetID"`
 	ChangesetID uint
-	MergeBase   string `gorm:"column:merge_base"`
-	Head        string `gorm:"column:head"`
-	State       string `gorm:"default:Queued"`
-	Add         *int   `gorm:"column:add"`
-	Change      *int   `gorm:"column:change"`
-	Destroy     *int   `gorm:"column:destroy"`
+	MergeBase   string    `gorm:"column:merge_base"`
+	Head        string    `gorm:"column:head"`
+	State       TaskState `gorm:"default:Queued"`
+	Add         *int      `gorm:"column:add"`
+	Change      *int      `gorm:"column:change"`
+	Destroy     *int      `gorm:"column:destroy"`
 }
 
 type PlanRepo interface {
 	GetPlan(ctx context.Context, planID uint) (*Plan, error)
 	GetQueuedPlans(ctx context.Context) ([]RunPlanRequest, error)
 	ListPlans(ctx context.Context) ([]Plan, error)
+	ListPlansByChangeset(ctx context.Context, changesetID uint) ([]Plan, error)
 	CreatePlan(ctx context.Context, plan *Plan) error
 	UpdatePlanState(ctx context.Context, planID uint, state TaskState) error
 	UpdatePlanResourceCounts(ctx context.Context, planID uint, counts PlanResourceCounts) error
+	DeletePlan(ctx context.Context, planID uint) error
 }
 
 type PlanStore interface {
 	StorePlan(ctx context.Context, planID uint, planPath PlanPath) error
 	LoadPlan(ctx context.Context, planID uint) (PlanPath, error)
+	DeletePlan(ctx context.Context, planID uint) error
 }
 
 type GetPlanLog struct {
@@ -136,12 +139,12 @@ type CreatePlanRequest struct {
 }
 
 type CreatePlanResponse struct {
-	ID          uint   `json:"id"`
-	ComponentID uint   `json:"component_id"`
-	ChangesetID uint   `json:"changeset_id"`
-	MergeBase   string `json:"merge_base"`
-	Head        string `json:"head"`
-	State       string `json:"state"`
+	ID          uint      `json:"id"`
+	ComponentID uint      `json:"component_id"`
+	ChangesetID uint      `json:"changeset_id"`
+	MergeBase   string    `json:"merge_base"`
+	Head        string    `json:"head"`
+	State       TaskState `json:"state"`
 }
 
 func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePlanResponse, error) {

@@ -26,4 +26,5 @@ type LogStore interface {
 	NewLogWriter(operationType string, operationID uint) (io.WriteCloser, error)
 	StoreLog(ctx context.Context, operationType string, operationID uint, r io.Reader) error
 	LoadLog(ctx context.Context, operationType string, operationID uint) (io.ReadCloser, error)
+	DeleteLog(ctx context.Context, operationType string, operationID uint) error
 }

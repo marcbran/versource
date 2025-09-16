@@ -47,7 +47,7 @@ func (p *TableData) ResolveData(data []internal.Apply) ([]table.Column, []table.
 			strconv.FormatUint(uint64(apply.ID), 10),
 			strconv.FormatUint(uint64(apply.PlanID), 10),
 			apply.Changeset.Name,
-			apply.State,
+			string(apply.State),
 		})
 		elems = append(elems, apply)
 	}

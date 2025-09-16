@@ -18,7 +18,8 @@ type Facade interface {
 	ListChangesets(ctx context.Context, req ListChangesetsRequest) (*ListChangesetsResponse, error)
 	CreateChangeset(ctx context.Context, req CreateChangesetRequest) (*CreateChangesetResponse, error)
 	EnsureChangeset(ctx context.Context, req EnsureChangesetRequest) (*EnsureChangesetResponse, error)
-	MergeChangeset(ctx context.Context, req MergeChangesetRequest) (*MergeChangesetResponse, error)
+
+	CreateMerge(ctx context.Context, req CreateMergeRequest) (*CreateMergeResponse, error)
 
 	GetComponent(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error)
 	ListComponents(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error)
@@ -51,7 +52,8 @@ type facade struct {
 	listChangesets  *ListChangesets
 	createChangeset *CreateChangeset
 	ensureChangeset *EnsureChangeset
-	mergeChangeset  *MergeChangeset
+
+	createMerge *CreateMerge
 
 	getComponent       *GetComponent
 	listComponents     *ListComponents
@@ -73,6 +75,7 @@ type facade struct {
 
 	planWorker  *PlanWorker
 	applyWorker *ApplyWorker
+	mergeWorker *MergeWorker
 }
 
 func NewFacade(
@@ -86,6 +89,7 @@ func NewFacade(
 	planStore PlanStore,
 	logStore LogStore,
 	applyRepo ApplyRepo,
+	mergeRepo MergeRepo,
 	changesetRepo ChangesetRepo,
 	moduleRepo ModuleRepo,
 	moduleVersionRepo ModuleVersionRepo,
@@ -94,9 +98,13 @@ func NewFacade(
 ) Facade {
 	runApply := NewRunApply(config, applyRepo, stateRepo, stateResourceRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor)
 	runPlan := NewRunPlan(config, planRepo, planStore, logStore, applyRepo, transactionManager, newExecutor)
+	listComponentDiffs := NewListComponentDiffs(componentDiffRepo, transactionManager)
+	runMerge := NewRunMerge(config, mergeRepo, changesetRepo, planRepo, planStore, logStore, transactionManager, listComponentDiffs)
 	applyWorker := NewApplyWorker(runApply, applyRepo)
 	planWorker := NewPlanWorker(runPlan, planRepo)
+	mergeWorker := NewMergeWorker(runMerge, mergeRepo)
 	createPlan := NewCreatePlan(componentRepo, planRepo, changesetRepo, transactionManager, planWorker)
+	createMerge := NewCreateMerge(changesetRepo, mergeRepo, transactionManager, mergeWorker)
 	getPlanLog := NewGetPlanLog(logStore)
 	getApplyLog := NewGetApplyLog(logStore)
 	ensureChangeset := NewEnsureChangeset(changesetRepo, transactionManager)
@@ -112,11 +120,11 @@ func NewFacade(
 		listChangesets:     NewListChangesets(changesetRepo, transactionManager),
 		createChangeset:    NewCreateChangeset(changesetRepo, transactionManager),
 		ensureChangeset:    ensureChangeset,
-		mergeChangeset:     NewMergeChangeset(changesetRepo, applyRepo, applyWorker, transactionManager),
+		createMerge:        createMerge,
 		getComponent:       NewGetComponent(componentRepo, transactionManager),
 		listComponents:     NewListComponents(componentRepo, transactionManager),
 		getComponentDiff:   NewGetComponentDiff(componentDiffRepo, transactionManager),
-		listComponentDiffs: NewListComponentDiffs(componentDiffRepo, transactionManager),
+		listComponentDiffs: listComponentDiffs,
 		createComponent:    NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
 		updateComponent:    NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
 		deleteComponent:    NewDeleteComponent(componentRepo, componentDiffRepo, ensureChangeset, createPlan, transactionManager),
@@ -130,6 +138,7 @@ func NewFacade(
 		runApply:           runApply,
 		planWorker:         planWorker,
 		applyWorker:        applyWorker,
+		mergeWorker:        mergeWorker,
 	}
 }
 
@@ -173,8 +182,8 @@ func (f *facade) EnsureChangeset(ctx context.Context, req EnsureChangesetRequest
 	return f.ensureChangeset.Exec(ctx, req)
 }
 
-func (f *facade) MergeChangeset(ctx context.Context, req MergeChangesetRequest) (*MergeChangesetResponse, error) {
-	return f.mergeChangeset.Exec(ctx, req)
+func (f *facade) CreateMerge(ctx context.Context, req CreateMergeRequest) (*CreateMergeResponse, error) {
+	return f.createMerge.Exec(ctx, req)
 }
 
 func (f *facade) GetComponent(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error) {
@@ -240,4 +249,5 @@ func (f *facade) RunApply(ctx context.Context, applyID uint) error {
 func (f *facade) Start(ctx context.Context) {
 	f.planWorker.Start(ctx)
 	f.applyWorker.Start(ctx)
+	f.mergeWorker.Start(ctx)
 }

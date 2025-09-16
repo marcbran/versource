@@ -26,7 +26,7 @@ type Apply struct {
 	PlanID      uint      `gorm:"uniqueIndex"`
 	Changeset   Changeset `gorm:"foreignKey:ChangesetID"`
 	ChangesetID uint
-	State       string `gorm:"default:Queued"`
+	State       TaskState `gorm:"default:Queued"`
 }
 
 type ApplyRepo interface {

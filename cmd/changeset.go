@@ -82,16 +82,16 @@ var changesetMergeCmd = &cobra.Command{
 
 		client := client.NewClient(config)
 
-		req := internal.MergeChangesetRequest{
+		req := internal.CreateMergeRequest{
 			ChangesetName: changesetName,
 		}
 
-		changeset, err := client.MergeChangeset(cmd.Context(), req)
+		merge, err := client.CreateMerge(cmd.Context(), req)
 		if err != nil {
 			return err
 		}
 
-		return formatOutput(changeset, "Changeset %s merged successfully\n", changeset.Name)
+		return formatOutput(merge, "Merge operation created for changeset %s (ID: %d)\n", changesetName, merge.ID)
 	},
 }
 

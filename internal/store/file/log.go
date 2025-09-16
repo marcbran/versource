@@ -74,3 +74,18 @@ func (s *LogStore) LoadLog(ctx context.Context, operationType string, operationI
 
 	return file, nil
 }
+
+func (s *LogStore) DeleteLog(ctx context.Context, operationType string, operationID uint) error {
+	filename := fmt.Sprintf("%s-%d.log", operationType, operationID)
+	logPath := filepath.Join(s.workDir, "logs", filename)
+
+	err := os.Remove(logPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to delete log file: %w", err)
+	}
+
+	return nil
+}

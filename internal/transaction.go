@@ -15,6 +15,8 @@ type TransactionManager interface {
 
 	GetMergeBase(ctx context.Context, source, branch string) (string, error)
 	GetHead(ctx context.Context) (string, error)
+	GetBranchHead(ctx context.Context, branch string) (string, error)
+	HasCommitsAfter(ctx context.Context, branch, commit string) (bool, error)
 }
 
 func IsValidCommitHash(hash string) bool {

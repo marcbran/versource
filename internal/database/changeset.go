@@ -100,3 +100,12 @@ func (r *GormChangesetRepo) UpdateChangesetState(ctx context.Context, changesetI
 	}
 	return nil
 }
+
+func (r *GormChangesetRepo) UpdateChangesetReviewState(ctx context.Context, changesetID uint, reviewState internal.ChangesetReviewState) error {
+	db := getTxOrDb(ctx, r.db)
+	err := db.WithContext(ctx).Model(&internal.Changeset{}).Where("id = ?", changesetID).Update("review_state", reviewState).Error
+	if err != nil {
+		return fmt.Errorf("failed to update changeset review state: %w", err)
+	}
+	return nil
+}

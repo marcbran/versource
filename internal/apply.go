@@ -20,6 +20,10 @@ const (
 	TaskStateCancelled TaskState = "Cancelled"
 )
 
+func IsTaskCompleted(task TaskState) bool {
+	return task == TaskStateSucceeded || task == TaskStateFailed || task == TaskStateCancelled
+}
+
 type Apply struct {
 	ID          uint      `gorm:"primarykey"`
 	Plan        Plan      `gorm:"foreignKey:PlanID"`

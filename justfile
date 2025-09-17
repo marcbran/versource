@@ -14,17 +14,20 @@ lint:
 test:
 	go test -v ./...
 
-test-e2e:
-	go test -v -tags "e2e all" -count=1 ./tests/...
-
-test-e2e-type type:
-	go test -v -tags "e2e {{type}}" -count=1 ./tests/...
-
-test-e2e-datasets:
-	go test -v -tags "e2e datasets" -count=1 ./tests/...
-
 test-coverage:
 	go test -v -cover ./...
+
+test-e2e: test-prune
+	go test -v -tags "e2e all" -count=1 ./tests/...
+
+test-e2e-type type: test-prune
+	go test -v -tags "e2e {{type}}" -count=1 ./tests/...
+
+test-e2e-datasets: test-prune
+	go test -v -tags "e2e datasets" -count=1 ./tests/...
+
+test-prune:
+	docker system prune -f --volumes
 
 data:
   cd data && docker compose up -d

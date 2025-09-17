@@ -6,13 +6,21 @@ import (
 	"fmt"
 )
 
-func (s *Stage) a_component_has_been_created(name, variables string) *Stage {
+func (s *Stage) a_component_has_been_created_for_the_module_and_changeset(name, variables string) *Stage {
 	return s.a_component_is_created_for_the_module_and_changeset(name, variables).and().
 		the_component_creation_has_succeeded()
 }
 
 func (s *Stage) a_component_is_created_for_the_module(changeset, name, variables string) *Stage {
-	args := []string{"component", "create", "--name", name, "--changeset", changeset, "--module-id", s.ModuleID}
+	return s.a_component_is_created(changeset, s.ModuleID, name, variables)
+}
+
+func (s *Stage) a_component_is_created_for_the_module_and_changeset(name, variables string) *Stage {
+	return s.a_component_is_created(s.ChangesetName, s.ModuleID, name, variables)
+}
+
+func (s *Stage) a_component_is_created(changeset, moduleID, name, variables string) *Stage {
+	args := []string{"component", "create", "--name", name, "--changeset", changeset, "--module-id", moduleID}
 	args = append(args, s.parseVariablesToArgs(variables)...)
 	s.execCommand(args...)
 	if s.LastOutputMap != nil {
@@ -21,18 +29,9 @@ func (s *Stage) a_component_is_created_for_the_module(changeset, name, variables
 				s.ComponentID = fmt.Sprintf("%.0f", idFloat)
 			}
 		}
-	}
-	return s
-}
-
-func (s *Stage) a_component_is_created_for_the_module_and_changeset(name, variables string) *Stage {
-	args := []string{"component", "create", "--name", name, "--changeset", s.ChangesetName, "--module-id", s.ModuleID}
-	args = append(args, s.parseVariablesToArgs(variables)...)
-	s.execCommand(args...)
-	if s.LastOutputMap != nil {
-		if id, ok := s.LastOutputMap["id"]; ok {
+		if id, ok := s.LastOutputMap["plan_id"]; ok {
 			if idFloat, ok := id.(float64); ok {
-				s.ComponentID = fmt.Sprintf("%.0f", idFloat)
+				s.PlanID = fmt.Sprintf("%.0f", idFloat)
 			}
 		}
 	}

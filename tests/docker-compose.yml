@@ -72,6 +72,8 @@ services:
       DOLT_ROOT_HOST: "%"
     volumes:
       - ./datasets:/datasets
+    ports:
+      - "33060:3306"
     healthcheck:
       test:
         [

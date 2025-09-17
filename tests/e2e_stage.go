@@ -20,6 +20,7 @@ type Stage struct {
 	ModuleID      string
 	ChangesetName string
 	ComponentID   string
+	PlanID        string
 
 	LastOutputMap map[string]any
 	LastError     string

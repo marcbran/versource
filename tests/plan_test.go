@@ -6,14 +6,46 @@ import (
 	"testing"
 )
 
+func TestDefaultPlanFailing(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_blank_instance_dataset().and().
+		an_non_existing_module_has_been_created().and().
+		a_changeset_has_been_created("test1")
+
+	when.
+		a_component_has_been_created_for_the_module_and_changeset("plan-test-component", `{"key": "value"}`)
+
+	then.
+		the_plan_creation_has_succeeded().and().
+		the_plan_has_failed()
+}
+
+func TestDefaultPlanSucceeding(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_blank_instance_dataset().and().
+		an_existing_module_has_been_created().
+		a_changeset_has_been_created("test1")
+
+	when.
+		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "component1"}`)
+
+	then.
+		the_plan_creation_has_succeeded().and().
+		the_plan_has_succeeded()
+}
+
 func TestCreatePlan(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
+		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1").and().
-		a_component_has_been_created("plan-test-component", `{"key": "value"}`)
+		a_component_has_been_created_for_the_module_and_changeset("plan-test-component", `{"key": "value"}`)
 
 	when.
 		a_plan_is_created_for_the_changeset_and_component()
@@ -27,9 +59,9 @@ func TestCreatePlanWithNonexistentComponent(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
+		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1").and().
-		a_component_has_been_created("component1", `{"key": "value"}`)
+		a_component_has_been_created_for_the_module_and_changeset("component1", `{"key": "value"}`)
 
 	when.
 		a_plan_is_created_for_the_changeset("nonexistent")
@@ -43,9 +75,9 @@ func TestCreatePlanWithNonexistentChangeset(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
+		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1").and().
-		a_component_has_been_created("component1", `{"key": "value"}`)
+		a_component_has_been_created_for_the_module_and_changeset("component1", `{"key": "value"}`)
 
 	when.
 		a_plan_is_created_for_the_component("nonexistent")
@@ -59,28 +91,12 @@ func TestCreatePlanWithoutChangeset(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
+		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1").and().
-		a_component_has_been_created("component1", `{"key": "value"}`)
+		a_component_has_been_created_for_the_module_and_changeset("component1", `{"key": "value"}`)
 
 	when.
 		a_plan_is_created_without_changeset()
-
-	then.
-		the_plan_creation_has_failed()
-}
-
-func TestCreatePlanWithoutComponentID(t *testing.T) {
-	given, when, then := scenario(t)
-
-	given.
-		the_blank_instance_dataset().and().
-		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
-		a_changeset_has_been_created("test1").and().
-		a_component_has_been_created("component1", `{"key": "value"}`)
-
-	when.
-		a_plan_is_created_without_component_id()
 
 	then.
 		the_plan_creation_has_failed()

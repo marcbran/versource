@@ -6,6 +6,22 @@ import (
 	"fmt"
 )
 
+func (s *Stage) an_existing_module_has_been_created() *Stage {
+	return s.a_module_is_created(
+		"github-repository",
+		"https://github.com/marcbran/versource/tests/modules/jsonnet",
+		"199fa5704319b958d47b791f063729a83ec83f15",
+	).and().the_module_creation_has_succeeded()
+}
+
+func (s *Stage) an_non_existing_module_has_been_created() *Stage {
+	return s.a_module_is_created(
+		"not-a-github-repository",
+		"https://github.com/marcbran/versource/tests/modules/nothing",
+		"invalid",
+	).and().the_module_creation_has_succeeded()
+}
+
 func (s *Stage) a_module_has_been_created(name, source, version string) *Stage {
 	return s.a_module_is_created(name, source, version).and().
 		the_module_creation_has_succeeded()

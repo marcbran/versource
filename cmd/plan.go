@@ -59,7 +59,7 @@ var planWaitCmd = &cobra.Command{
 		}
 
 		if internal.IsTaskCompleted(planResp.State) {
-			return nil
+			return formatOutput(planResp, "Plan %d completed with state: %s\n", planResp.ID, planResp.State)
 		}
 
 		ticker := time.NewTicker(2 * time.Second)
@@ -76,7 +76,7 @@ var planWaitCmd = &cobra.Command{
 				}
 
 				if internal.IsTaskCompleted(planResp.State) {
-					return nil
+					return formatOutput(planResp, "Plan %d completed with state: %s\n", planResp.ID, planResp.State)
 				}
 			}
 		}

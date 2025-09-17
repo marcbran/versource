@@ -11,6 +11,28 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func (s *Server) handleGetPlan(w http.ResponseWriter, r *http.Request) {
+	planIDStr := chi.URLParam(r, "planID")
+
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid plan ID: %s", planIDStr))
+		return
+	}
+
+	req := internal.GetPlanRequest{
+		PlanID: uint(planID),
+	}
+
+	resp, err := s.facade.GetPlan(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}
+
 func (s *Server) handleGetPlanLog(w http.ResponseWriter, r *http.Request) {
 	planIDStr := chi.URLParam(r, "planID")
 

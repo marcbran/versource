@@ -40,6 +40,59 @@ type PlanStore interface {
 	DeletePlan(ctx context.Context, planID uint) error
 }
 
+type GetPlan struct {
+	planRepo PlanRepo
+}
+
+func NewGetPlan(planRepo PlanRepo) *GetPlan {
+	return &GetPlan{
+		planRepo: planRepo,
+	}
+}
+
+type GetPlanRequest struct {
+	PlanID uint `json:"plan_id"`
+}
+
+type GetPlanResponse struct {
+	ID          uint      `json:"id"`
+	ComponentID uint      `json:"component_id"`
+	ChangesetID uint      `json:"changeset_id"`
+	MergeBase   string    `json:"merge_base"`
+	Head        string    `json:"head"`
+	State       TaskState `json:"state"`
+	Add         *int      `json:"add"`
+	Change      *int      `json:"change"`
+	Destroy     *int      `json:"destroy"`
+	Component   Component `json:"component"`
+	Changeset   Changeset `json:"changeset"`
+}
+
+func (g *GetPlan) Exec(ctx context.Context, req GetPlanRequest) (*GetPlanResponse, error) {
+	if req.PlanID == 0 {
+		return nil, UserErr("plan ID is required")
+	}
+
+	plan, err := g.planRepo.GetPlan(ctx, req.PlanID)
+	if err != nil {
+		return nil, UserErrE("plan not found", err)
+	}
+
+	return &GetPlanResponse{
+		ID:          plan.ID,
+		ComponentID: plan.ComponentID,
+		ChangesetID: plan.ChangesetID,
+		MergeBase:   plan.MergeBase,
+		Head:        plan.Head,
+		State:       plan.State,
+		Add:         plan.Add,
+		Change:      plan.Change,
+		Destroy:     plan.Destroy,
+		Component:   plan.Component,
+		Changeset:   plan.Changeset,
+	}, nil
+}
+
 type GetPlanLog struct {
 	logStore LogStore
 }

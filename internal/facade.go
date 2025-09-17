@@ -30,6 +30,7 @@ type Facade interface {
 	DeleteComponent(ctx context.Context, req DeleteComponentRequest) (*DeleteComponentResponse, error)
 	RestoreComponent(ctx context.Context, req RestoreComponentRequest) (*RestoreComponentResponse, error)
 
+	GetPlan(ctx context.Context, req GetPlanRequest) (*GetPlanResponse, error)
 	GetPlanLog(ctx context.Context, req GetPlanLogRequest) (*GetPlanLogResponse, error)
 	ListPlans(ctx context.Context, req ListPlansRequest) (*ListPlansResponse, error)
 	CreatePlan(ctx context.Context, req CreatePlanRequest) (*CreatePlanResponse, error)
@@ -64,6 +65,7 @@ type facade struct {
 	deleteComponent    *DeleteComponent
 	restoreComponent   *RestoreComponent
 
+	getPlan    *GetPlan
 	getPlanLog *GetPlanLog
 	listPlans  *ListPlans
 	createPlan *CreatePlan
@@ -105,6 +107,7 @@ func NewFacade(
 	mergeWorker := NewMergeWorker(runMerge, mergeRepo)
 	createPlan := NewCreatePlan(componentRepo, planRepo, changesetRepo, transactionManager, planWorker)
 	createMerge := NewCreateMerge(changesetRepo, mergeRepo, transactionManager, mergeWorker)
+	getPlan := NewGetPlan(planRepo)
 	getPlanLog := NewGetPlanLog(logStore)
 	getApplyLog := NewGetApplyLog(logStore)
 	ensureChangeset := NewEnsureChangeset(changesetRepo, transactionManager)
@@ -129,6 +132,7 @@ func NewFacade(
 		updateComponent:    NewUpdateComponent(componentRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
 		deleteComponent:    NewDeleteComponent(componentRepo, componentDiffRepo, ensureChangeset, createPlan, transactionManager),
 		restoreComponent:   NewRestoreComponent(componentRepo, componentDiffRepo, ensureChangeset, createPlan, transactionManager),
+		getPlan:            getPlan,
 		getPlanLog:         getPlanLog,
 		listPlans:          NewListPlans(planRepo, transactionManager),
 		createPlan:         createPlan,
@@ -216,6 +220,10 @@ func (f *facade) DeleteComponent(ctx context.Context, req DeleteComponentRequest
 
 func (f *facade) RestoreComponent(ctx context.Context, req RestoreComponentRequest) (*RestoreComponentResponse, error) {
 	return f.restoreComponent.Exec(ctx, req)
+}
+
+func (f *facade) GetPlan(ctx context.Context, req GetPlanRequest) (*GetPlanResponse, error) {
+	return f.getPlan.Exec(ctx, req)
 }
 
 func (f *facade) GetPlanLog(ctx context.Context, req GetPlanLogRequest) (*GetPlanLogResponse, error) {

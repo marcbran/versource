@@ -51,6 +51,7 @@ func RunApp(facade internal.Facade) error {
 		Route("components/{componentID}/edit", component.NewEdit(facade)).
 		Route("components/{componentID}/delete", component.NewDelete(facade)).
 		Route("plans", plan.NewTable(facade)).
+		Route("plans/{planID}", plan.NewDetail(facade)).
 		Route("plans/{planID}/logs", plan.NewLogs(facade)).
 		Route("applies", apply.NewTable(facade)).
 		Route("changesets", changeset.NewTable(facade)).

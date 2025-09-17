@@ -131,9 +131,12 @@ func (s *Server) setupRoutes() {
 		r.Get("/module-versions/{moduleVersionID}", s.handleGetModuleVersion)
 		r.Get("/components", s.handleListComponents)
 		r.Get("/components/{componentID}", s.handleGetComponent)
-		r.Get("/plans", s.handleListPlans)
-		r.Route("/plans/{planID}", func(r chi.Router) {
-			r.Get("/logs", s.handleGetPlanLog)
+		r.Route("/plans", func(r chi.Router) {
+			r.Get("/", s.handleListPlans)
+			r.Route("/{planID}", func(r chi.Router) {
+				r.Get("/", s.handleGetPlan)
+				r.Get("/logs", s.handleGetPlanLog)
+			})
 		})
 		r.Get("/applies", s.handleListApplies)
 		r.Get("/changesets", s.handleListChangesets)

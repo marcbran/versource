@@ -81,6 +81,7 @@ func (p *TableData) KeyBindings() platform.KeyBindings {
 
 func (p *TableData) ElemKeyBindings(elem internal.Plan) platform.KeyBindings {
 	return platform.KeyBindings{
+		{Key: "enter", Help: "View plan detail", Command: fmt.Sprintf("plans/%d", elem.ID)},
 		{Key: "l", Help: "View logs", Command: fmt.Sprintf("plans/%d/logs", elem.ID)},
 	}
 }

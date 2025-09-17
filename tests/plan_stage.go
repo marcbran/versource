@@ -48,7 +48,7 @@ func (s *Stage) the_plan_has_failed() *Stage {
 }
 
 func (s *Stage) the_plan_has_completed(expectedState string) *Stage {
-	s.execCommand("plan", "wait", s.PlanID, "--output", "json")
+	s.execCommand("plan", "get", s.PlanID, "--output", "json", "--wait-for-completion")
 
 	assert.NotNil(s.t, s.LastOutputMap, "No command output to check")
 

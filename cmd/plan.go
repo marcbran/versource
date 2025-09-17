@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"context"
-	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/marcbran/versource/internal"
@@ -24,66 +21,50 @@ var planGetCmd = &cobra.Command{
 	Long:  `Get details for a specific plan by ID`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
 		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}
 		httpClient := client.NewClient(config)
 		detailData := plan.NewDetailData(httpClient, args[0])
-		return renderViewpointData(detailData)
-	},
-}
-
-var planWaitCmd = &cobra.Command{
-	Use:   "wait [plan-id]",
-	Short: "Wait for a plan to complete",
-	Long:  `Wait for a plan to reach a terminal state (Succeeded, Failed, or Cancelled)`,
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		config, err := LoadConfig(cmd)
+		planResp, err := detailData.LoadData()
 		if err != nil {
 			return err
 		}
 
-		planID, err := strconv.ParseUint(args[0], 10, 32)
-		if err != nil {
-			return fmt.Errorf("invalid plan ID: %s", args[0])
-		}
-
-		httpClient := client.NewClient(config)
-		ctx := context.Background()
-
-		planResp, err := httpClient.GetPlan(ctx, internal.GetPlanRequest{PlanID: uint(planID)})
-		if err != nil {
-			return err
-		}
-
-		if internal.IsTaskCompleted(planResp.State) {
-			return formatOutput(planResp, "Plan %d completed with state: %s\n", planResp.ID, planResp.State)
+		waitForCompletion, _ := cmd.Flags().GetBool("wait-for-completion")
+		if !waitForCompletion || internal.IsTaskCompleted(planResp.State) {
+			return renderValue(planResp, func() string {
+				return detailData.ResolveData(*planResp)
+			})
 		}
 
 		ticker := time.NewTicker(2 * time.Second)
 		defer ticker.Stop()
-
 		for {
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-ticker.C:
-				planResp, err := httpClient.GetPlan(ctx, internal.GetPlanRequest{PlanID: uint(planID)})
+				planResp, err = detailData.LoadData()
 				if err != nil {
 					return err
 				}
 
-				if internal.IsTaskCompleted(planResp.State) {
-					return formatOutput(planResp, "Plan %d completed with state: %s\n", planResp.ID, planResp.State)
+				if !internal.IsTaskCompleted(planResp.State) {
+					continue
 				}
+
+				return renderValue(planResp, func() string {
+					return detailData.ResolveData(*planResp)
+				})
 			}
 		}
 	},
 }
 
 func init() {
+	planGetCmd.Flags().Bool("wait-for-completion", false, "Wait for the plan to reach a terminal state before returning")
 	planCmd.AddCommand(planGetCmd)
-	planCmd.AddCommand(planWaitCmd)
 }

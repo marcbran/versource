@@ -326,7 +326,7 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 			}
 			return fmt.Errorf("failed to update changeset state: %w", err)
 		}
-		err = r.mergeRepo.UpdateMergeState(ctx, mergeID, TaskStateCompleted)
+		err = r.mergeRepo.UpdateMergeState(ctx, mergeID, TaskStateSucceeded)
 		if err != nil {
 			return fmt.Errorf("failed to update merge state: %w", err)
 		}
@@ -388,7 +388,7 @@ func (r *RunMerge) validateMerge(ctx context.Context, merge *Merge, diffs []Comp
 		if diff.Plan == nil {
 			return false, nil
 		}
-		if diff.Plan.State != TaskStateCompleted {
+		if diff.Plan.State != TaskStateSucceeded {
 			return false, nil
 		}
 	}

@@ -458,7 +458,7 @@ func (r *RunPlan) Exec(ctx context.Context, req RunPlanRequest) error {
 			return fmt.Errorf("failed to create apply: %w", err)
 		}
 
-		err = r.planRepo.UpdatePlanState(ctx, req.PlanID, TaskStateCompleted)
+		err = r.planRepo.UpdatePlanState(ctx, req.PlanID, TaskStateSucceeded)
 		if err != nil {
 			return fmt.Errorf("failed to update plan state: %w", err)
 		}

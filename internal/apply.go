@@ -15,7 +15,7 @@ const (
 	TaskStateQueued    TaskState = "Queued"
 	TaskStateStarted   TaskState = "Started"
 	TaskStateAborted   TaskState = "Aborted"
-	TaskStateCompleted TaskState = "Completed"
+	TaskStateSucceeded TaskState = "Succeeded"
 	TaskStateFailed    TaskState = "Failed"
 	TaskStateCancelled TaskState = "Cancelled"
 )
@@ -321,7 +321,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 			}
 		}
 
-		err = a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateCompleted)
+		err = a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateSucceeded)
 		if err != nil {
 			return fmt.Errorf("failed to update apply state: %w", err)
 		}

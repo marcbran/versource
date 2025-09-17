@@ -26,8 +26,12 @@ var planGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		changeset, err := cmd.Flags().GetString("changeset")
+		if err != nil {
+			return err
+		}
 		httpClient := client.NewClient(config)
-		detailData := plan.NewDetailData(httpClient, args[0])
+		detailData := plan.NewDetailData(httpClient, changeset, args[0])
 		planResp, err := detailData.LoadData()
 		if err != nil {
 			return err
@@ -66,5 +70,6 @@ var planGetCmd = &cobra.Command{
 
 func init() {
 	planGetCmd.Flags().Bool("wait-for-completion", false, "Wait for the plan to reach a terminal state before returning")
+	planGetCmd.Flags().String("changeset", "", "Changeset name to get the plan from")
 	planCmd.AddCommand(planGetCmd)
 }

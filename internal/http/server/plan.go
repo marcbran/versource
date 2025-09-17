@@ -13,6 +13,7 @@ import (
 
 func (s *Server) handleGetPlan(w http.ResponseWriter, r *http.Request) {
 	planIDStr := chi.URLParam(r, "planID")
+	changesetName := chi.URLParam(r, "changesetName")
 
 	planID, err := strconv.ParseUint(planIDStr, 10, 32)
 	if err != nil {
@@ -22,6 +23,9 @@ func (s *Server) handleGetPlan(w http.ResponseWriter, r *http.Request) {
 
 	req := internal.GetPlanRequest{
 		PlanID: uint(planID),
+	}
+	if changesetName != "" {
+		req.ChangesetName = &changesetName
 	}
 
 	resp, err := s.facade.GetPlan(r.Context(), req)
@@ -35,6 +39,7 @@ func (s *Server) handleGetPlan(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleGetPlanLog(w http.ResponseWriter, r *http.Request) {
 	planIDStr := chi.URLParam(r, "planID")
+	changesetName := chi.URLParam(r, "changesetName")
 
 	planID, err := strconv.ParseUint(planIDStr, 10, 32)
 	if err != nil {
@@ -44,6 +49,9 @@ func (s *Server) handleGetPlanLog(w http.ResponseWriter, r *http.Request) {
 
 	req := internal.GetPlanLogRequest{
 		PlanID: uint(planID),
+	}
+	if changesetName != "" {
+		req.ChangesetName = &changesetName
 	}
 
 	response, err := s.facade.GetPlanLog(r.Context(), req)

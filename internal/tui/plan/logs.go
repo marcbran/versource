@@ -10,13 +10,26 @@ import (
 )
 
 type LogsData struct {
-	facade internal.Facade
-	planID string
+	facade        internal.Facade
+	changesetName string
+	planID        string
 }
 
 func NewLogs(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataViewport(&LogsData{facade: facade, planID: params["planID"]})
+		return platform.NewDataViewport(NewLogsData(
+			facade,
+			params["changesetName"],
+			params["planID"],
+		))
+	}
+}
+
+func NewLogsData(facade internal.Facade, changesetName string, planID string) *LogsData {
+	return &LogsData{
+		facade:        facade,
+		changesetName: changesetName,
+		planID:        planID,
 	}
 }
 
@@ -28,7 +41,12 @@ func (p *LogsData) LoadData() (*internal.GetPlanLogResponse, error) {
 		return nil, err
 	}
 
-	resp, err := p.facade.GetPlanLog(ctx, internal.GetPlanLogRequest{PlanID: uint(planIDUint)})
+	req := internal.GetPlanLogRequest{PlanID: uint(planIDUint)}
+	if p.changesetName != "" {
+		req.ChangesetName = &p.changesetName
+	}
+
+	resp, err := p.facade.GetPlanLog(ctx, req)
 	if err != nil {
 		return nil, err
 	}

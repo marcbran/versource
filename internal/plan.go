@@ -42,16 +42,19 @@ type PlanStore interface {
 
 type GetPlan struct {
 	planRepo PlanRepo
+	tx       TransactionManager
 }
 
-func NewGetPlan(planRepo PlanRepo) *GetPlan {
+func NewGetPlan(planRepo PlanRepo, tx TransactionManager) *GetPlan {
 	return &GetPlan{
 		planRepo: planRepo,
+		tx:       tx,
 	}
 }
 
 type GetPlanRequest struct {
-	PlanID uint `json:"plan_id"`
+	ChangesetName *string `json:"changeset_name"`
+	PlanID        uint    `json:"plan_id"`
 }
 
 type GetPlanResponse struct {
@@ -73,9 +76,19 @@ func (g *GetPlan) Exec(ctx context.Context, req GetPlanRequest) (*GetPlanRespons
 		return nil, UserErr("plan ID is required")
 	}
 
-	plan, err := g.planRepo.GetPlan(ctx, req.PlanID)
+	branch := MainBranch
+	if req.ChangesetName != nil {
+		branch = *req.ChangesetName
+	}
+
+	var plan *Plan
+	err := g.tx.Checkout(ctx, branch, func(ctx context.Context) error {
+		var err error
+		plan, err = g.planRepo.GetPlan(ctx, req.PlanID)
+		return err
+	})
 	if err != nil {
-		return nil, UserErrE("plan not found", err)
+		return nil, InternalErrE("failed to list plans", err)
 	}
 
 	return &GetPlanResponse{
@@ -95,16 +108,19 @@ func (g *GetPlan) Exec(ctx context.Context, req GetPlanRequest) (*GetPlanRespons
 
 type GetPlanLog struct {
 	logStore LogStore
+	tx       TransactionManager
 }
 
-func NewGetPlanLog(logStore LogStore) *GetPlanLog {
+func NewGetPlanLog(logStore LogStore, tx TransactionManager) *GetPlanLog {
 	return &GetPlanLog{
 		logStore: logStore,
+		tx:       tx,
 	}
 }
 
 type GetPlanLogRequest struct {
-	PlanID uint `json:"plan_id"`
+	ChangesetName *string `json:"changeset_name"`
+	PlanID        uint    `json:"plan_id"`
 }
 
 type GetPlanLogResponse struct {
@@ -116,7 +132,17 @@ func (g *GetPlanLog) Exec(ctx context.Context, req GetPlanLogRequest) (*GetPlanL
 		return nil, UserErr("plan ID is required")
 	}
 
-	reader, err := g.logStore.LoadLog(ctx, "plan", req.PlanID)
+	branch := MainBranch
+	if req.ChangesetName != nil {
+		branch = *req.ChangesetName
+	}
+
+	var reader io.ReadCloser
+	err := g.tx.Checkout(ctx, branch, func(ctx context.Context) error {
+		var err error
+		reader, err = g.logStore.LoadLog(ctx, "plan", req.PlanID)
+		return err
+	})
 	if err != nil {
 		return nil, InternalErrE("failed to load plan log", err)
 	}

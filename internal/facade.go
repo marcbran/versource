@@ -107,8 +107,8 @@ func NewFacade(
 	mergeWorker := NewMergeWorker(runMerge, mergeRepo)
 	createPlan := NewCreatePlan(componentRepo, planRepo, changesetRepo, transactionManager, planWorker)
 	createMerge := NewCreateMerge(changesetRepo, mergeRepo, transactionManager, mergeWorker)
-	getPlan := NewGetPlan(planRepo)
-	getPlanLog := NewGetPlanLog(logStore)
+	getPlan := NewGetPlan(planRepo, transactionManager)
+	getPlanLog := NewGetPlanLog(logStore, transactionManager)
 	getApplyLog := NewGetApplyLog(logStore)
 	ensureChangeset := NewEnsureChangeset(changesetRepo, transactionManager)
 

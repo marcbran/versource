@@ -11,8 +11,9 @@ import (
 )
 
 type DetailData struct {
-	facade internal.Facade
-	planID string
+	facade        internal.Facade
+	changesetName string
+	planID        string
 }
 
 type DetailViewModel struct {
@@ -37,15 +38,17 @@ func NewDetail(facade internal.Facade) func(params map[string]string) platform.P
 	return func(params map[string]string) platform.Page {
 		return platform.NewDataViewport(NewDetailData(
 			facade,
+			params["changesetName"],
 			params["planID"],
 		))
 	}
 }
 
-func NewDetailData(facade internal.Facade, planID string) *DetailData {
+func NewDetailData(facade internal.Facade, changesetName string, planID string) *DetailData {
 	return &DetailData{
-		facade: facade,
-		planID: planID,
+		facade:        facade,
+		changesetName: changesetName,
+		planID:        planID,
 	}
 }
 
@@ -57,7 +60,12 @@ func (p *DetailData) LoadData() (*internal.GetPlanResponse, error) {
 		return nil, err
 	}
 
-	planResp, err := p.facade.GetPlan(ctx, internal.GetPlanRequest{PlanID: uint(planIDUint)})
+	req := internal.GetPlanRequest{PlanID: uint(planIDUint)}
+	if p.changesetName != "" {
+		req.ChangesetName = &p.changesetName
+	}
+
+	planResp, err := p.facade.GetPlan(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -115,8 +123,16 @@ func (p *DetailData) ResolveData(data internal.GetPlanResponse) string {
 }
 
 func (p *DetailData) KeyBindings(elem internal.GetPlanResponse) platform.KeyBindings {
+	logsCommand := fmt.Sprintf("plans/%d/logs", elem.ID)
+	componentCommand := fmt.Sprintf("components/%d", elem.ComponentID)
+
+	if p.changesetName != "" {
+		logsCommand = fmt.Sprintf("changesets/%s/plans/%d/logs", p.changesetName, elem.ID)
+		componentCommand = fmt.Sprintf("changesets/%s/components/%d", p.changesetName, elem.ComponentID)
+	}
+
 	return platform.KeyBindings{
-		{Key: "l", Help: "View logs", Command: fmt.Sprintf("plans/%d/logs", elem.ID)},
-		{Key: "c", Help: "View component", Command: fmt.Sprintf("components/%d", elem.ComponentID)},
+		{Key: "l", Help: "View logs", Command: logsCommand},
+		{Key: "c", Help: "View component", Command: componentCommand},
 	}
 }

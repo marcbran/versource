@@ -11,22 +11,30 @@ import (
 )
 
 type TableData struct {
-	facade internal.Facade
+	facade        internal.Facade
+	changesetName string
 }
 
 func NewTable(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataTable(NewTableData(facade))
+		return platform.NewDataTable(NewTableData(facade, params["changesetName"]))
 	}
 }
 
-func NewTableData(facade internal.Facade) *TableData {
-	return &TableData{facade: facade}
+func NewTableData(facade internal.Facade, changesetName string) *TableData {
+	return &TableData{
+		facade:        facade,
+		changesetName: changesetName,
+	}
 }
 
 func (p *TableData) LoadData() ([]internal.Plan, error) {
 	ctx := context.Background()
-	resp, err := p.facade.ListPlans(ctx, internal.ListPlansRequest{})
+	req := internal.ListPlansRequest{}
+	if p.changesetName != "" {
+		req.Changeset = &p.changesetName
+	}
+	resp, err := p.facade.ListPlans(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +88,16 @@ func (p *TableData) KeyBindings() platform.KeyBindings {
 }
 
 func (p *TableData) ElemKeyBindings(elem internal.Plan) platform.KeyBindings {
+	detailCommand := fmt.Sprintf("plans/%d", elem.ID)
+	logsCommand := fmt.Sprintf("plans/%d/logs", elem.ID)
+
+	if p.changesetName != "" {
+		detailCommand = fmt.Sprintf("changesets/%s/plans/%d", p.changesetName, elem.ID)
+		logsCommand = fmt.Sprintf("changesets/%s/plans/%d/logs", p.changesetName, elem.ID)
+	}
+
 	return platform.KeyBindings{
-		{Key: "enter", Help: "View plan detail", Command: fmt.Sprintf("plans/%d", elem.ID)},
-		{Key: "l", Help: "View logs", Command: fmt.Sprintf("plans/%d/logs", elem.ID)},
+		{Key: "enter", Help: "View plan detail", Command: detailCommand},
+		{Key: "l", Help: "View logs", Command: logsCommand},
 	}
 }

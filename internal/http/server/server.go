@@ -153,6 +153,10 @@ func (s *Server) setupRoutes() {
 			r.Post("/components", s.handleCreateComponent)
 			r.Get("/components/diffs", s.handleListComponentDiffs)
 			r.Get("/plans", s.handleListPlans)
+			r.Route("/plans/{planID}", func(r chi.Router) {
+				r.Get("/", s.handleGetPlan)
+				r.Get("/logs", s.handleGetPlanLog)
+			})
 			r.Route("/components/{componentID}", func(r chi.Router) {
 				r.Get("/", s.handleGetComponent)
 				r.Get("/diff", s.handleGetComponentDiff)

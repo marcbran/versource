@@ -64,7 +64,9 @@ func RunApp(facade internal.Facade) error {
 		Route("changesets/{changesetName}/components/{componentID}/edit", component.NewEdit(facade)).
 		Route("changesets/{changesetName}/components/{componentID}/delete", component.NewDelete(facade)).
 		Route("changesets/{changesetName}/components/{componentID}/restore", component.NewRestore(facade)).
-		Route("changesets/{changesetName}/plans", plan.NewChangesetTable(facade))
+		Route("changesets/{changesetName}/plans", plan.NewTable(facade)).
+		Route("changesets/{changesetName}/plans/{planID}", plan.NewDetail(facade)).
+		Route("changesets/{changesetName}/plans/{planID}/logs", plan.NewLogs(facade))
 
 	app := platform.NewCommandable(router, facade)
 

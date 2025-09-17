@@ -13,6 +13,9 @@ import (
 
 func (c *Client) GetPlan(ctx context.Context, req internal.GetPlanRequest) (*internal.GetPlanResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/plans/%d", c.baseURL, req.PlanID)
+	if req.ChangesetName != nil {
+		url = fmt.Sprintf("%s/api/v1/changesets/%s/plans/%d", c.baseURL, *req.ChangesetName, req.PlanID)
+	}
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -42,6 +45,9 @@ func (c *Client) GetPlan(ctx context.Context, req internal.GetPlanRequest) (*int
 
 func (c *Client) GetPlanLog(ctx context.Context, req internal.GetPlanLogRequest) (*internal.GetPlanLogResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/plans/%d/logs", c.baseURL, req.PlanID)
+	if req.ChangesetName != nil {
+		url = fmt.Sprintf("%s/api/v1/changesets/%s/plans/%d/logs", c.baseURL, *req.ChangesetName, req.PlanID)
+	}
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -67,11 +73,9 @@ func (c *Client) GetPlanLog(ctx context.Context, req internal.GetPlanLogRequest)
 }
 
 func (c *Client) ListPlans(ctx context.Context, req internal.ListPlansRequest) (*internal.ListPlansResponse, error) {
-	var url string
+	url := fmt.Sprintf("%s/api/v1/plans", c.baseURL)
 	if req.Changeset != nil {
 		url = fmt.Sprintf("%s/api/v1/changesets/%s/plans", c.baseURL, *req.Changeset)
-	} else {
-		url = fmt.Sprintf("%s/api/v1/plans", c.baseURL)
 	}
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {

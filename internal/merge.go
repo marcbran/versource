@@ -302,20 +302,18 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 
 	log.Info("Merge preparation completed, starting merge operation")
 
-	err = r.tx.MergeBranch(ctx, merge.Changeset.Name)
-	if err != nil {
-		stateErr := r.tx.Do(ctx, MainBranch, "fail merge", func(ctx context.Context) error {
-			return r.mergeRepo.UpdateMergeState(ctx, mergeID, TaskStateFailed)
-		})
-		if stateErr != nil {
-			return fmt.Errorf("failed to merge changeset: %w, and failed to update merge state: %w", err, stateErr)
-		}
-		return fmt.Errorf("failed to merge changeset: %w", err)
-	}
-
-	log.Info("Changeset merge completed successfully")
-
 	err = r.tx.Do(ctx, MainBranch, "complete merge", func(ctx context.Context) error {
+		err = r.tx.MergeBranch(ctx, merge.Changeset.Name)
+		if err != nil {
+			stateErr := r.tx.Do(ctx, MainBranch, "fail merge", func(ctx context.Context) error {
+				return r.mergeRepo.UpdateMergeState(ctx, mergeID, TaskStateFailed)
+			})
+			if stateErr != nil {
+				return fmt.Errorf("failed to merge changeset: %w, and failed to update merge state: %w", err, stateErr)
+			}
+			return fmt.Errorf("failed to merge changeset: %w", err)
+		}
+
 		err = r.changesetRepo.UpdateChangesetState(ctx, merge.ChangesetID, ChangesetStateMerged)
 		if err != nil {
 			stateErr := r.tx.Do(ctx, MainBranch, "fail changeset merge", func(ctx context.Context) error {
@@ -326,6 +324,7 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 			}
 			return fmt.Errorf("failed to update changeset state: %w", err)
 		}
+
 		err = r.mergeRepo.UpdateMergeState(ctx, mergeID, TaskStateSucceeded)
 		if err != nil {
 			return fmt.Errorf("failed to update merge state: %w", err)

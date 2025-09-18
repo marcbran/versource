@@ -152,10 +152,12 @@ func (s *Server) setupRoutes() {
 			r.Get("/components", s.handleListComponents)
 			r.Post("/components", s.handleCreateComponent)
 			r.Get("/components/diffs", s.handleListComponentDiffs)
-			r.Get("/plans", s.handleListPlans)
-			r.Route("/plans/{planID}", func(r chi.Router) {
-				r.Get("/", s.handleGetPlan)
-				r.Get("/logs", s.handleGetPlanLog)
+			r.Route("/plans", func(r chi.Router) {
+				r.Get("/", s.handleListPlans)
+				r.Route("/{planID}", func(r chi.Router) {
+					r.Get("/", s.handleGetPlan)
+					r.Get("/logs", s.handleGetPlanLog)
+				})
 			})
 			r.Route("/components/{componentID}", func(r chi.Router) {
 				r.Get("/", s.handleGetComponent)
@@ -166,6 +168,12 @@ func (s *Server) setupRoutes() {
 				r.Post("/plans", s.handleCreatePlan)
 			})
 			r.Post("/merge", s.handleMergeChangeset)
+			r.Route("/merges", func(r chi.Router) {
+				r.Get("/", s.handleListMerges)
+				r.Route("/{mergeID}", func(r chi.Router) {
+					r.Get("/", s.handleGetMerge)
+				})
+			})
 		})
 	})
 }

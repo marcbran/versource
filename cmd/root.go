@@ -24,6 +24,7 @@ func init() {
 	rootCmd.PersistentFlags().String("config", "default", "Configuration key to use (defaults to 'default')")
 	rootCmd.AddCommand(changesetCmd)
 	rootCmd.AddCommand(componentCmd)
+	rootCmd.AddCommand(mergeCmd)
 	rootCmd.AddCommand(moduleCmd)
 	rootCmd.AddCommand(planCmd)
 	rootCmd.AddCommand(serveCmd)

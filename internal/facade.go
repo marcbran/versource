@@ -19,6 +19,8 @@ type Facade interface {
 	CreateChangeset(ctx context.Context, req CreateChangesetRequest) (*CreateChangesetResponse, error)
 	EnsureChangeset(ctx context.Context, req EnsureChangesetRequest) (*EnsureChangesetResponse, error)
 
+	GetMerge(ctx context.Context, req GetMergeRequest) (*GetMergeResponse, error)
+	ListMerges(ctx context.Context, req ListMergesRequest) (*ListMergesResponse, error)
 	CreateMerge(ctx context.Context, req CreateMergeRequest) (*CreateMergeResponse, error)
 
 	GetComponent(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error)
@@ -54,6 +56,8 @@ type facade struct {
 	createChangeset *CreateChangeset
 	ensureChangeset *EnsureChangeset
 
+	getMerge    *GetMerge
+	listMerges  *ListMerges
 	createMerge *CreateMerge
 
 	getComponent       *GetComponent
@@ -106,6 +110,8 @@ func NewFacade(
 	planWorker := NewPlanWorker(runPlan, planRepo)
 	mergeWorker := NewMergeWorker(runMerge, mergeRepo)
 	createPlan := NewCreatePlan(componentRepo, planRepo, changesetRepo, transactionManager, planWorker)
+	getMerge := NewGetMerge(mergeRepo, transactionManager)
+	listMerges := NewListMerges(mergeRepo, transactionManager)
 	createMerge := NewCreateMerge(changesetRepo, mergeRepo, transactionManager, mergeWorker)
 	getPlan := NewGetPlan(planRepo, transactionManager)
 	getPlanLog := NewGetPlanLog(logStore, transactionManager)
@@ -123,6 +129,8 @@ func NewFacade(
 		listChangesets:     NewListChangesets(changesetRepo, transactionManager),
 		createChangeset:    NewCreateChangeset(changesetRepo, transactionManager),
 		ensureChangeset:    ensureChangeset,
+		getMerge:           getMerge,
+		listMerges:         listMerges,
 		createMerge:        createMerge,
 		getComponent:       NewGetComponent(componentRepo, transactionManager),
 		listComponents:     NewListComponents(componentRepo, transactionManager),
@@ -184,6 +192,14 @@ func (f *facade) CreateChangeset(ctx context.Context, req CreateChangesetRequest
 
 func (f *facade) EnsureChangeset(ctx context.Context, req EnsureChangesetRequest) (*EnsureChangesetResponse, error) {
 	return f.ensureChangeset.Exec(ctx, req)
+}
+
+func (f *facade) GetMerge(ctx context.Context, req GetMergeRequest) (*GetMergeResponse, error) {
+	return f.getMerge.Exec(ctx, req)
+}
+
+func (f *facade) ListMerges(ctx context.Context, req ListMergesRequest) (*ListMergesResponse, error) {
+	return f.listMerges.Exec(ctx, req)
 }
 
 func (f *facade) CreateMerge(ctx context.Context, req CreateMergeRequest) (*CreateMergeResponse, error) {

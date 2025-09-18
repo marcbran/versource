@@ -9,6 +9,7 @@ import (
 	"github.com/marcbran/versource/internal/tui/apply"
 	"github.com/marcbran/versource/internal/tui/changeset"
 	"github.com/marcbran/versource/internal/tui/component"
+	"github.com/marcbran/versource/internal/tui/merge"
 	"github.com/marcbran/versource/internal/tui/module"
 	"github.com/marcbran/versource/internal/tui/plan"
 	"github.com/marcbran/versource/internal/tui/platform"
@@ -36,6 +37,7 @@ func RunApp(facade internal.Facade) error {
 				{Key: "c", Help: "View components", Command: fmt.Sprintf("changesets/%s/components", changesetName)},
 				{Key: "d", Help: "View diffs", Command: fmt.Sprintf("changesets/%s/diffs", changesetName)},
 				{Key: "p", Help: "View plans", Command: fmt.Sprintf("changesets/%s/plans", changesetName)},
+				{Key: "M", Help: "View merges", Command: fmt.Sprintf("changesets/%s/merges", changesetName)},
 			}
 		}).
 		Route("modules", module.NewTable(facade)).
@@ -66,7 +68,9 @@ func RunApp(facade internal.Facade) error {
 		Route("changesets/{changesetName}/components/{componentID}/restore", component.NewRestore(facade)).
 		Route("changesets/{changesetName}/plans", plan.NewTable(facade)).
 		Route("changesets/{changesetName}/plans/{planID}", plan.NewDetail(facade)).
-		Route("changesets/{changesetName}/plans/{planID}/logs", plan.NewLogs(facade))
+		Route("changesets/{changesetName}/plans/{planID}/logs", plan.NewLogs(facade)).
+		Route("changesets/{changesetName}/merges", merge.NewTable(facade)).
+		Route("changesets/{changesetName}/merges/{mergeID}", merge.NewDetail(facade))
 
 	app := platform.NewCommandable(router, facade)
 

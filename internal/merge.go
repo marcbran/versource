@@ -26,6 +26,59 @@ type MergeRepo interface {
 	UpdateMergeState(ctx context.Context, mergeID uint, state TaskState) error
 }
 
+type GetMerge struct {
+	mergeRepo MergeRepo
+	tx        TransactionManager
+}
+
+func NewGetMerge(mergeRepo MergeRepo, tx TransactionManager) *GetMerge {
+	return &GetMerge{
+		mergeRepo: mergeRepo,
+		tx:        tx,
+	}
+}
+
+type GetMergeRequest struct {
+	MergeID       uint   `json:"merge_id"`
+	ChangesetName string `json:"changeset_name"`
+}
+
+type GetMergeResponse struct {
+	ID          uint      `json:"id"`
+	ChangesetID uint      `json:"changeset_id"`
+	MergeBase   string    `json:"merge_base"`
+	Head        string    `json:"head"`
+	State       TaskState `json:"state"`
+}
+
+func (g *GetMerge) Exec(ctx context.Context, req GetMergeRequest) (*GetMergeResponse, error) {
+	if req.ChangesetName == "" {
+		return nil, UserErr("changeset name is required")
+	}
+
+	var merge *Merge
+	err := g.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+		var err error
+		merge, err = g.mergeRepo.GetMerge(ctx, req.MergeID)
+		return err
+	})
+	if err != nil {
+		return nil, InternalErrE("failed to get merge", err)
+	}
+
+	if merge == nil {
+		return nil, UserErr("merge not found")
+	}
+
+	return &GetMergeResponse{
+		ID:          merge.ID,
+		ChangesetID: merge.ChangesetID,
+		MergeBase:   merge.MergeBase,
+		Head:        merge.Head,
+		State:       merge.State,
+	}, nil
+}
+
 type ListMerges struct {
 	mergeRepo MergeRepo
 	tx        TransactionManager
@@ -38,13 +91,19 @@ func NewListMerges(mergeRepo MergeRepo, tx TransactionManager) *ListMerges {
 	}
 }
 
-type ListMergesRequest struct{}
+type ListMergesRequest struct {
+	ChangesetName string `json:"changeset_name"`
+}
 
 type ListMergesResponse struct {
 	Merges []Merge `json:"merges"`
 }
 
 func (l *ListMerges) Exec(ctx context.Context, req ListMergesRequest) (*ListMergesResponse, error) {
+	if req.ChangesetName == "" {
+		return nil, UserErr("changeset name is required")
+	}
+
 	var merges []Merge
 	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error

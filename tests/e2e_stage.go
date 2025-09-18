@@ -21,6 +21,7 @@ type Stage struct {
 	ChangesetName string
 	ComponentID   string
 	PlanID        string
+	MergeID       string
 
 	LastOutputMap map[string]any
 	LastError     string

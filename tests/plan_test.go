@@ -11,7 +11,7 @@ func TestDefaultPlanFailing(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		an_non_existing_module_has_been_created().and().
+		a_non_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1")
 
 	when.

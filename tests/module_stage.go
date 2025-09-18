@@ -14,7 +14,7 @@ func (s *Stage) an_existing_module_has_been_created() *Stage {
 	).and().the_module_creation_has_succeeded()
 }
 
-func (s *Stage) an_non_existing_module_has_been_created() *Stage {
+func (s *Stage) a_non_existing_module_has_been_created() *Stage {
 	return s.a_module_is_created(
 		"not-a-github-repository",
 		"https://github.com/marcbran/versource/tests/modules/nothing",

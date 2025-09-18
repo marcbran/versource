@@ -55,7 +55,8 @@ func TestMergeChangeset(t *testing.T) {
 		the_changeset_is_merged()
 
 	then.
-		the_changeset_creation_has_succeeded()
+		the_changeset_creation_has_succeeded().and().
+		the_changeset_merge_has_succeeded()
 }
 
 func TestCreateChangesetAfterMerge(t *testing.T) {
@@ -90,15 +91,53 @@ func TestMergeChangesetWithComponents(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
+		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1").and().
-		a_component_has_been_created_for_the_module_and_changeset("component1", `{"key": "value"}`)
+		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "component1"}`).and().
+		the_plan_has_succeeded()
 
 	when.
 		the_changeset_is_merged()
 
 	then.
-		the_changeset_creation_has_succeeded()
+		the_changeset_creation_has_succeeded().and().
+		the_changeset_merge_has_succeeded()
+}
+
+func TestMergeChangesetWithNonexistingModule(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_blank_instance_dataset().and().
+		a_non_existing_module_has_been_created().and().
+		a_changeset_has_been_created("test1").and().
+		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "component1"}`).and().
+		the_plan_has_failed()
+
+	when.
+		the_changeset_is_merged()
+
+	then.
+		the_changeset_creation_has_succeeded().and().
+		the_changeset_merge_has_failed()
+}
+
+func TestMergeChangesetWithInvalidComponents(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_blank_instance_dataset().and().
+		an_existing_module_has_been_created().and().
+		a_changeset_has_been_created("test1").and().
+		a_component_has_been_created_for_the_module_and_changeset("component1", `{}`).and().
+		the_plan_has_failed()
+
+	when.
+		the_changeset_is_merged()
+
+	then.
+		the_changeset_creation_has_succeeded().and().
+		the_changeset_merge_has_failed()
 }
 
 func TestMergeChangesetWithMultipleComponents(t *testing.T) {
@@ -106,14 +145,17 @@ func TestMergeChangesetWithMultipleComponents(t *testing.T) {
 
 	given.
 		the_blank_instance_dataset().and().
-		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
+		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1").and().
-		a_component_has_been_created_for_the_module_and_changeset("component1", `{"key1": "value1"}`).and().
-		a_component_has_been_created_for_the_module_and_changeset("component2", `{"key2": "value2"}`)
+		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "value1"}`).and().
+		the_plan_has_succeeded().and().
+		a_component_has_been_created_for_the_module_and_changeset("component2", `{"name": "value2"}`).and().
+		the_plan_has_succeeded()
 
 	when.
 		the_changeset_is_merged()
 
 	then.
-		the_changeset_creation_has_succeeded()
+		the_changeset_creation_has_succeeded().and().
+		the_changeset_merge_has_succeeded()
 }

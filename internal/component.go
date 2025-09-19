@@ -52,6 +52,7 @@ type ComponentRepo interface {
 type ComponentDiffRepo interface {
 	ListComponentDiffs(ctx context.Context, changeset string) ([]ComponentDiff, error)
 	GetComponentDiff(ctx context.Context, componentID uint, changeset string) (*ComponentDiff, error)
+	HasComponentConflicts(ctx context.Context, changesetName string) (bool, error)
 }
 
 type GetComponent struct {

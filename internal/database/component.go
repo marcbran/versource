@@ -226,6 +226,24 @@ func (r *GormComponentDiffRepo) GetComponentDiff(ctx context.Context, componentI
 	return &diff, nil
 }
 
+func (r *GormComponentDiffRepo) HasComponentConflicts(ctx context.Context, changesetName string) (bool, error) {
+	if !internal.IsValidBranch(changesetName) {
+		return false, fmt.Errorf("invalid branch name: %s", changesetName)
+	}
+
+	db := getTxOrDb(ctx, r.db)
+
+	query := fmt.Sprintf(`SELECT count(1) FROM dolt_diff("main...%s", "components") b JOIN dolt_diff("%s...main", "components") m ON b.to_id = m.to_id`, changesetName, changesetName)
+
+	var count int64
+	err := db.WithContext(ctx).Raw(query).Scan(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check component conflicts: %w", err)
+	}
+
+	return count > 0, nil
+}
+
 type rawDiff struct {
 	ToID                *uint          `json:"to_id"`
 	ToModuleVersionID   *uint          `json:"to_module_version_id"`

@@ -255,7 +255,7 @@ func (mw *MergeWorker) runMergeInBackground(ctx context.Context, mergeID uint) {
 		if err != nil {
 			log.WithError(err).WithField("merge_id", mergeID).Error("Failed to run merge")
 		} else {
-			log.WithField("merge_id", mergeID).Info("Merge completed successfully")
+			log.WithField("merge_id", mergeID).Info("Merge completed")
 		}
 	}()
 }
@@ -281,9 +281,10 @@ type RunMerge struct {
 	logStore           LogStore
 	tx                 TransactionManager
 	listComponentDiffs *ListComponentDiffs
+	componentDiffRepo  ComponentDiffRepo
 }
 
-func NewRunMerge(config *Config, mergeRepo MergeRepo, changesetRepo ChangesetRepo, planRepo PlanRepo, planStore PlanStore, logStore LogStore, tx TransactionManager, listComponentDiffs *ListComponentDiffs) *RunMerge {
+func NewRunMerge(config *Config, mergeRepo MergeRepo, changesetRepo ChangesetRepo, planRepo PlanRepo, planStore PlanStore, logStore LogStore, tx TransactionManager, listComponentDiffs *ListComponentDiffs, componentDiffRepo ComponentDiffRepo) *RunMerge {
 	return &RunMerge{
 		config:             config,
 		mergeRepo:          mergeRepo,
@@ -293,6 +294,7 @@ func NewRunMerge(config *Config, mergeRepo MergeRepo, changesetRepo ChangesetRep
 		logStore:           logStore,
 		tx:                 tx,
 		listComponentDiffs: listComponentDiffs,
+		componentDiffRepo:  componentDiffRepo,
 	}
 }
 
@@ -448,6 +450,14 @@ func (r *RunMerge) validateMerge(ctx context.Context, merge *Merge, diffs []Comp
 		return false, fmt.Errorf("failed to get current merge base: %w", err)
 	}
 	if currentMergeBase != merge.MergeBase {
+		return false, nil
+	}
+
+	hasConflicts, err := r.componentDiffRepo.HasComponentConflicts(ctx, changesetName)
+	if err != nil {
+		return false, fmt.Errorf("failed to check component conflicts: %w", err)
+	}
+	if hasConflicts {
 		return false, nil
 	}
 

@@ -105,7 +105,7 @@ func NewFacade(
 	runApply := NewRunApply(config, applyRepo, stateRepo, stateResourceRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor)
 	runPlan := NewRunPlan(config, planRepo, planStore, logStore, applyRepo, transactionManager, newExecutor)
 	listComponentDiffs := NewListComponentDiffs(componentDiffRepo, transactionManager)
-	runMerge := NewRunMerge(config, mergeRepo, changesetRepo, planRepo, planStore, logStore, transactionManager, listComponentDiffs)
+	runMerge := NewRunMerge(config, mergeRepo, changesetRepo, planRepo, planStore, logStore, transactionManager, listComponentDiffs, componentDiffRepo)
 	applyWorker := NewApplyWorker(runApply, applyRepo)
 	planWorker := NewPlanWorker(runPlan, planRepo)
 	mergeWorker := NewMergeWorker(runMerge, mergeRepo)

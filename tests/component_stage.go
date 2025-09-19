@@ -50,20 +50,59 @@ func (s *Stage) both_component_creations_have_succeeded() *Stage {
 	return s.the_command_has_succeeded()
 }
 
-func (s *Stage) the_component_is_updated(variables string) *Stage {
-	args := []string{"component", "update", s.ComponentID, "--changeset", s.ChangesetName}
-	args = append(args, s.parseVariablesToArgs(variables)...)
-	return s.execCommand(args...)
+func (s *Stage) the_component_has_been_updated(variables string) *Stage {
+	return s.the_component_is_updated(variables).and().
+		the_component_update_has_succeeded()
 }
 
-func (s *Stage) a_component_is_updated_for_the_changeset(componentID, variables string) *Stage {
+func (s *Stage) the_component_is_updated(variables string) *Stage {
+	return s.a_component_is_updated(s.ComponentID, s.ChangesetName, variables)
+}
+
+func (s *Stage) the_component_has_been_updated_in_a_changeset(changesetName, variables string) *Stage {
+	return s.the_component_is_updated_in_a_changeset(changesetName, variables).and().
+		the_component_update_has_succeeded()
+}
+
+func (s *Stage) the_component_is_updated_in_a_changeset(changesetName, variables string) *Stage {
+	return s.a_component_is_updated(s.ComponentID, changesetName, variables)
+}
+
+func (s *Stage) a_component_has_been_updated_in_the_changeset(componentID, variables string) *Stage {
+	return s.a_component_is_updated_in_the_changeset(componentID, variables).and().
+		the_component_update_has_succeeded()
+}
+
+func (s *Stage) a_component_is_updated_in_the_changeset(componentID, variables string) *Stage {
 	return s.a_component_is_updated(componentID, s.ChangesetName, variables)
+}
+
+func (s *Stage) the_component_has_been_updated_in_the_changeset(variables string) *Stage {
+	return s.the_component_is_updated_in_the_changeset(variables).and().
+		the_component_update_has_succeeded()
+}
+
+func (s *Stage) the_component_is_updated_in_the_changeset(variables string) *Stage {
+	return s.a_component_is_updated(s.ComponentID, s.ChangesetName, variables)
 }
 
 func (s *Stage) a_component_is_updated(componentID, changeset, variables string) *Stage {
 	args := []string{"component", "update", componentID, "--changeset", changeset}
 	args = append(args, s.parseVariablesToArgs(variables)...)
-	return s.execCommand(args...)
+	s.execCommand(args...)
+	if s.LastOutputMap != nil {
+		if id, ok := s.LastOutputMap["id"]; ok {
+			if idFloat, ok := id.(float64); ok {
+				s.ComponentID = fmt.Sprintf("%.0f", idFloat)
+			}
+		}
+		if id, ok := s.LastOutputMap["plan_id"]; ok {
+			if idFloat, ok := id.(float64); ok {
+				s.PlanID = fmt.Sprintf("%.0f", idFloat)
+			}
+		}
+	}
+	return s
 }
 
 func (s *Stage) the_component_is_updated_with_no_fields() *Stage {

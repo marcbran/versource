@@ -43,7 +43,7 @@ func (s *Stage) a_changeset_has_been_merged(changesetName string) *Stage {
 }
 
 func (s *Stage) a_changeset_is_merged(changesetName string) *Stage {
-	s.execCommand("changeset", "merge", changesetName, "--output", "json")
+	s.execCommand("changeset", "merge", changesetName)
 	if s.LastOutputMap != nil {
 		if id, ok := s.LastOutputMap["id"]; ok {
 			if idFloat, ok := id.(float64); ok {
@@ -79,9 +79,9 @@ func (s *Stage) the_changeset_merge_has_completed(expectedState string) *Stage {
 	assert.True(s.t, ok, "No state field in command output")
 
 	stateStr, ok := state.(string)
-	assert.True(s.t, ok, "Plan state is not a string")
+	assert.True(s.t, ok, "Merge state is not a string")
 
-	assert.Equal(s.t, expectedState, stateStr, "Plan state mismatch")
+	assert.Equal(s.t, expectedState, stateStr, "Merge state mismatch")
 
 	return s
 }

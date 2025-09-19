@@ -159,3 +159,25 @@ func TestMergeChangesetWithMultipleComponents(t *testing.T) {
 		the_changeset_creation_has_succeeded().and().
 		the_changeset_merge_has_succeeded()
 }
+
+func TestMergeChangesetWithComponentConflicts(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_blank_instance_dataset().and().
+		an_existing_module_has_been_created().and().
+		a_changeset_has_been_created("test1").and().
+		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "value1"}`).and().
+		the_plan_has_succeeded().and().
+		a_changeset_has_been_created("test2").and().
+		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "value2"}`).and().
+		the_plan_has_succeeded().and().
+		a_changeset_has_been_merged("test1")
+
+	when.
+		a_changeset_is_merged("test2")
+
+	then.
+		the_changeset_creation_has_succeeded().and().
+		the_changeset_merge_has_failed()
+}

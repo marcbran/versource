@@ -33,7 +33,17 @@ func (s *Stage) the_changeset_has_been_merged() *Stage {
 }
 
 func (s *Stage) the_changeset_is_merged() *Stage {
-	s.execCommand("changeset", "merge", s.ChangesetName, "--output", "json")
+	return s.a_changeset_is_merged(s.ChangesetName)
+}
+
+func (s *Stage) a_changeset_has_been_merged(changesetName string) *Stage {
+	return s.a_changeset_is_merged(changesetName).and().
+		the_changeset_merge_creation_has_succeeded().and().
+		the_changeset_merge_has_succeeded()
+}
+
+func (s *Stage) a_changeset_is_merged(changesetName string) *Stage {
+	s.execCommand("changeset", "merge", changesetName, "--output", "json")
 	if s.LastOutputMap != nil {
 		if id, ok := s.LastOutputMap["id"]; ok {
 			if idFloat, ok := id.(float64); ok {

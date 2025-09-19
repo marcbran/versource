@@ -393,6 +393,15 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 
 		return nil
 	})
+	if err != nil {
+		stateErr := r.tx.Do(ctx, MainBranch, "fail merge", func(ctx context.Context) error {
+			return r.mergeRepo.UpdateMergeState(ctx, mergeID, TaskStateFailed)
+		})
+		if stateErr != nil {
+			return fmt.Errorf("merge failed: %w, and failed to update merge state: %w", err, stateErr)
+		}
+		return fmt.Errorf("merge failed: %w", err)
+	}
 
 	return err
 }

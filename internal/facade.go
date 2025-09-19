@@ -23,6 +23,10 @@ type Facade interface {
 	ListMerges(ctx context.Context, req ListMergesRequest) (*ListMergesResponse, error)
 	CreateMerge(ctx context.Context, req CreateMergeRequest) (*CreateMergeResponse, error)
 
+	GetRebase(ctx context.Context, req GetRebaseRequest) (*GetRebaseResponse, error)
+	ListRebases(ctx context.Context, req ListRebasesRequest) (*ListRebasesResponse, error)
+	CreateRebase(ctx context.Context, req CreateRebaseRequest) (*CreateRebaseResponse, error)
+
 	GetComponent(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error)
 	ListComponents(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error)
 	GetComponentDiff(ctx context.Context, req GetComponentDiffRequest) (*GetComponentDiffResponse, error)
@@ -60,6 +64,10 @@ type facade struct {
 	listMerges  *ListMerges
 	createMerge *CreateMerge
 
+	getRebase    *GetRebase
+	listRebases  *ListRebases
+	createRebase *CreateRebase
+
 	getComponent       *GetComponent
 	listComponents     *ListComponents
 	getComponentDiff   *GetComponentDiff
@@ -79,9 +87,10 @@ type facade struct {
 	listApplies *ListApplies
 	runApply    *RunApply
 
-	planWorker  *PlanWorker
-	applyWorker *ApplyWorker
-	mergeWorker *MergeWorker
+	planWorker   *PlanWorker
+	applyWorker  *ApplyWorker
+	mergeWorker  *MergeWorker
+	rebaseWorker *RebaseWorker
 }
 
 func NewFacade(
@@ -96,6 +105,7 @@ func NewFacade(
 	logStore LogStore,
 	applyRepo ApplyRepo,
 	mergeRepo MergeRepo,
+	rebaseRepo RebaseRepo,
 	changesetRepo ChangesetRepo,
 	moduleRepo ModuleRepo,
 	moduleVersionRepo ModuleVersionRepo,
@@ -106,13 +116,18 @@ func NewFacade(
 	runPlan := NewRunPlan(config, planRepo, planStore, logStore, applyRepo, transactionManager, newExecutor)
 	listComponentDiffs := NewListComponentDiffs(componentDiffRepo, transactionManager)
 	runMerge := NewRunMerge(config, mergeRepo, changesetRepo, planRepo, planStore, logStore, transactionManager, listComponentDiffs, componentDiffRepo)
+	runRebase := NewRunRebase(config, rebaseRepo, changesetRepo, transactionManager)
 	applyWorker := NewApplyWorker(runApply, applyRepo)
 	planWorker := NewPlanWorker(runPlan, planRepo)
 	mergeWorker := NewMergeWorker(runMerge, mergeRepo)
+	rebaseWorker := NewRebaseWorker(runRebase, rebaseRepo)
 	createPlan := NewCreatePlan(componentRepo, planRepo, changesetRepo, transactionManager, planWorker)
 	getMerge := NewGetMerge(mergeRepo, transactionManager)
 	listMerges := NewListMerges(mergeRepo, transactionManager)
 	createMerge := NewCreateMerge(changesetRepo, mergeRepo, transactionManager, mergeWorker)
+	getRebase := NewGetRebase(rebaseRepo, transactionManager)
+	listRebases := NewListRebases(rebaseRepo, transactionManager)
+	createRebase := NewCreateRebase(changesetRepo, rebaseRepo, transactionManager, rebaseWorker)
 	getPlan := NewGetPlan(planRepo, transactionManager)
 	getPlanLog := NewGetPlanLog(logStore, transactionManager)
 	getApplyLog := NewGetApplyLog(logStore)
@@ -132,6 +147,9 @@ func NewFacade(
 		getMerge:           getMerge,
 		listMerges:         listMerges,
 		createMerge:        createMerge,
+		getRebase:          getRebase,
+		listRebases:        listRebases,
+		createRebase:       createRebase,
 		getComponent:       NewGetComponent(componentRepo, transactionManager),
 		listComponents:     NewListComponents(componentRepo, transactionManager),
 		getComponentDiff:   NewGetComponentDiff(componentDiffRepo, transactionManager),
@@ -151,6 +169,7 @@ func NewFacade(
 		planWorker:         planWorker,
 		applyWorker:        applyWorker,
 		mergeWorker:        mergeWorker,
+		rebaseWorker:       rebaseWorker,
 	}
 }
 
@@ -204,6 +223,18 @@ func (f *facade) ListMerges(ctx context.Context, req ListMergesRequest) (*ListMe
 
 func (f *facade) CreateMerge(ctx context.Context, req CreateMergeRequest) (*CreateMergeResponse, error) {
 	return f.createMerge.Exec(ctx, req)
+}
+
+func (f *facade) GetRebase(ctx context.Context, req GetRebaseRequest) (*GetRebaseResponse, error) {
+	return f.getRebase.Exec(ctx, req)
+}
+
+func (f *facade) ListRebases(ctx context.Context, req ListRebasesRequest) (*ListRebasesResponse, error) {
+	return f.listRebases.Exec(ctx, req)
+}
+
+func (f *facade) CreateRebase(ctx context.Context, req CreateRebaseRequest) (*CreateRebaseResponse, error) {
+	return f.createRebase.Exec(ctx, req)
 }
 
 func (f *facade) GetComponent(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error) {
@@ -274,4 +305,5 @@ func (f *facade) Start(ctx context.Context) {
 	f.planWorker.Start(ctx)
 	f.applyWorker.Start(ctx)
 	f.mergeWorker.Start(ctx)
+	f.rebaseWorker.Start(ctx)
 }

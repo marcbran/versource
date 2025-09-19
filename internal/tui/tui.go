@@ -13,6 +13,7 @@ import (
 	"github.com/marcbran/versource/internal/tui/module"
 	"github.com/marcbran/versource/internal/tui/plan"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/internal/tui/rebase"
 )
 
 func RunApp(facade internal.Facade) error {
@@ -38,6 +39,7 @@ func RunApp(facade internal.Facade) error {
 				{Key: "d", Help: "View diffs", Command: fmt.Sprintf("changesets/%s/diffs", changesetName)},
 				{Key: "p", Help: "View plans", Command: fmt.Sprintf("changesets/%s/plans", changesetName)},
 				{Key: "M", Help: "View merges", Command: fmt.Sprintf("changesets/%s/merges", changesetName)},
+				{Key: "R", Help: "View rebases", Command: fmt.Sprintf("changesets/%s/rebases", changesetName)},
 			}
 		}).
 		Route("modules", module.NewTable(facade)).
@@ -57,7 +59,6 @@ func RunApp(facade internal.Facade) error {
 		Route("plans/{planID}/logs", plan.NewLogs(facade)).
 		Route("applies", apply.NewTable(facade)).
 		Route("changesets", changeset.NewTable(facade)).
-		Route("changesets/{changesetName}/merge", changeset.NewMergeChangeset(facade)).
 		Route("changesets/{changesetName}/components", component.NewChangesetTable(facade)).
 		Route("changesets/{changesetName}/components/{componentID}", component.NewDetail(facade)).
 		Route("changesets/{changesetName}/diffs", component.NewChangesetDiffsTable(facade)).
@@ -69,8 +70,12 @@ func RunApp(facade internal.Facade) error {
 		Route("changesets/{changesetName}/plans", plan.NewTable(facade)).
 		Route("changesets/{changesetName}/plans/{planID}", plan.NewDetail(facade)).
 		Route("changesets/{changesetName}/plans/{planID}/logs", plan.NewLogs(facade)).
+		Route("changesets/{changesetName}/merge", changeset.NewMergeChangeset(facade)).
 		Route("changesets/{changesetName}/merges", merge.NewTable(facade)).
-		Route("changesets/{changesetName}/merges/{mergeID}", merge.NewDetail(facade))
+		Route("changesets/{changesetName}/merges/{mergeID}", merge.NewDetail(facade)).
+		Route("changesets/{changesetName}/rebase", changeset.NewRebaseChangeset(facade)).
+		Route("changesets/{changesetName}/rebases", rebase.NewTable(facade)).
+		Route("changesets/{changesetName}/rebases/{rebaseID}", rebase.NewDetail(facade))
 
 	app := platform.NewCommandable(router, facade)
 

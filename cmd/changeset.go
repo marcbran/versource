@@ -95,6 +95,37 @@ var changesetMergeCmd = &cobra.Command{
 	},
 }
 
+var changesetRebaseCmd = &cobra.Command{
+	Use:   "rebase [changeset-name]",
+	Short: "Rebase a changeset",
+	Long:  `Rebase a changeset branch onto main`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		changesetName := args[0]
+		if changesetName == "" {
+			return fmt.Errorf("changeset name is required")
+		}
+
+		config, err := LoadConfig(cmd)
+		if err != nil {
+			return err
+		}
+
+		client := client.NewClient(config)
+
+		req := internal.CreateRebaseRequest{
+			ChangesetName: changesetName,
+		}
+
+		rebase, err := client.CreateRebase(cmd.Context(), req)
+		if err != nil {
+			return err
+		}
+
+		return formatOutput(rebase, "Rebase operation created for changeset %s (ID: %d)\n", changesetName, rebase.ID)
+	},
+}
+
 func init() {
 	changesetCreateCmd.Flags().String("name", "", "Changeset name")
 	changesetCreateCmd.MarkFlagRequired("name")
@@ -102,4 +133,5 @@ func init() {
 	changesetCmd.AddCommand(changesetCreateCmd)
 	changesetCmd.AddCommand(changesetListCmd)
 	changesetCmd.AddCommand(changesetMergeCmd)
+	changesetCmd.AddCommand(changesetRebaseCmd)
 }

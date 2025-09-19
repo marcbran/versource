@@ -79,6 +79,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 	logStore := file.NewLogStore(config.Terraform.WorkDir)
 	applyRepo := database.NewGormApplyRepo(db)
 	mergeRepo := database.NewGormMergeRepo(db)
+	rebaseRepo := database.NewGormRebaseRepo(db)
 	changesetRepo := database.NewGormChangesetRepo(db)
 	moduleRepo := database.NewGormModuleRepo(db)
 	moduleVersionRepo := database.NewGormModuleVersionRepo(db)
@@ -98,6 +99,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		logStore,
 		applyRepo,
 		mergeRepo,
+		rebaseRepo,
 		changesetRepo,
 		moduleRepo,
 		moduleVersionRepo,
@@ -172,6 +174,13 @@ func (s *Server) setupRoutes() {
 				r.Get("/", s.handleListMerges)
 				r.Route("/{mergeID}", func(r chi.Router) {
 					r.Get("/", s.handleGetMerge)
+				})
+			})
+			r.Route("/rebases", func(r chi.Router) {
+				r.Get("/", s.handleListRebases)
+				r.Post("/", s.handleCreateRebase)
+				r.Route("/{rebaseID}", func(r chi.Router) {
+					r.Get("/", s.handleGetRebase)
 				})
 			})
 		})

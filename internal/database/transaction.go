@@ -208,3 +208,29 @@ func (tm *GormTransactionManager) HasCommitsAfter(ctx context.Context, branch, c
 
 	return count > 0, nil
 }
+
+func (tm *GormTransactionManager) Rebase(ctx context.Context, branch, onto string) error {
+	tx := getTxOrDb(ctx, tm.db)
+
+	var count int64
+	err := tx.Raw("SELECT COUNT(*) FROM DOLT_LOG(?, '--not', ?)", branch, onto).Scan(&count).Error
+	if err != nil {
+		return fmt.Errorf("failed to check commits to rebase: %w", err)
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	err = tx.Exec("CALL DOLT_REBASE('-i', ?)", onto).Error
+	if err != nil {
+		return fmt.Errorf("failed to start rebase of %s onto %s: %w", branch, onto, err)
+	}
+
+	err = tx.Exec("CALL DOLT_REBASE('--continue')").Error
+	if err != nil {
+		return fmt.Errorf("failed to continue rebase of %s onto %s: %w", branch, onto, err)
+	}
+
+	return nil
+}

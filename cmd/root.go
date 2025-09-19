@@ -25,6 +25,7 @@ func init() {
 	rootCmd.AddCommand(changesetCmd)
 	rootCmd.AddCommand(componentCmd)
 	rootCmd.AddCommand(mergeCmd)
+	rootCmd.AddCommand(rebaseCmd)
 	rootCmd.AddCommand(moduleCmd)
 	rootCmd.AddCommand(planCmd)
 	rootCmd.AddCommand(serveCmd)

@@ -91,7 +91,7 @@ func TestUpdateComponentWithNonexistentID(t *testing.T) {
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"key": "value"}`)
 
 	when.
-		a_component_is_updated_for_the_changeset("999", `{"key": "updated"}`)
+		a_component_is_updated_in_the_changeset("999", `{"key": "updated"}`)
 
 	then.
 		the_component_update_has_failed()

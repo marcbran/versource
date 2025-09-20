@@ -280,6 +280,48 @@ var componentPlanCmd = &cobra.Command{
 	},
 }
 
+var componentRestoreCmd = &cobra.Command{
+	Use:   "restore [component-id]",
+	Short: "Restore a deleted component",
+	Long:  `Restore a deleted component by setting its status to Ready and restoring from merge base state`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		componentIDStr := args[0]
+		componentID, err := strconv.ParseUint(componentIDStr, 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid component ID: %w", err)
+		}
+
+		changeset, err := cmd.Flags().GetString("changeset")
+		if err != nil {
+			return fmt.Errorf("failed to get changeset flag: %w", err)
+		}
+
+		if changeset == "" {
+			return fmt.Errorf("changeset is required")
+		}
+
+		config, err := LoadConfig(cmd)
+		if err != nil {
+			return err
+		}
+
+		client := client.NewClient(config)
+
+		req := internal.RestoreComponentRequest{
+			ComponentID: uint(componentID),
+			Changeset:   changeset,
+		}
+
+		component, err := client.RestoreComponent(cmd.Context(), req)
+		if err != nil {
+			return err
+		}
+
+		return formatOutput(component, "Component restored successfully with ID: %d\n", component.ID)
+	},
+}
+
 func parseVariables(variableMap map[string]string) (map[string]any, error) {
 	variables := make(map[string]any)
 
@@ -333,10 +375,14 @@ func init() {
 	componentPlanCmd.Flags().String("changeset", "", "Changeset name for the plan")
 	componentPlanCmd.MarkFlagRequired("changeset")
 
+	componentRestoreCmd.Flags().String("changeset", "", "Changeset name")
+	componentRestoreCmd.MarkFlagRequired("changeset")
+
 	componentCmd.AddCommand(componentGetCmd)
 	componentCmd.AddCommand(componentListCmd)
 	componentCmd.AddCommand(componentCreateCmd)
 	componentCmd.AddCommand(componentUpdateCmd)
 	componentCmd.AddCommand(componentDeleteCmd)
 	componentCmd.AddCommand(componentPlanCmd)
+	componentCmd.AddCommand(componentRestoreCmd)
 }

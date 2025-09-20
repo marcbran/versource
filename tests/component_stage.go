@@ -182,3 +182,64 @@ func (s *Stage) the_component_deletion_has_succeeded() *Stage {
 func (s *Stage) the_component_deletion_has_failed() *Stage {
 	return s.the_command_has_failed()
 }
+
+func (s *Stage) the_component_has_been_restored() *Stage {
+	return s.the_component_is_restored().and().
+		the_component_restoration_has_succeeded()
+}
+
+func (s *Stage) the_component_is_restored() *Stage {
+	return s.a_component_is_restored(s.ComponentID, s.ChangesetName)
+}
+
+func (s *Stage) the_component_has_been_restored_in_the_changeset() *Stage {
+	return s.the_component_is_restored_in_the_changeset().and().
+		the_component_restoration_has_succeeded()
+}
+
+func (s *Stage) the_component_is_restored_in_the_changeset() *Stage {
+	return s.a_component_is_restored(s.ComponentID, s.ChangesetName)
+}
+
+func (s *Stage) the_component_has_been_restored_in_a_changeset(changesetName string) *Stage {
+	return s.the_component_is_restored_in_a_changeset(changesetName).and().
+		the_component_restoration_has_succeeded()
+}
+
+func (s *Stage) the_component_is_restored_in_a_changeset(changesetName string) *Stage {
+	return s.a_component_is_restored(s.ComponentID, changesetName)
+}
+
+func (s *Stage) a_component_has_been_restored_in_the_changeset(componentID string) *Stage {
+	return s.a_component_is_restored_in_the_changeset(componentID).and().
+		the_component_restoration_has_succeeded()
+}
+
+func (s *Stage) a_component_is_restored_in_the_changeset(componentID string) *Stage {
+	return s.a_component_is_restored(componentID, s.ChangesetName)
+}
+
+func (s *Stage) a_component_is_restored(componentID, changeset string) *Stage {
+	s.a_client_command_is_executed("component", "restore", componentID, "--changeset", changeset)
+	if s.LastOutputMap != nil {
+		if id, ok := s.LastOutputMap["id"]; ok {
+			if idFloat, ok := id.(float64); ok {
+				s.ComponentID = fmt.Sprintf("%.0f", idFloat)
+			}
+		}
+		if id, ok := s.LastOutputMap["plan_id"]; ok {
+			if idFloat, ok := id.(float64); ok {
+				s.PlanID = fmt.Sprintf("%.0f", idFloat)
+			}
+		}
+	}
+	return s
+}
+
+func (s *Stage) the_component_restoration_has_succeeded() *Stage {
+	return s.the_command_has_succeeded()
+}
+
+func (s *Stage) the_component_restoration_has_failed() *Stage {
+	return s.the_command_has_failed()
+}

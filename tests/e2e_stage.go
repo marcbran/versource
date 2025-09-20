@@ -40,6 +40,49 @@ func scenario(t *testing.T) (*Stage, *Stage, *Stage) {
 	return stage, stage, stage
 }
 
+func (s *Stage) the_stage_is_cleared() *Stage {
+	s.ModuleID = ""
+	s.ChangesetName = ""
+	s.ComponentID = ""
+	s.PlanID = ""
+	s.MergeID = ""
+	s.RebaseID = ""
+	s.LastOutputMap = nil
+	s.LastError = ""
+	s.LastExitCode = 0
+	return s
+}
+
+func (s *Stage) the_module_id_is(moduleID string) *Stage {
+	s.ModuleID = moduleID
+	return s
+}
+
+func (s *Stage) the_changeset_name_is(changesetName string) *Stage {
+	s.ChangesetName = changesetName
+	return s
+}
+
+func (s *Stage) the_component_id_is(componentID string) *Stage {
+	s.ComponentID = componentID
+	return s
+}
+
+func (s *Stage) the_plan_id_is(planID string) *Stage {
+	s.PlanID = planID
+	return s
+}
+
+func (s *Stage) the_merge_id_is(mergeID string) *Stage {
+	s.MergeID = mergeID
+	return s
+}
+
+func (s *Stage) the_rebase_id_is(rebaseID string) *Stage {
+	s.RebaseID = rebaseID
+	return s
+}
+
 func (s *Stage) a_recreated_dbms() *Stage {
 	return s.
 		a_docker_compose_command_is_executed("down", "--remove-orphans").and().
@@ -63,11 +106,13 @@ type Dataset struct {
 
 var blank_instance = Dataset{Name: "blank-instance"}
 var module_and_changeset = Dataset{Name: "module-and-changeset"}
+var deleted_component = Dataset{Name: "deleted-component"}
 
 func (s *Stage) a_clean_slate() *Stage {
 	return s.an_empty_database().and().
 		the_migrations_are_run().and().
-		a_restarted_server()
+		a_restarted_server().and().
+		the_stage_is_cleared()
 }
 
 func (s *Stage) an_empty_database() *Stage {
@@ -83,7 +128,8 @@ func (s *Stage) the_migrations_are_run() *Stage {
 
 func (s *Stage) the_dataset(dataset Dataset) *Stage {
 	return s.a_dataset_is_cloned(dataset).and().
-		a_restarted_server()
+		a_restarted_server().and().
+		the_stage_is_cleared()
 }
 
 func (s *Stage) a_dataset_is_cloned(dataset Dataset) *Stage {

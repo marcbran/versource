@@ -301,6 +301,7 @@ func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) 
 			Name:            req.Name,
 			ModuleVersionID: latestVersion.ID,
 			Variables:       datatypes.JSON(variablesJSON),
+			Status:          ComponentStatusReady,
 		}
 
 		err = c.componentRepo.CreateComponent(ctx, component)
@@ -432,6 +433,10 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 		component, err := u.componentRepo.GetComponent(ctx, req.ComponentID)
 		if err != nil {
 			return UserErrE("component not found", err)
+		}
+
+		if component.Status == ComponentStatusDeleted {
+			return UserErr("component is deleted")
 		}
 
 		if req.ModuleID != nil {
@@ -744,20 +749,15 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 			return InternalErrE("failed to get component diff", err)
 		}
 
-		if componentDiff.FromComponent == nil {
-			return UserErr("component does not exist in merge base")
+		if componentDiff.FromComponent != nil {
+			component.ModuleVersionID = componentDiff.FromComponent.ModuleVersionID
+			if componentDiff.FromComponent.Variables == nil {
+				component.Variables = datatypes.JSON("{}")
+			} else {
+				component.Variables = componentDiff.FromComponent.Variables
+			}
 		}
 
-		if componentDiff.FromComponent.Status == ComponentStatusDeleted {
-			return UserErr("component is deleted in merge base")
-		}
-
-		component.ModuleVersionID = componentDiff.FromComponent.ModuleVersionID
-		if componentDiff.FromComponent.Variables == nil {
-			component.Variables = datatypes.JSON("{}")
-		} else {
-			component.Variables = componentDiff.FromComponent.Variables
-		}
 		component.Status = ComponentStatusReady
 
 		err = r.componentRepo.UpdateComponent(ctx, component)

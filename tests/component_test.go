@@ -244,16 +244,8 @@ func TestDeleteDeletedComponent(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_dataset(blank_instance).and().
-		an_existing_module_has_been_created().and().
-		a_changeset_has_been_created("test1").and().
-		a_component_has_been_created_for_the_module_and_changeset("component", `{"name": "value"}`).and().
-		the_plan_has_succeeded().and().
-		the_changeset_has_been_merged().and().
-		a_changeset_has_been_created("test2").and().
-		the_component_has_been_deleted().and().
-		the_plan_has_succeeded().and().
-		the_changeset_has_been_merged().and().
+		the_dataset(deleted_component).and().
+		the_component_id_is("1").and().
 		a_changeset_has_been_created("test3")
 
 	when.
@@ -261,4 +253,65 @@ func TestDeleteDeletedComponent(t *testing.T) {
 
 	then.
 		the_component_deletion_has_failed()
+}
+
+func TestUpdateDeletedComponent(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_dataset(deleted_component).and().
+		the_component_id_is("1").and().
+		a_changeset_has_been_created("test3")
+
+	when.
+		the_component_is_updated(`{"name": "updated"}`)
+
+	then.
+		the_component_update_has_failed()
+}
+
+func TestRestoreExistentComponent(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_dataset(blank_instance).and().
+		an_existing_module_has_been_created().and().
+		a_changeset_has_been_created("test1").and().
+		a_component_has_been_created_for_the_module_and_changeset("component", `{"name": "value"}`)
+
+	when.
+		the_component_is_restored()
+
+	then.
+		the_component_restoration_has_failed()
+}
+
+func TestRestoreNonExistentComponent(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_dataset(blank_instance).and().
+		an_existing_module_has_been_created().and().
+		a_changeset_has_been_created("test1")
+
+	when.
+		a_component_is_restored_in_the_changeset("999")
+
+	then.
+		the_component_restoration_has_failed()
+}
+
+func TestRestoreDeletedComponent(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_dataset(deleted_component).and().
+		the_component_id_is("1").and().
+		a_changeset_has_been_created("test3")
+
+	when.
+		the_component_is_restored()
+
+	then.
+		the_component_restoration_has_succeeded()
 }

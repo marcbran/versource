@@ -1,47 +1,15 @@
-//go:build e2e
+//go:build e2e && datasets
 
 package tests
 
-import (
-	"fmt"
-)
-
-func (s *Stage) a_blank_instance() *Stage {
-	s.execRootQuery("DROP DATABASE IF EXISTS versource;")
-	s.runDockerCompose("restart", "db-init")
-	s.runDockerCompose("restart", "migrate")
-	s.runDockerCompose("restart", "server")
-	return s
+func (s *Stage) the_state_is_stored_in_the_dataset(dataset Dataset) *Stage {
+	return s.
+		the_dataset_is_removed(dataset).and().
+		a_db_query_is_run_as_versource("CALL DOLT_REMOTE('add', 'origin', 'file:///datasets/" + dataset.Name + "')").and().
+		a_db_query_is_run_as_versource("CALL DOLT_PUSH('origin', 'main')")
 }
 
-func (s *Stage) the_blank_instance_dataset() *Stage {
-	return s.the_dataset("blank-instance")
-}
-
-func (s *Stage) the_state_is_stored_in_the_blank_instance_dataset() *Stage {
-	return s.the_state_is_stored_in_the_dataset("blank-instance")
-}
-
-func (s *Stage) the_module_and_changeset_dataset() *Stage {
-	return s.the_dataset("module-and-changeset")
-}
-
-func (s *Stage) the_state_is_stored_in_the_module_and_changeset_dataset() *Stage {
-	return s.the_state_is_stored_in_the_dataset("module-and-changeset")
-}
-
-func (s *Stage) the_dataset(name string) *Stage {
-	s.execRootQuery("DROP DATABASE IF EXISTS versource;")
-	s.runDockerCompose("restart", "db-init")
-	s.runDockerCompose("restart", "migrate")
-	s.runDockerCompose("restart", "server")
-	s.execRootQuery("CALL DOLT_CLONE('file:///datasets/" + name + "', 'versource')")
-	return s
-}
-
-func (s *Stage) the_state_is_stored_in_the_dataset(name string) *Stage {
-	fmt.Println("Pushing dataset: " + name)
-	fmt.Println(s.execQuery("CALL DOLT_REMOTE('add', 'origin', 'file:///datasets/" + name + "')"))
-	fmt.Println(s.execQuery("CALL DOLT_PUSH('origin', 'main')"))
-	return s
+func (s *Stage) the_dataset_is_removed(dataset Dataset) *Stage {
+	return s.a_command_is_executed("dolt", "rm", "-rf", "/datasets/"+dataset.Name).and().
+		the_command_has_to_succeeded()
 }

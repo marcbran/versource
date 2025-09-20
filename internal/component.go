@@ -42,6 +42,7 @@ const (
 type ComponentRepo interface {
 	GetComponent(ctx context.Context, componentID uint) (*Component, error)
 	GetComponentAtCommit(ctx context.Context, componentID uint, commit string) (*Component, error)
+	HasComponent(ctx context.Context, componentID uint) (bool, error)
 	ListComponents(ctx context.Context) ([]Component, error)
 	ListComponentsByModule(ctx context.Context, moduleID uint) ([]Component, error)
 	ListComponentsByModuleVersion(ctx context.Context, moduleVersionID uint) ([]Component, error)
@@ -345,15 +346,17 @@ func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) 
 type UpdateComponent struct {
 	componentRepo     ComponentRepo
 	moduleVersionRepo ModuleVersionRepo
+	changesetRepo     ChangesetRepo
 	ensureChangeset   *EnsureChangeset
 	createPlan        *CreatePlan
 	tx                TransactionManager
 }
 
-func NewUpdateComponent(componentRepo ComponentRepo, moduleVersionRepo ModuleVersionRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *UpdateComponent {
+func NewUpdateComponent(componentRepo ComponentRepo, moduleVersionRepo ModuleVersionRepo, changesetRepo ChangesetRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *UpdateComponent {
 	return &UpdateComponent{
 		componentRepo:     componentRepo,
 		moduleVersionRepo: moduleVersionRepo,
+		changesetRepo:     changesetRepo,
 		ensureChangeset:   ensureChangeset,
 		createPlan:        createPlan,
 		tx:                tx,
@@ -381,11 +384,45 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 		return nil, UserErr("changeset is required")
 	}
 
+	var hasChangeset bool
+	err := u.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+		var err error
+		hasChangeset, err = u.changesetRepo.HasChangesetWithName(ctx, req.Changeset)
+		if err != nil {
+			return InternalErrE("failed to check changeset existence", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var branch string
+	if hasChangeset {
+		branch = req.Changeset
+	} else {
+		branch = MainBranch
+	}
+
+	err = u.tx.Checkout(ctx, branch, func(ctx context.Context) error {
+		exists, err := u.componentRepo.HasComponent(ctx, req.ComponentID)
+		if err != nil {
+			return InternalErrE("failed to check component existence", err)
+		}
+		if !exists {
+			return UserErr("component not found")
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	ensureChangesetReq := EnsureChangesetRequest{
 		Name: req.Changeset,
 	}
 
-	_, err := u.ensureChangeset.Exec(ctx, ensureChangesetReq)
+	_, err = u.ensureChangeset.Exec(ctx, ensureChangesetReq)
 	if err != nil {
 		return nil, InternalErrE("failed to ensure changeset", err)
 	}
@@ -459,15 +496,17 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 type DeleteComponent struct {
 	componentRepo     ComponentRepo
 	componentDiffRepo ComponentDiffRepo
+	changesetRepo     ChangesetRepo
 	ensureChangeset   *EnsureChangeset
 	createPlan        *CreatePlan
 	tx                TransactionManager
 }
 
-func NewDeleteComponent(componentRepo ComponentRepo, componentDiffRepo ComponentDiffRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *DeleteComponent {
+func NewDeleteComponent(componentRepo ComponentRepo, componentDiffRepo ComponentDiffRepo, changesetRepo ChangesetRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *DeleteComponent {
 	return &DeleteComponent{
 		componentRepo:     componentRepo,
 		componentDiffRepo: componentDiffRepo,
+		changesetRepo:     changesetRepo,
 		ensureChangeset:   ensureChangeset,
 		createPlan:        createPlan,
 		tx:                tx,
@@ -494,27 +533,64 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 		return nil, UserErr("changeset is required")
 	}
 
+	var hasChangeset bool
+	err := d.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+		var err error
+		hasChangeset, err = d.changesetRepo.HasChangesetWithName(ctx, req.Changeset)
+		if err != nil {
+			return InternalErrE("failed to check changeset existence", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var branch string
+	if hasChangeset {
+		branch = req.Changeset
+	} else {
+		branch = MainBranch
+	}
+
+	err = d.tx.Checkout(ctx, branch, func(ctx context.Context) error {
+		exists, err := d.componentRepo.HasComponent(ctx, req.ComponentID)
+		if err != nil {
+			return InternalErrE("failed to check component existence", err)
+		}
+		if !exists {
+			return UserErr("component not found")
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	ensureChangesetReq := EnsureChangesetRequest{
 		Name: req.Changeset,
 	}
 
-	_, err := d.ensureChangeset.Exec(ctx, ensureChangesetReq)
+	_, err = d.ensureChangeset.Exec(ctx, ensureChangesetReq)
 	if err != nil {
 		return nil, InternalErrE("failed to ensure changeset", err)
 	}
 
 	var response *DeleteComponentResponse
 	err = d.tx.Do(ctx, req.Changeset, "delete component", func(ctx context.Context) error {
+		component, err := d.componentRepo.GetComponent(ctx, req.ComponentID)
+		if err != nil {
+			return UserErrE("component not found", err)
+		}
+
+		if component.Status == ComponentStatusDeleted {
+			return UserErr("component is already deleted")
+		}
+
 		componentDiff, err := d.componentDiffRepo.GetComponentDiff(ctx, req.ComponentID, req.Changeset)
 		if err != nil {
 			return InternalErrE("failed to get component diff", err)
 		}
-
-		if componentDiff.ToComponent == nil {
-			return UserErrE("component not found", err)
-		}
-
-		component := componentDiff.ToComponent
 
 		if componentDiff.FromComponent != nil {
 			component.ModuleVersionID = componentDiff.FromComponent.ModuleVersionID
@@ -524,6 +600,7 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 				component.Variables = componentDiff.FromComponent.Variables
 			}
 		}
+
 		component.Status = ComponentStatusDeleted
 
 		err = d.componentRepo.UpdateComponent(ctx, component)
@@ -571,15 +648,17 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 type RestoreComponent struct {
 	componentRepo     ComponentRepo
 	componentDiffRepo ComponentDiffRepo
+	changesetRepo     ChangesetRepo
 	ensureChangeset   *EnsureChangeset
 	createPlan        *CreatePlan
 	tx                TransactionManager
 }
 
-func NewRestoreComponent(componentRepo ComponentRepo, componentDiffRepo ComponentDiffRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *RestoreComponent {
+func NewRestoreComponent(componentRepo ComponentRepo, componentDiffRepo ComponentDiffRepo, changesetRepo ChangesetRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *RestoreComponent {
 	return &RestoreComponent{
 		componentRepo:     componentRepo,
 		componentDiffRepo: componentDiffRepo,
+		changesetRepo:     changesetRepo,
 		ensureChangeset:   ensureChangeset,
 		createPlan:        createPlan,
 		tx:                tx,
@@ -606,28 +685,63 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 		return nil, UserErr("changeset is required")
 	}
 
+	var hasChangeset bool
+	err := r.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+		var err error
+		hasChangeset, err = r.changesetRepo.HasChangesetWithName(ctx, req.Changeset)
+		if err != nil {
+			return InternalErrE("failed to check changeset existence", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var branch string
+	if hasChangeset {
+		branch = req.Changeset
+	} else {
+		branch = MainBranch
+	}
+
+	err = r.tx.Checkout(ctx, branch, func(ctx context.Context) error {
+		exists, err := r.componentRepo.HasComponent(ctx, req.ComponentID)
+		if err != nil {
+			return InternalErrE("failed to check component existence", err)
+		}
+		if !exists {
+			return UserErr("component not found")
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	ensureChangesetReq := EnsureChangesetRequest{
 		Name: req.Changeset,
 	}
 
-	_, err := r.ensureChangeset.Exec(ctx, ensureChangesetReq)
+	_, err = r.ensureChangeset.Exec(ctx, ensureChangesetReq)
 	if err != nil {
 		return nil, InternalErrE("failed to ensure changeset", err)
 	}
 
 	var response *RestoreComponentResponse
 	err = r.tx.Do(ctx, req.Changeset, "restore component", func(ctx context.Context) error {
-		componentDiff, err := r.componentDiffRepo.GetComponentDiff(ctx, req.ComponentID, req.Changeset)
+		component, err := r.componentRepo.GetComponent(ctx, req.ComponentID)
 		if err != nil {
-			return InternalErrE("failed to get component diff", err)
-		}
-
-		if componentDiff.ToComponent == nil {
 			return UserErrE("component not found", err)
 		}
 
-		if componentDiff.ToComponent.Status != ComponentStatusDeleted {
+		if component.Status != ComponentStatusDeleted {
 			return UserErr("component is not deleted")
+		}
+
+		componentDiff, err := r.componentDiffRepo.GetComponentDiff(ctx, req.ComponentID, req.Changeset)
+		if err != nil {
+			return InternalErrE("failed to get component diff", err)
 		}
 
 		if componentDiff.FromComponent == nil {
@@ -638,7 +752,6 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 			return UserErr("component is deleted in merge base")
 		}
 
-		component := componentDiff.ToComponent
 		component.ModuleVersionID = componentDiff.FromComponent.ModuleVersionID
 		if componentDiff.FromComponent.Variables == nil {
 			component.Variables = datatypes.JSON("{}")

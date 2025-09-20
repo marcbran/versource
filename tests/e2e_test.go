@@ -8,22 +8,13 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	err := runDockerCompose("down")
-	if err != nil {
-		os.Exit(1)
-	}
-	err = runDockerCompose("build", "--no-cache")
-	if err != nil {
-		os.Exit(1)
-	}
-	err = runDockerCompose("up", "-d")
-	if err != nil {
-		os.Exit(1)
-	}
+	s := mainStage()
+	s.a_recreated_dbms().and().
+		an_empty_database().and().
+		a_database_user().and().
+		a_created_server()
 
 	code := m.Run()
-
-	//runDockerCompose("down")
 
 	os.Exit(code)
 }

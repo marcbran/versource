@@ -15,7 +15,7 @@ func (s *Stage) a_changeset_has_been_created(name string) *Stage {
 
 func (s *Stage) a_changeset_is_created(name string) *Stage {
 	s.ChangesetName = name
-	return s.execCommand("changeset", "create", "--name", name)
+	return s.a_client_command_is_executed("changeset", "create", "--name", name)
 }
 
 func (s *Stage) the_changeset_creation_has_succeeded() *Stage {
@@ -43,7 +43,7 @@ func (s *Stage) a_changeset_has_been_merged(changesetName string) *Stage {
 }
 
 func (s *Stage) a_changeset_is_merged(changesetName string) *Stage {
-	s.execCommand("changeset", "merge", changesetName)
+	s.a_client_command_is_executed("changeset", "merge", changesetName)
 	if s.LastOutputMap != nil {
 		if id, ok := s.LastOutputMap["id"]; ok {
 			if idFloat, ok := id.(float64); ok {
@@ -71,7 +71,7 @@ func (s *Stage) the_changeset_merge_has_failed() *Stage {
 }
 
 func (s *Stage) the_changeset_merge_has_completed(expectedState string) *Stage {
-	s.execCommand("merge", "get", s.MergeID, "--changeset", s.ChangesetName, "--output", "json", "--wait-for-completion")
+	s.a_client_command_is_executed("merge", "get", s.MergeID, "--changeset", s.ChangesetName, "--output", "json", "--wait-for-completion")
 
 	assert.NotNil(s.t, s.LastOutputMap, "No command output to check")
 
@@ -103,7 +103,7 @@ func (s *Stage) a_changeset_has_been_rebased(changesetName string) *Stage {
 }
 
 func (s *Stage) a_changeset_is_rebased(changesetName string) *Stage {
-	s.execCommand("changeset", "rebase", changesetName)
+	s.a_client_command_is_executed("changeset", "rebase", changesetName)
 	if s.LastOutputMap != nil {
 		if id, ok := s.LastOutputMap["id"]; ok {
 			if idFloat, ok := id.(float64); ok {
@@ -131,7 +131,7 @@ func (s *Stage) the_changeset_rebase_has_failed() *Stage {
 }
 
 func (s *Stage) the_changeset_rebase_has_completed(expectedState string) *Stage {
-	s.execCommand("rebase", "get", s.RebaseID, "--changeset", s.ChangesetName, "--output", "json", "--wait-for-completion")
+	s.a_client_command_is_executed("rebase", "get", s.RebaseID, "--changeset", s.ChangesetName, "--output", "json", "--wait-for-completion")
 
 	assert.NotNil(s.t, s.LastOutputMap, "No command output to check")
 

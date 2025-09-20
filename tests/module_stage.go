@@ -8,7 +8,7 @@ import (
 
 func (s *Stage) an_existing_module_has_been_created() *Stage {
 	return s.a_module_is_created(
-		"github-repository",
+		"jsonnet",
 		"https://github.com/marcbran/versource/tests/modules/jsonnet",
 		"199fa5704319b958d47b791f063729a83ec83f15",
 	).and().the_module_creation_has_succeeded()
@@ -16,7 +16,7 @@ func (s *Stage) an_existing_module_has_been_created() *Stage {
 
 func (s *Stage) a_non_existing_module_has_been_created() *Stage {
 	return s.a_module_is_created(
-		"not-a-github-repository",
+		"not-an-existing-module",
 		"https://github.com/marcbran/versource/tests/modules/nothing",
 		"invalid",
 	).and().the_module_creation_has_succeeded()
@@ -32,7 +32,7 @@ func (s *Stage) a_module_is_created(name, source, version string) *Stage {
 	if version != "" {
 		args = append(args, "--version", version)
 	}
-	s.execCommand(args...)
+	s.a_client_command_is_executed(args...)
 	if s.LastOutputMap != nil {
 		if id, ok := s.LastOutputMap["id"]; ok {
 			if idFloat, ok := id.(float64); ok {
@@ -57,7 +57,7 @@ func (s *Stage) the_module_is_updated(version string) *Stage {
 
 func (s *Stage) a_module_is_updated(moduleID, version string) *Stage {
 	args := []string{"module", "update", moduleID, "--version", version}
-	return s.execCommand(args...)
+	return s.a_client_command_is_executed(args...)
 }
 
 func (s *Stage) the_module_update_has_succeeded() *Stage {
@@ -74,7 +74,7 @@ func (s *Stage) the_module_is_deleted() *Stage {
 
 func (s *Stage) a_module_is_deleted(moduleID string) *Stage {
 	args := []string{"module", "delete", moduleID}
-	return s.execCommand(args...)
+	return s.a_client_command_is_executed(args...)
 }
 
 func (s *Stage) the_module_deletion_has_succeeded() *Stage {

@@ -8,7 +8,7 @@ func TestCreateChangeset(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset()
+		the_dataset(blank_instance)
 
 	when.
 		a_changeset_is_created("test1")
@@ -21,7 +21,7 @@ func TestCreateChangesetWithInvalidName(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset()
+		the_dataset(blank_instance)
 
 	when.
 		a_changeset_is_created(".invalid-name")
@@ -34,7 +34,7 @@ func TestCreateChangesetWithDuplicateName(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_changeset_has_been_created("test1")
 
 	when.
@@ -48,7 +48,7 @@ func TestMergeChangeset(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_changeset_has_been_created("test1")
 
 	when.
@@ -63,7 +63,7 @@ func TestCreateChangesetAfterMerge(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_changeset_has_been_created("test1").and().
 		the_changeset_has_been_merged()
 
@@ -77,7 +77,7 @@ func TestCreateChangesetWithSpecialCharacters(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance()
+		the_dataset(blank_instance)
 
 	when.
 		a_changeset_is_created("test-changeset-123")
@@ -90,7 +90,7 @@ func TestMergeChangesetWithComponent(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "component1"}`).and().
@@ -108,7 +108,7 @@ func TestMergeChangesetWithComponentUpdate(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "component1"}`).and().
@@ -130,7 +130,7 @@ func TestMergeChangesetWithNonexistingModule(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_non_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "component1"}`).and().
@@ -148,7 +148,7 @@ func TestMergeChangesetWithInvalidComponent(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{}`).and().
@@ -166,7 +166,7 @@ func TestMergeChangesetWithMultipleComponents(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "value1"}`).and().
@@ -186,7 +186,7 @@ func TestMergeChangesetWithComponentConflicts(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "value1"}`).and().
@@ -208,7 +208,7 @@ func TestMergeChangesetWithComponentUpdateConflicts(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "value"}`).and().
@@ -234,7 +234,7 @@ func TestRebaseChangeset(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_changeset_has_been_created("test1")
 
 	when.
@@ -249,7 +249,7 @@ func TestRebaseChangesetWithChange(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "value1"}`).and().
@@ -267,7 +267,7 @@ func TestMergeChangesetWithComponentUpdateConflictsAfterRebase(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		an_existing_module_has_been_created().and().
 		a_changeset_has_been_created("test").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "value"}`).and().

@@ -17,17 +17,34 @@ test:
 test-coverage:
 	go test -v -cover ./...
 
-test-e2e: test-prune
+test-e2e-build:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	IMAGE_TAG="$(git rev-parse --short HEAD 2>/dev/null)-wip"
+
+	if [[ "${VS_REBUILD:-false}" == "true" ]]; then
+		echo "VS_REBUILD=true, rebuilding image $IMAGE_TAG..."
+		docker build -t "versource-e2e:$IMAGE_TAG" -f Dockerfile .
+		echo "Built image: $IMAGE_TAG"
+	elif ! docker image inspect "versource-e2e:$IMAGE_TAG" >/dev/null 2>&1; then
+		echo "Image $IMAGE_TAG not found, building..."
+		docker build -t "versource-e2e:$IMAGE_TAG" -f Dockerfile .
+		echo "Built image: $IMAGE_TAG"
+	else
+		echo "Image $IMAGE_TAG already exists, skipping build"
+	fi
+
+test-e2e: test-e2e-build test-prune
 	go test -v -tags "e2e all" -count=1 ./tests/...
 
-test-e2e-type type: test-prune
+test-e2e-type type: test-e2e-build test-prune
 	go test -v -tags "e2e {{type}}" -count=1 ./tests/...
 
-test-e2e-datasets: test-prune
+test-e2e-datasets: test-e2e-build test-prune
 	go test -v -tags "e2e datasets" -count=1 ./tests/...
 
 test-prune:
-	docker system prune -f --volumes
+	@docker system prune -f --volumes
 
 data:
   cd data && docker compose up -d

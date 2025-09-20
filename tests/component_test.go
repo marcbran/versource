@@ -10,7 +10,7 @@ func TestCreateComponent(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1")
 
@@ -25,7 +25,7 @@ func TestCreateComponentWithoutModuleInChangeset(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_changeset_has_been_created("test1").and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0")
 
@@ -40,7 +40,7 @@ func TestCreateComponentWithoutChangeset(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0")
 
 	when.
@@ -54,7 +54,7 @@ func TestCreateComponentWithInvalidVariables(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1")
 
@@ -69,7 +69,7 @@ func TestUpdateComponent(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"key": "value"}`)
@@ -85,7 +85,7 @@ func TestUpdateComponentWithNonexistentID(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"key": "value"}`)
@@ -101,7 +101,7 @@ func TestUpdateComponentWithInvalidChangeset(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"key": "value"}`)
@@ -117,7 +117,7 @@ func TestUpdateComponentWithInvalidVariables(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"key": "value"}`)
@@ -133,7 +133,7 @@ func TestUpdateComponentWithNoFields(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"key": "value"}`)
@@ -149,7 +149,7 @@ func TestCreateMultipleComponentsInSameChangeset(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1")
 
@@ -165,7 +165,7 @@ func TestCreateComponentsInDifferentChangesets(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("changeset1").and().
 		a_changeset_has_been_created("changeset2")
@@ -182,7 +182,7 @@ func TestCreateComponentWithComplexVariables(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1")
 
@@ -197,7 +197,7 @@ func TestCreateComponentWithDuplicateName(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component", `{"key": "value"}`)
@@ -207,4 +207,58 @@ func TestCreateComponentWithDuplicateName(t *testing.T) {
 
 	then.
 		the_component_creation_has_failed()
+}
+
+func TestDeleteExistentComponent(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_dataset(blank_instance).and().
+		an_existing_module_has_been_created().and().
+		a_changeset_has_been_created("test1").and().
+		a_component_has_been_created_for_the_module_and_changeset("component", `{"key": "value"}`)
+
+	when.
+		the_component_is_deleted()
+
+	then.
+		the_component_deletion_has_succeeded()
+}
+
+func TestDeleteNonExistentComponent(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_dataset(blank_instance).and().
+		an_existing_module_has_been_created().and().
+		a_changeset_has_been_created("test1")
+
+	when.
+		a_component_is_deleted_from_the_changeset("999")
+
+	then.
+		the_component_deletion_has_failed()
+}
+
+func TestDeleteDeletedComponent(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_dataset(blank_instance).and().
+		an_existing_module_has_been_created().and().
+		a_changeset_has_been_created("test1").and().
+		a_component_has_been_created_for_the_module_and_changeset("component", `{"name": "value"}`).and().
+		the_plan_has_succeeded().and().
+		the_changeset_has_been_merged().and().
+		a_changeset_has_been_created("test2").and().
+		the_component_has_been_deleted().and().
+		the_plan_has_succeeded().and().
+		the_changeset_has_been_merged().and().
+		a_changeset_has_been_created("test3")
+
+	when.
+		the_component_is_deleted()
+
+	then.
+		the_component_deletion_has_failed()
 }

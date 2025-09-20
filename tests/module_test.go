@@ -8,7 +8,7 @@ func TestCreateModule(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance()
+		the_dataset(blank_instance)
 
 	when.
 		a_module_is_created("consul-aws", "hashicorp/consul/aws", "0.1.0")
@@ -21,7 +21,7 @@ func TestCreateGitModule(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance()
+		the_dataset(blank_instance)
 
 	when.
 		a_module_is_created("example", "github.com/hashicorp/example?ref=v1.2.0", "")
@@ -34,7 +34,7 @@ func TestCreateLocalModule(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance()
+		the_dataset(blank_instance)
 
 	when.
 		a_module_is_created("test-module", "./local/modules/test-module", "")
@@ -47,7 +47,7 @@ func TestUpdateModuleWithVersion(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0")
 
 	when.
@@ -61,7 +61,7 @@ func TestUpdateModuleWithoutVersion(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		the_blank_instance_dataset().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("test-module", "./local/modules/test-module", "")
 
 	when.
@@ -75,7 +75,7 @@ func TestDeleteModule(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0")
 
 	when.
@@ -89,7 +89,7 @@ func TestDeleteModuleWithNotYetMergedComponents(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance().and().
+		the_dataset(blank_instance).and().
 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 		a_changeset_has_been_created("test1").and().
 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"key": "value"}`)
@@ -106,7 +106,7 @@ func TestDeleteModuleWithNotYetMergedComponents(t *testing.T) {
 // 	given, when, then := scenario(t)
 
 // 	given.
-// 		a_blank_instance().and().
+// 		the_dataset(blank_instance).and().
 // 		a_module_has_been_created("consul-aws", "hashicorp/consul/aws", "0.1.0").and().
 // 		a_changeset_has_been_created("test1").and().
 // 		a_component_has_been_created_for_the_module_and_changeset("component1", `{"key": "value"}`).and().
@@ -123,7 +123,7 @@ func TestDeleteNonExistentModule(t *testing.T) {
 	given, when, then := scenario(t)
 
 	given.
-		a_blank_instance()
+		the_dataset(blank_instance)
 
 	when.
 		a_module_is_deleted("999")

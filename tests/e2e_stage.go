@@ -5,17 +5,21 @@ package tests
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type Stage struct {
-	t *testing.T
+	t require.TestingT
 
 	ModuleID      string
 	ChangesetName string
@@ -36,8 +40,60 @@ func scenario(t *testing.T) (*Stage, *Stage, *Stage) {
 	return stage, stage, stage
 }
 
-func (s *Stage) where() *Stage {
-	return s
+func (s *Stage) a_recreated_dbms() *Stage {
+	return s.
+		a_docker_compose_command_is_executed("down", "--remove-orphans").and().
+		a_docker_compose_command_is_executed("up", "-d", "dolt", "dolt-client", "migrate")
+}
+
+func (s *Stage) a_database_user() *Stage {
+	return s.
+		a_db_query_is_run_as_root(`CREATE USER IF NOT EXISTS "versource"@"%" IDENTIFIED BY "versource";`).and().
+		a_db_query_is_run_as_root(`GRANT ALL PRIVILEGES ON *.* TO "versource"@"%";`).
+		a_db_query_is_run_as_root("FLUSH PRIVILEGES;")
+}
+
+func (s *Stage) a_created_server() *Stage {
+	return s.a_docker_compose_command_is_executed("up", "-d", "server", "client")
+}
+
+type Dataset struct {
+	Name string
+}
+
+var blank_instance = Dataset{Name: "blank-instance"}
+var module_and_changeset = Dataset{Name: "module-and-changeset"}
+
+func (s *Stage) a_clean_slate() *Stage {
+	return s.an_empty_database().and().
+		the_migrations_are_run().and().
+		a_restarted_server()
+}
+
+func (s *Stage) an_empty_database() *Stage {
+	return s.
+		a_db_query_is_run_as_root("DROP DATABASE IF EXISTS versource;").and().
+		a_db_query_is_run_as_root("CREATE DATABASE IF NOT EXISTS versource;")
+}
+
+func (s *Stage) the_migrations_are_run() *Stage {
+	return s.a_command_is_executed("migrate", "./versource", "migrate").and().
+		the_command_has_to_succeeded()
+}
+
+func (s *Stage) the_dataset(dataset Dataset) *Stage {
+	return s.a_dataset_is_cloned(dataset).and().
+		a_restarted_server()
+}
+
+func (s *Stage) a_dataset_is_cloned(dataset Dataset) *Stage {
+	return s.
+		a_db_query_is_run_as_root("DROP DATABASE IF EXISTS versource;").and().
+		a_db_query_is_run_as_root("CALL DOLT_CLONE('file:///datasets/" + dataset.Name + "', 'versource')")
+}
+
+func (s *Stage) a_restarted_server() *Stage {
+	return s.a_docker_compose_command_is_executed("restart", "server")
 }
 
 func (s *Stage) and() *Stage {
@@ -52,62 +108,54 @@ func (s *Stage) the_command_has_succeeded() *Stage {
 	return s
 }
 
+func (s *Stage) the_command_has_to_succeeded() *Stage {
+	if s.LastExitCode != 0 {
+		fmt.Println(s.LastError)
+	}
+	require.Equal(s.t, 0, s.LastExitCode)
+	return s
+}
+
 func (s *Stage) the_command_has_failed() *Stage {
 	assert.Equal(s.t, 1, s.LastExitCode)
 	return s
 }
 
-func runDockerCompose(args ...string) error {
-	cmd := exec.Command("docker", append([]string{"compose"}, args...)...)
-
-	var stderr bytes.Buffer
-
-	if os.Getenv("VS_LOG") == "DEBUG" {
-		fmt.Printf("DEBUG: Executing docker compose: %v\n", args)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = io.MultiWriter(os.Stderr, &stderr)
-	} else {
-		cmd.Stderr = &stderr
-	}
-
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println(stderr.String())
-	}
-	return err
+func (s *Stage) the_command_has_to_failed() *Stage {
+	require.Equal(s.t, 1, s.LastExitCode)
+	return s
 }
 
-func (s *Stage) runDockerCompose(args ...string) error {
-	return runDockerCompose(args...)
-}
-
-func (s *Stage) execCommand(args ...string) *Stage {
+func (s *Stage) a_client_command_is_executed(args ...string) *Stage {
 	args = append(args, "--output", "json")
-	cmd := exec.Command("docker", append([]string{"compose", "exec", "-T", "client", "./versource"}, args...)...)
+	args = append([]string{"./versource"}, args...)
+	return s.a_command_is_executed("client", args...)
+}
 
-	if os.Getenv("VS_LOG") == "DEBUG" {
-		fmt.Printf("DEBUG: Executing command: %v\n", args)
-	}
-
+func (s *Stage) a_command_is_executed(service string, args ...string) *Stage {
+	cmd := exec.Command("docker", append([]string{"compose", "exec", "-T", service}, args...)...)
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
+	if os.Getenv("VS_LOG") == "DEBUG" || os.Getenv("VS_LOG") == "TRACE" {
+		fmt.Printf("%s: %s\n", service, strings.Join(args, " "))
+	}
+
 	err := cmd.Run()
 	s.LastError = stderr.String()
 
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
 			s.LastExitCode = exitErr.ExitCode()
-		} else {
-			s.LastExitCode = -1
 		}
 	} else {
 		s.LastExitCode = 0
 		output := stdout.String()
-		if os.Getenv("VS_LOG") == "DEBUG" {
-			fmt.Printf("DEBUG: Command output: %s\n", output)
+		if os.Getenv("VS_LOG") == "DEBUG" || os.Getenv("VS_LOG") == "TRACE" {
+			fmt.Println(output)
 		}
 		if output != "" {
 			var outputMap map[string]any
@@ -121,29 +169,100 @@ func (s *Stage) execCommand(args ...string) *Stage {
 	return s
 }
 
-func (s *Stage) execRootQuery(query string) string {
-	cmd := exec.Command("docker", "compose", "exec", "-T", "db-client", "mysql", "-h", "dolt", "-u", "root", "-e", query)
-
-	output, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-
-	return string(output)
+func (s *Stage) a_db_query_is_run_as_root(query string) *Stage {
+	return s.a_dolt_client_command_is_executed(query, "mysql", "-h", "dolt", "-u", "root")
 }
 
-func (s *Stage) execQuery(query string) string {
-	cmd := exec.Command("docker", "compose", "exec", "-T", "db-client", "mysql", "-h", "dolt", "-u", "versource", "-pversource", "versource", "-e", query)
-
-	output, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-
-	return string(output)
+func (s *Stage) a_db_query_is_run_as_versource(query string) *Stage {
+	return s.a_dolt_client_command_is_executed(query, "mysql", "-h", "dolt", "-u", "versource", "-pversource", "versource")
 }
 
-func (s *Stage) parseVariablesToArgs(variables string) []string {
+func (s *Stage) a_dolt_client_command_is_executed(query string, args ...string) *Stage {
+	args = append(args, "-e", query)
+	cmd := exec.Command("docker", append([]string{"compose", "exec", "-T", "dolt-client"}, args...)...)
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	if os.Getenv("VS_LOG") == "DEBUG" || os.Getenv("VS_LOG") == "TRACE" {
+		fmt.Printf("root: %s\n", query)
+	}
+
+	err := cmd.Run()
+
+	output := stdout.String()
+	if os.Getenv("VS_LOG") == "DEBUG" || os.Getenv("VS_LOG") == "TRACE" {
+		fmt.Println(output)
+	}
+
+	if err != nil {
+		fmt.Println(stderr.String())
+	}
+
+	require.NoError(s.t, err)
+
+	return s
+}
+
+func (s *Stage) a_docker_compose_command_is_executed(args ...string) *Stage {
+	imageTag, err := getImageTag()
+	require.NoError(s.t, err)
+
+	cmd := exec.Command("docker", append([]string{"compose"}, args...)...)
+	cmd.Env = append(os.Environ(), "IMAGE_TAG="+imageTag)
+
+	var stderr bytes.Buffer
+	if os.Getenv("VS_LOG") == "TRACE" {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = io.MultiWriter(os.Stderr, &stderr)
+	} else {
+		cmd.Stderr = &stderr
+	}
+
+	if os.Getenv("VS_LOG") == "DEBUG" || os.Getenv("VS_LOG") == "TRACE" {
+		fmt.Printf("docker compose %s\n\n", strings.Join(args, " "))
+	}
+
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println(stderr.String())
+	}
+
+	require.NoError(s.t, err)
+
+	return s
+}
+
+func getImageTag() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--short", "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	commitHash := string(bytes.TrimSpace(output))
+	return commitHash + "-wip", nil
+}
+
+func mainStage() *Stage {
+	return &Stage{
+		t: &mainT{},
+	}
+}
+
+type mainT struct {
+}
+
+func (m mainT) Errorf(format string, args ...interface{}) {
+	log.Errorf(format, args...)
+	m.FailNow()
+}
+
+func (m mainT) FailNow() {
+	os.Exit(1)
+}
+
+func parseVariablesToArgs(variables string) []string {
 	if variables == "" {
 		return []string{}
 	}

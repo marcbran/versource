@@ -57,6 +57,16 @@ func (r *GormComponentRepo) GetComponentAtCommit(ctx context.Context, componentI
 	return &component, nil
 }
 
+func (r *GormComponentRepo) HasComponent(ctx context.Context, componentID uint) (bool, error) {
+	db := getTxOrDb(ctx, r.db)
+	var count int64
+	err := db.WithContext(ctx).Model(&internal.Component{}).Where("id = ?", componentID).Count(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check component existence: %w", err)
+	}
+	return count > 0, nil
+}
+
 func (r *GormComponentRepo) ListComponents(ctx context.Context) ([]internal.Component, error) {
 	db := getTxOrDb(ctx, r.db)
 	var components []internal.Component

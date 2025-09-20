@@ -24,11 +24,11 @@ func (s *Stage) a_plan_is_created_for_the_component(changeset string) *Stage {
 }
 
 func (s *Stage) a_plan_is_created(changeset, componentID string) *Stage {
-	return s.execCommand("component", "plan", componentID, "--changeset", changeset)
+	return s.a_client_command_is_executed("component", "plan", componentID, "--changeset", changeset)
 }
 
 func (s *Stage) a_plan_is_created_without_changeset() *Stage {
-	return s.execCommand("component", "plan", s.ComponentID)
+	return s.a_client_command_is_executed("component", "plan", s.ComponentID)
 }
 
 func (s *Stage) the_plan_creation_has_succeeded() *Stage {
@@ -48,7 +48,7 @@ func (s *Stage) the_plan_has_failed() *Stage {
 }
 
 func (s *Stage) the_plan_has_completed(expectedState string) *Stage {
-	s.execCommand("plan", "get", s.PlanID, "--changeset", s.ChangesetName, "--wait-for-completion")
+	s.a_client_command_is_executed("plan", "get", s.PlanID, "--changeset", s.ChangesetName, "--wait-for-completion")
 
 	assert.NotNil(s.t, s.LastOutputMap, "No command output to check")
 

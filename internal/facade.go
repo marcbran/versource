@@ -17,6 +17,7 @@ type Facade interface {
 
 	ListChangesets(ctx context.Context, req ListChangesetsRequest) (*ListChangesetsResponse, error)
 	CreateChangeset(ctx context.Context, req CreateChangesetRequest) (*CreateChangesetResponse, error)
+	DeleteChangeset(ctx context.Context, req DeleteChangesetRequest) (*DeleteChangesetResponse, error)
 	EnsureChangeset(ctx context.Context, req EnsureChangesetRequest) (*EnsureChangesetResponse, error)
 
 	GetMerge(ctx context.Context, req GetMergeRequest) (*GetMergeResponse, error)
@@ -58,6 +59,7 @@ type facade struct {
 
 	listChangesets  *ListChangesets
 	createChangeset *CreateChangeset
+	deleteChangeset *DeleteChangeset
 	ensureChangeset *EnsureChangeset
 
 	getMerge    *GetMerge
@@ -143,6 +145,7 @@ func NewFacade(
 		listModuleVersions: NewListModuleVersions(moduleVersionRepo, transactionManager),
 		listChangesets:     NewListChangesets(changesetRepo, transactionManager),
 		createChangeset:    NewCreateChangeset(changesetRepo, transactionManager),
+		deleteChangeset:    NewDeleteChangeset(changesetRepo, planRepo, applyRepo, planStore, logStore, transactionManager),
 		ensureChangeset:    ensureChangeset,
 		getMerge:           getMerge,
 		listMerges:         listMerges,
@@ -207,6 +210,10 @@ func (f *facade) ListChangesets(ctx context.Context, req ListChangesetsRequest) 
 
 func (f *facade) CreateChangeset(ctx context.Context, req CreateChangesetRequest) (*CreateChangesetResponse, error) {
 	return f.createChangeset.Exec(ctx, req)
+}
+
+func (f *facade) DeleteChangeset(ctx context.Context, req DeleteChangesetRequest) (*DeleteChangesetResponse, error) {
+	return f.deleteChangeset.Exec(ctx, req)
 }
 
 func (f *facade) EnsureChangeset(ctx context.Context, req EnsureChangesetRequest) (*EnsureChangesetResponse, error) {

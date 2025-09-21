@@ -75,7 +75,8 @@ func RunApp(facade internal.Facade) error {
 		Route("changesets/{changesetName}/merges/{mergeID}", merge.NewDetail(facade)).
 		Route("changesets/{changesetName}/rebase", changeset.NewRebaseChangeset(facade)).
 		Route("changesets/{changesetName}/rebases", rebase.NewTable(facade)).
-		Route("changesets/{changesetName}/rebases/{rebaseID}", rebase.NewDetail(facade))
+		Route("changesets/{changesetName}/rebases/{rebaseID}", rebase.NewDetail(facade)).
+		Route("changesets/{changesetName}/delete", changeset.NewDeleteChangeset(facade))
 
 	app := platform.NewCommandable(router, facade)
 

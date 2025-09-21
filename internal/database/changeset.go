@@ -109,3 +109,12 @@ func (r *GormChangesetRepo) UpdateChangesetReviewState(ctx context.Context, chan
 	}
 	return nil
 }
+
+func (r *GormChangesetRepo) DeleteChangeset(ctx context.Context, changesetID uint) error {
+	db := getTxOrDb(ctx, r.db)
+	err := db.WithContext(ctx).Delete(&internal.Changeset{}, changesetID).Error
+	if err != nil {
+		return fmt.Errorf("failed to delete changeset: %w", err)
+	}
+	return nil
+}

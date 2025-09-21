@@ -151,6 +151,7 @@ func (s *Server) setupRoutes() {
 		r.Delete("/modules/{moduleID}", s.handleDeleteModule)
 		r.Get("/modules/{moduleID}/versions", s.handleListModuleVersionsForModule)
 		r.Route("/changesets/{changesetName}", func(r chi.Router) {
+			r.Delete("/", s.handleDeleteChangeset)
 			r.Get("/components", s.handleListComponents)
 			r.Post("/components", s.handleCreateComponent)
 			r.Get("/components/diffs", s.handleListComponentDiffs)

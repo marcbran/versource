@@ -38,6 +38,7 @@ type ApplyRepo interface {
 	GetQueuedApplies(ctx context.Context) ([]uint, error)
 	GetQueuedAppliesByChangeset(ctx context.Context, changesetID uint) ([]uint, error)
 	ListApplies(ctx context.Context) ([]Apply, error)
+	ListAppliesByChangeset(ctx context.Context, changesetID uint) ([]Apply, error)
 	CreateApply(ctx context.Context, apply *Apply) error
 	UpdateApplyState(ctx context.Context, applyID uint, state TaskState) error
 }

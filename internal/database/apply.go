@@ -78,6 +78,22 @@ func (r *GormApplyRepo) ListApplies(ctx context.Context) ([]internal.Apply, erro
 	return applies, nil
 }
 
+func (r *GormApplyRepo) ListAppliesByChangeset(ctx context.Context, changesetID uint) ([]internal.Apply, error) {
+	db := getTxOrDb(ctx, r.db)
+	var applies []internal.Apply
+	err := db.WithContext(ctx).
+		Preload("Plan.Component.ModuleVersion.Module").
+		Preload("Plan.Component.ModuleVersion").
+		Preload("Plan.Changeset").
+		Preload("Changeset").
+		Where("changeset_id = ?", changesetID).
+		Find(&applies).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list applies by changeset: %w", err)
+	}
+	return applies, nil
+}
+
 func (r *GormApplyRepo) CreateApply(ctx context.Context, apply *internal.Apply) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(apply).Error

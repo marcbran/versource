@@ -39,6 +39,7 @@ type ChangesetRepo interface {
 	CreateChangeset(ctx context.Context, changeset *Changeset) error
 	UpdateChangesetState(ctx context.Context, changesetID uint, state ChangesetState) error
 	UpdateChangesetReviewState(ctx context.Context, changesetID uint, reviewState ChangesetReviewState) error
+	DeleteChangeset(ctx context.Context, changesetID uint) error
 }
 
 type ListChangesets struct {
@@ -208,5 +209,110 @@ func (e *EnsureChangeset) Exec(ctx context.Context, req EnsureChangesetRequest) 
 		ID:    createResp.ID,
 		Name:  createResp.Name,
 		State: createResp.State,
+	}, nil
+}
+
+type DeleteChangeset struct {
+	changesetRepo ChangesetRepo
+	planRepo      PlanRepo
+	applyRepo     ApplyRepo
+	planStore     PlanStore
+	logStore      LogStore
+	tx            TransactionManager
+}
+
+func NewDeleteChangeset(changesetRepo ChangesetRepo, planRepo PlanRepo, applyRepo ApplyRepo, planStore PlanStore, logStore LogStore, tx TransactionManager) *DeleteChangeset {
+	return &DeleteChangeset{
+		changesetRepo: changesetRepo,
+		planRepo:      planRepo,
+		applyRepo:     applyRepo,
+		planStore:     planStore,
+		logStore:      logStore,
+		tx:            tx,
+	}
+}
+
+type DeleteChangesetRequest struct {
+	ChangesetName string `json:"changeset_name"`
+}
+
+type DeleteChangesetResponse struct {
+	ID uint `json:"id"`
+}
+
+func (d *DeleteChangeset) Exec(ctx context.Context, req DeleteChangesetRequest) (*DeleteChangesetResponse, error) {
+	if req.ChangesetName == "" {
+		return nil, UserErr("changeset name is required")
+	}
+
+	var changeset *Changeset
+	err := d.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
+		var err error
+		changeset, err = d.changesetRepo.GetChangesetByName(ctx, req.ChangesetName)
+		if err != nil {
+			return InternalErrE("failed to get changeset", err)
+		}
+		if changeset == nil {
+			return UserErr("changeset not found")
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	plans, err := d.planRepo.ListPlansByChangeset(ctx, changeset.ID)
+	if err != nil {
+		return nil, InternalErrE("failed to list plans for changeset", err)
+	}
+
+	for _, plan := range plans {
+		err = d.planStore.DeletePlan(ctx, plan.ID)
+		if err != nil {
+			return nil, InternalErrE("failed to delete plan from store", err)
+		}
+
+		err = d.logStore.DeleteLog(ctx, "plan", plan.ID)
+		if err != nil {
+			return nil, InternalErrE("failed to delete plan log", err)
+		}
+	}
+
+	applies, err := d.applyRepo.ListAppliesByChangeset(ctx, changeset.ID)
+	if err != nil {
+		return nil, InternalErrE("failed to list applies for changeset", err)
+	}
+
+	for _, apply := range applies {
+		err = d.logStore.DeleteLog(ctx, "apply", apply.ID)
+		if err != nil {
+			return nil, InternalErrE("failed to delete apply log", err)
+		}
+	}
+
+	err = d.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+		err = d.tx.DeleteBranch(ctx, req.ChangesetName)
+		if err != nil {
+			return InternalErrE("failed to delete changeset branch", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.tx.Do(ctx, AdminBranch, "delete changeset", func(ctx context.Context) error {
+		err = d.changesetRepo.DeleteChangeset(ctx, changeset.ID)
+		if err != nil {
+			return InternalErrE("failed to delete changeset", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &DeleteChangesetResponse{
+		ID: changeset.ID,
 	}, nil
 }

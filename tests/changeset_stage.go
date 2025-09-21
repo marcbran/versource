@@ -145,3 +145,20 @@ func (s *Stage) the_changeset_rebase_has_completed(expectedState string) *Stage 
 
 	return s
 }
+
+func (s *Stage) a_changeset_has_been_deleted(changesetName string) *Stage {
+	return s.a_changeset_is_deleted(changesetName).and().
+		the_changeset_deletion_has_succeeded()
+}
+
+func (s *Stage) a_changeset_is_deleted(changesetName string) *Stage {
+	return s.a_client_command_is_executed("changeset", "delete", changesetName)
+}
+
+func (s *Stage) the_changeset_deletion_has_succeeded() *Stage {
+	return s.the_command_has_succeeded()
+}
+
+func (s *Stage) the_changeset_deletion_has_failed() *Stage {
+	return s.the_command_has_failed()
+}

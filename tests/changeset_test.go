@@ -86,6 +86,33 @@ func TestCreateChangesetWithSpecialCharacters(t *testing.T) {
 		the_changeset_creation_has_succeeded()
 }
 
+func TestDeleteChangeset(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_dataset(blank_instance).and().
+		a_changeset_has_been_created("test1")
+
+	when.
+		a_changeset_is_deleted("test1")
+
+	then.
+		the_changeset_deletion_has_succeeded()
+}
+
+func TestDeleteChangesetWithInvalidName(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_dataset(blank_instance)
+
+	when.
+		a_changeset_is_deleted("nonexistent")
+
+	then.
+		the_changeset_deletion_has_failed()
+}
+
 func TestMergeChangesetWithComponent(t *testing.T) {
 	given, when, then := scenario(t)
 

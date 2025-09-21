@@ -55,3 +55,23 @@ func (s *Server) handleMergeChangeset(w http.ResponseWriter, r *http.Request) {
 
 	returnSuccess(w, resp)
 }
+
+func (s *Server) handleDeleteChangeset(w http.ResponseWriter, r *http.Request) {
+	changesetName := chi.URLParam(r, "changesetName")
+	if changesetName == "" {
+		returnBadRequest(w, fmt.Errorf("changeset name is required"))
+		return
+	}
+
+	req := internal.DeleteChangesetRequest{
+		ChangesetName: changesetName,
+	}
+
+	resp, err := s.facade.DeleteChangeset(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, resp)
+}

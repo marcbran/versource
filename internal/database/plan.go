@@ -21,8 +21,6 @@ func (r *GormPlanRepo) GetPlan(ctx context.Context, planID uint) (*internal.Plan
 	db := getTxOrDb(ctx, r.db)
 	var plan internal.Plan
 	err := db.WithContext(ctx).
-		Preload("Component.ModuleVersion.Module").
-		Preload("Component.ModuleVersion").
 		Preload("Changeset").
 		Where("id = ?", planID).First(&plan).Error
 	if err != nil {
@@ -31,30 +29,25 @@ func (r *GormPlanRepo) GetPlan(ctx context.Context, planID uint) (*internal.Plan
 	return &plan, nil
 }
 
-func (r *GormPlanRepo) GetQueuedPlans(ctx context.Context) ([]internal.RunPlanRequest, error) {
+func (r *GormPlanRepo) GetQueuedPlans(ctx context.Context) ([]uint, error) {
 	db := getTxOrDb(ctx, r.db)
 	var plans []internal.Plan
-	err := db.WithContext(ctx).Preload("Component.ModuleVersion.Module").Preload("Changeset").Where("state = ?", internal.TaskStateQueued).Find(&plans).Error
+	err := db.WithContext(ctx).Preload("Changeset").Where("state = ?", internal.TaskStateQueued).Find(&plans).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queued plans: %w", err)
 	}
 
-	requests := make([]internal.RunPlanRequest, len(plans))
+	planIDs := make([]uint, len(plans))
 	for i, plan := range plans {
-		requests[i] = internal.RunPlanRequest{
-			PlanID: plan.ID,
-			Branch: internal.MainBranch, // TODO: get branch for plan
-		}
+		planIDs[i] = plan.ID
 	}
-	return requests, nil
+	return planIDs, nil
 }
 
 func (r *GormPlanRepo) ListPlans(ctx context.Context) ([]internal.Plan, error) {
 	db := getTxOrDb(ctx, r.db)
 	var plans []internal.Plan
 	err := db.WithContext(ctx).
-		Preload("Component.ModuleVersion.Module").
-		Preload("Component.ModuleVersion").
 		Preload("Changeset").
 		Find(&plans).Error
 	if err != nil {
@@ -67,8 +60,6 @@ func (r *GormPlanRepo) ListPlansByChangeset(ctx context.Context, changesetID uin
 	db := getTxOrDb(ctx, r.db)
 	var plans []internal.Plan
 	err := db.WithContext(ctx).
-		Preload("Component.ModuleVersion.Module").
-		Preload("Component.ModuleVersion").
 		Preload("Changeset").
 		Where("changeset_id = ?", changesetID).
 		Find(&plans).Error

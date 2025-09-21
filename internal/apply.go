@@ -188,9 +188,10 @@ type RunApply struct {
 	logStore          LogStore
 	tx                TransactionManager
 	newExecutor       NewExecutor
+	componentRepo     ComponentRepo
 }
 
-func NewRunApply(config *Config, applyRepo ApplyRepo, stateRepo StateRepo, stateResourceRepo StateResourceRepo, resourceRepo ResourceRepo, planStore PlanStore, logStore LogStore, tx TransactionManager, newExecutor NewExecutor) *RunApply {
+func NewRunApply(config *Config, applyRepo ApplyRepo, stateRepo StateRepo, stateResourceRepo StateResourceRepo, resourceRepo ResourceRepo, planStore PlanStore, logStore LogStore, tx TransactionManager, newExecutor NewExecutor, componentRepo ComponentRepo) *RunApply {
 	return &RunApply{
 		config:            config,
 		applyRepo:         applyRepo,
@@ -201,6 +202,7 @@ func NewRunApply(config *Config, applyRepo ApplyRepo, stateRepo StateRepo, state
 		logStore:          logStore,
 		tx:                tx,
 		newExecutor:       newExecutor,
+		componentRepo:     componentRepo,
 	}
 }
 
@@ -236,7 +238,22 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	}
 	defer logWriter.Close()
 
-	component := &apply.Plan.Component
+	var component *Component
+	err = a.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+		var err error
+		component, err = a.componentRepo.GetComponentAtCommit(ctx, apply.Plan.ComponentID, apply.Plan.Head)
+		return err
+	})
+	if err != nil {
+		stateErr := a.tx.Do(ctx, MainBranch, "fail apply", func(ctx context.Context) error {
+			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
+		})
+		if stateErr != nil {
+			return fmt.Errorf("failed to get component at commit: %w, and failed to update apply state: %w", err, stateErr)
+		}
+		return fmt.Errorf("failed to get component at commit: %w", err)
+	}
+
 	workDir := a.config.Terraform.WorkDir
 	executor, err := a.newExecutor(component, workDir, logWriter)
 	if err != nil {

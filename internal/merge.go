@@ -282,9 +282,11 @@ type RunMerge struct {
 	tx                 TransactionManager
 	listComponentDiffs *ListComponentDiffs
 	componentDiffRepo  ComponentDiffRepo
+	applyRepo          ApplyRepo
+	applyWorker        *ApplyWorker
 }
 
-func NewRunMerge(config *Config, mergeRepo MergeRepo, changesetRepo ChangesetRepo, planRepo PlanRepo, planStore PlanStore, logStore LogStore, tx TransactionManager, listComponentDiffs *ListComponentDiffs, componentDiffRepo ComponentDiffRepo) *RunMerge {
+func NewRunMerge(config *Config, mergeRepo MergeRepo, changesetRepo ChangesetRepo, planRepo PlanRepo, planStore PlanStore, logStore LogStore, tx TransactionManager, listComponentDiffs *ListComponentDiffs, componentDiffRepo ComponentDiffRepo, applyRepo ApplyRepo, applyWorker *ApplyWorker) *RunMerge {
 	return &RunMerge{
 		config:             config,
 		mergeRepo:          mergeRepo,
@@ -295,6 +297,8 @@ func NewRunMerge(config *Config, mergeRepo MergeRepo, changesetRepo ChangesetRep
 		tx:                 tx,
 		listComponentDiffs: listComponentDiffs,
 		componentDiffRepo:  componentDiffRepo,
+		applyRepo:          applyRepo,
+		applyWorker:        applyWorker,
 	}
 }
 
@@ -326,11 +330,25 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 
 	log.Info("Starting merge preparation")
 
+	changesetName := merge.Changeset.Name
+	var diffs []ComponentDiff
 	var canMerge bool
-	err = r.tx.Do(ctx, merge.Changeset.Name, "prepare merge", func(ctx context.Context) error {
-		var err error
-		canMerge, err = r.prepareMerge(ctx, merge)
-		return err
+
+	err = r.tx.Do(ctx, changesetName, "prepare merge", func(ctx context.Context) error {
+		diffsResp, err := r.listComponentDiffs.Exec(ctx, ListComponentDiffsRequest{
+			Changeset: changesetName,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to list component diffs: %w", err)
+		}
+		diffs = diffsResp.Diffs
+
+		canMerge, err = r.validateMerge(ctx, merge, diffs)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	})
 	if err != nil {
 		stateErr := r.tx.Do(ctx, MainBranch, "fail merge preparation", func(ctx context.Context) error {
@@ -363,6 +381,7 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 
 	log.Info("Merge preparation completed, starting merge operation")
 
+	var createdApplies []uint
 	err = r.tx.Do(ctx, MainBranch, "complete merge", func(ctx context.Context) error {
 		err = r.tx.MergeBranch(ctx, merge.Changeset.Name)
 		if err != nil {
@@ -373,6 +392,30 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 				return fmt.Errorf("failed to merge changeset: %w, and failed to update merge state: %w", err, stateErr)
 			}
 			return fmt.Errorf("failed to merge changeset: %w", err)
+		}
+
+		for _, diff := range diffs {
+			if diff.Plan == nil {
+				continue
+			}
+
+			if diff.Plan.State != TaskStateSucceeded {
+				log.WithField("plan_id", diff.Plan.ID).WithField("state", diff.Plan.State).Warn("Skipping plan that is not in succeeded state")
+				continue
+			}
+
+			apply := &Apply{
+				PlanID:      diff.Plan.ID,
+				ChangesetID: diff.Plan.ChangesetID,
+			}
+
+			err = r.applyRepo.CreateApply(ctx, apply)
+			if err != nil {
+				return fmt.Errorf("failed to create apply for plan %d: %w", diff.Plan.ID, err)
+			}
+
+			createdApplies = append(createdApplies, apply.ID)
+			log.WithField("plan_id", diff.Plan.ID).WithField("component_id", diff.Plan.ComponentID).WithField("apply_id", apply.ID).Info("Created apply for component plan")
 		}
 
 		err = r.changesetRepo.UpdateChangesetState(ctx, merge.ChangesetID, ChangesetStateMerged)
@@ -405,33 +448,13 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 		return fmt.Errorf("merge failed: %w", err)
 	}
 
-	return err
-}
-
-func (r *RunMerge) prepareMerge(ctx context.Context, merge *Merge) (bool, error) {
-	changesetName := merge.Changeset.Name
-
-	diffsResp, err := r.listComponentDiffs.Exec(ctx, ListComponentDiffsRequest{
-		Changeset: changesetName,
-	})
-	if err != nil {
-		return false, fmt.Errorf("failed to list component diffs: %w", err)
+	if r.applyWorker != nil {
+		for _, applyID := range createdApplies {
+			r.applyWorker.QueueApply(applyID)
+		}
 	}
 
-	canMerge, err := r.validateMerge(ctx, merge, diffsResp.Diffs)
-	if err != nil {
-		return false, err
-	}
-	if !canMerge {
-		return false, nil
-	}
-
-	err = r.cleanupBeforeMerge(ctx, merge, diffsResp.Diffs)
-	if err != nil {
-		return false, fmt.Errorf("failed to cleanup orphaned plans: %w", err)
-	}
-
-	return true, nil
+	return nil
 }
 
 func (r *RunMerge) validateMerge(ctx context.Context, merge *Merge, diffs []ComponentDiff) (bool, error) {
@@ -471,39 +494,4 @@ func (r *RunMerge) validateMerge(ctx context.Context, merge *Merge, diffs []Comp
 	}
 
 	return true, nil
-}
-
-func (r *RunMerge) cleanupBeforeMerge(ctx context.Context, merge *Merge, diffs []ComponentDiff) error {
-	validPlanIDs := make(map[uint]bool)
-	for _, diff := range diffs {
-		if diff.Plan != nil {
-			validPlanIDs[diff.Plan.ID] = true
-		}
-	}
-
-	allPlans, err := r.planRepo.ListPlansByChangeset(ctx, merge.ChangesetID)
-	if err != nil {
-		return fmt.Errorf("failed to list plans for changeset: %w", err)
-	}
-
-	for _, plan := range allPlans {
-		if !validPlanIDs[plan.ID] {
-			err = r.planRepo.DeletePlan(ctx, plan.ID)
-			if err != nil {
-				return fmt.Errorf("failed to delete orphaned plan %d from repo: %w", plan.ID, err)
-			}
-
-			err = r.planStore.DeletePlan(ctx, plan.ID)
-			if err != nil {
-				return fmt.Errorf("failed to delete orphaned plan %d from store: %w", plan.ID, err)
-			}
-
-			err = r.logStore.DeleteLog(ctx, "plan", plan.ID)
-			if err != nil {
-				return fmt.Errorf("failed to delete orphaned plan %d logs: %w", plan.ID, err)
-			}
-		}
-	}
-
-	return nil
 }

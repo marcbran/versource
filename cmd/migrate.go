@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/marcbran/versource/internal/database"
+	"github.com/marcbran/versource/internal/database/migrations"
 	"github.com/spf13/cobra"
 )
 
@@ -15,6 +15,6 @@ var migrateCmd = &cobra.Command{
 			return err
 		}
 
-		return database.Migrate(cmd.Context(), config.Database)
+		return migrations.Migrate(cmd.Context(), config.Database)
 	},
 }

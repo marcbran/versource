@@ -40,7 +40,7 @@ type Facade interface {
 	GetPlanLog(ctx context.Context, req GetPlanLogRequest) (*GetPlanLogResponse, error)
 	ListPlans(ctx context.Context, req ListPlansRequest) (*ListPlansResponse, error)
 	CreatePlan(ctx context.Context, req CreatePlanRequest) (*CreatePlanResponse, error)
-	RunPlan(ctx context.Context, req RunPlanRequest) error
+	RunPlan(ctx context.Context, planID uint) error
 
 	GetApplyLog(ctx context.Context, req GetApplyLogRequest) (*GetApplyLogResponse, error)
 	ListApplies(ctx context.Context, req ListAppliesRequest) (*ListAppliesResponse, error)
@@ -112,12 +112,12 @@ func NewFacade(
 	transactionManager TransactionManager,
 	newExecutor NewExecutor,
 ) Facade {
-	runApply := NewRunApply(config, applyRepo, stateRepo, stateResourceRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor)
-	runPlan := NewRunPlan(config, planRepo, planStore, logStore, applyRepo, transactionManager, newExecutor)
+	runApply := NewRunApply(config, applyRepo, stateRepo, stateResourceRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor, componentRepo)
+	runPlan := NewRunPlan(config, planRepo, planStore, logStore, transactionManager, newExecutor, componentRepo)
 	listComponentDiffs := NewListComponentDiffs(componentDiffRepo, transactionManager)
-	runMerge := NewRunMerge(config, mergeRepo, changesetRepo, planRepo, planStore, logStore, transactionManager, listComponentDiffs, componentDiffRepo)
-	runRebase := NewRunRebase(config, rebaseRepo, changesetRepo, transactionManager)
 	applyWorker := NewApplyWorker(runApply, applyRepo)
+	runMerge := NewRunMerge(config, mergeRepo, changesetRepo, planRepo, planStore, logStore, transactionManager, listComponentDiffs, componentDiffRepo, applyRepo, applyWorker)
+	runRebase := NewRunRebase(config, rebaseRepo, changesetRepo, transactionManager)
 	planWorker := NewPlanWorker(runPlan, planRepo)
 	mergeWorker := NewMergeWorker(runMerge, mergeRepo)
 	rebaseWorker := NewRebaseWorker(runRebase, rebaseRepo)
@@ -128,7 +128,7 @@ func NewFacade(
 	getRebase := NewGetRebase(rebaseRepo, transactionManager)
 	listRebases := NewListRebases(rebaseRepo, transactionManager)
 	createRebase := NewCreateRebase(changesetRepo, rebaseRepo, transactionManager, rebaseWorker)
-	getPlan := NewGetPlan(planRepo, transactionManager)
+	getPlan := NewGetPlan(planRepo, componentRepo, transactionManager)
 	getPlanLog := NewGetPlanLog(logStore, transactionManager)
 	getApplyLog := NewGetApplyLog(logStore)
 	ensureChangeset := NewEnsureChangeset(changesetRepo, transactionManager)
@@ -285,8 +285,8 @@ func (f *facade) CreatePlan(ctx context.Context, req CreatePlanRequest) (*Create
 	return f.createPlan.Exec(ctx, req)
 }
 
-func (f *facade) RunPlan(ctx context.Context, req RunPlanRequest) error {
-	return f.runPlan.Exec(ctx, req)
+func (f *facade) RunPlan(ctx context.Context, planID uint) error {
+	return f.runPlan.Exec(ctx, planID)
 }
 
 func (f *facade) GetApplyLog(ctx context.Context, req GetApplyLogRequest) (*GetApplyLogResponse, error) {

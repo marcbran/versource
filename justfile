@@ -52,6 +52,8 @@ data:
 migrate:
   go run main.go migrate
 
+migrate-datasets: migrate test-e2e-datasets
+
 serve: install
   versource serve
 

@@ -164,7 +164,7 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, changese
 		  FROM dolt_diff_components d
 		  JOIN dolt_log(?, "--not", "main", "--tables", "components") l
 			ON d.to_commit = l.commit_hash
-		  LEFT JOIN plans p
+		  LEFT JOIN plans AS OF "main" AS p
 			ON d.to_id = p.component_id AND d.to_commit = p.head
 		  ORDER BY d.to_id
 		)
@@ -219,7 +219,7 @@ func (r *GormComponentDiffRepo) GetComponentDiff(ctx context.Context, componentI
 		FROM dolt_diff_components d
 		JOIN dolt_log(?, "--not", "main", "--tables", "components") l
 			ON d.to_commit = l.commit_hash
-		LEFT JOIN plans p
+		LEFT JOIN plans AS OF "main" AS p
 			ON d.to_id = p.component_id AND d.to_commit = p.head
 		WHERE d.to_id = ?
 		ORDER BY d.to_commit_date DESC

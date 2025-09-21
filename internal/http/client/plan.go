@@ -135,7 +135,8 @@ func (c *Client) CreatePlan(ctx context.Context, req internal.CreatePlanRequest)
 	return &planResp, nil
 }
 
-func (c *Client) RunPlan(ctx context.Context, req internal.RunPlanRequest) error {
+func (c *Client) RunPlan(ctx context.Context, planID uint) error {
+	req := map[string]uint{"plan_id": planID}
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return fmt.Errorf("failed to marshal request: %w", err)

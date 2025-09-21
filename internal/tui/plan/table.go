@@ -70,7 +70,7 @@ func (p *TableData) ResolveData(data []internal.Plan) ([]table.Column, []table.R
 
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(plan.ID), 10),
-			plan.Component.Name,
+			strconv.FormatUint(uint64(plan.ComponentID), 10),
 			plan.Changeset.Name,
 			string(plan.State),
 			addStr,

@@ -19,8 +19,8 @@ type DetailData struct {
 type DetailViewModel struct {
 	ID        uint   `yaml:"id"`
 	State     string `yaml:"state"`
-	MergeBase string `yaml:"merge_base"`
-	Head      string `yaml:"head"`
+	From      string `yaml:"from"`
+	To        string `yaml:"to"`
 	Add       *int   `yaml:"add,omitempty"`
 	Change    *int   `yaml:"change,omitempty"`
 	Destroy   *int   `yaml:"destroy,omitempty"`
@@ -105,8 +105,8 @@ func (p *DetailData) ResolveData(data internal.GetPlanResponse) string {
 	viewModel := DetailViewModel{
 		ID:        data.ID,
 		State:     string(data.State),
-		MergeBase: data.MergeBase,
-		Head:      data.Head,
+		From:      data.From,
+		To:        data.To,
 		Add:       data.Add,
 		Change:    data.Change,
 		Destroy:   data.Destroy,

@@ -12,7 +12,7 @@ type Rebase struct {
 	ID          uint      `gorm:"primarykey"`
 	Changeset   Changeset `gorm:"foreignKey:ChangesetID"`
 	ChangesetID uint
-	RebaseBase  string    `gorm:"column:rebase_base"`
+	MergeBase   string    `gorm:"column:merge_base"`
 	Head        string    `gorm:"column:head"`
 	State       TaskState `gorm:"default:Queued"`
 }
@@ -46,7 +46,7 @@ type GetRebaseRequest struct {
 type GetRebaseResponse struct {
 	ID          uint      `json:"id"`
 	ChangesetID uint      `json:"changeset_id"`
-	RebaseBase  string    `json:"rebase_base"`
+	MergeBase   string    `json:"merge_base"`
 	Head        string    `json:"head"`
 	State       TaskState `json:"state"`
 }
@@ -57,7 +57,7 @@ func (g *GetRebase) Exec(ctx context.Context, req GetRebaseRequest) (*GetRebaseR
 	}
 
 	var rebase *Rebase
-	err := g.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err := g.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		rebase, err = g.rebaseRepo.GetRebase(ctx, req.RebaseID)
 		return err
@@ -73,7 +73,7 @@ func (g *GetRebase) Exec(ctx context.Context, req GetRebaseRequest) (*GetRebaseR
 	return &GetRebaseResponse{
 		ID:          rebase.ID,
 		ChangesetID: rebase.ChangesetID,
-		RebaseBase:  rebase.RebaseBase,
+		MergeBase:   rebase.MergeBase,
 		Head:        rebase.Head,
 		State:       rebase.State,
 	}, nil
@@ -105,7 +105,7 @@ func (l *ListRebases) Exec(ctx context.Context, req ListRebasesRequest) (*ListRe
 	}
 
 	var rebases []Rebase
-	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err := l.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		rebases, err = l.rebaseRepo.ListRebases(ctx)
 		return err
@@ -142,7 +142,7 @@ type CreateRebaseRequest struct {
 type CreateRebaseResponse struct {
 	ID          uint      `json:"id"`
 	ChangesetID uint      `json:"changeset_id"`
-	RebaseBase  string    `json:"rebase_base"`
+	MergeBase   string    `json:"merge_base"`
 	Head        string    `json:"head"`
 	State       TaskState `json:"state"`
 }
@@ -152,27 +152,39 @@ func (c *CreateRebase) Exec(ctx context.Context, req CreateRebaseRequest) (*Crea
 		return nil, UserErr("changeset name is required")
 	}
 
+	var mergeBase string
+	var head string
+
+	err := c.tx.Checkout(ctx, req.ChangesetName, func(ctx context.Context) error {
+		var err error
+		mergeBase, err = c.tx.GetMergeBase(ctx, MainBranch, req.ChangesetName)
+		if err != nil {
+			return InternalErrE("failed to get merge base", err)
+		}
+
+		head, err = c.tx.GetHead(ctx)
+		if err != nil {
+			return InternalErrE("failed to get head", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	var response *CreateRebaseResponse
-	err := c.tx.Do(ctx, MainBranch, "create rebase", func(ctx context.Context) error {
+	err = c.tx.Do(ctx, AdminBranch, "create rebase", func(ctx context.Context) error {
 		changeset, err := c.changesetRepo.GetChangesetByName(ctx, req.ChangesetName)
 		if err != nil {
 			return UserErrE("changeset not found", err)
 		}
 
-		rebaseBase, err := c.tx.GetMergeBase(ctx, MainBranch, changeset.Name)
-		if err != nil {
-			return InternalErrE("failed to get rebase base", err)
-		}
-
-		head, err := c.tx.GetBranchHead(ctx, changeset.Name)
-		if err != nil {
-			return InternalErrE("failed to get head of changeset branch", err)
-		}
-
 		rebase := &Rebase{
 			ChangesetID: changeset.ID,
 			Changeset:   *changeset,
-			RebaseBase:  rebaseBase,
+			MergeBase:   mergeBase,
 			Head:        head,
 		}
 
@@ -184,7 +196,7 @@ func (c *CreateRebase) Exec(ctx context.Context, req CreateRebaseRequest) (*Crea
 		response = &CreateRebaseResponse{
 			ID:          rebase.ID,
 			ChangesetID: rebase.ChangesetID,
-			RebaseBase:  rebase.RebaseBase,
+			MergeBase:   rebase.MergeBase,
 			Head:        rebase.Head,
 			State:       rebase.State,
 		}
@@ -291,7 +303,7 @@ func NewRunRebase(config *Config, rebaseRepo RebaseRepo, changesetRepo Changeset
 func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 	var rebase *Rebase
 
-	err := r.tx.Do(ctx, MainBranch, "start rebase", func(ctx context.Context) error {
+	err := r.tx.Do(ctx, AdminBranch, "start rebase", func(ctx context.Context) error {
 		var err error
 		rebase, err = r.rebaseRepo.GetRebase(ctx, rebaseID)
 		if err != nil {
@@ -316,22 +328,16 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 
 	log.Info("Starting rebase operation")
 
-	err = r.tx.Do(ctx, rebase.Changeset.Name, "perform rebase", func(ctx context.Context) error {
-		err = r.tx.Rebase(ctx, rebase.Changeset.Name, MainBranch)
+	err = r.tx.Checkout(ctx, rebase.Changeset.Name, func(ctx context.Context) error {
+		err = r.tx.RebaseBranch(ctx, MainBranch)
 		if err != nil {
-			stateErr := r.tx.Do(ctx, MainBranch, "fail rebase", func(ctx context.Context) error {
-				return r.rebaseRepo.UpdateRebaseState(ctx, rebaseID, TaskStateFailed)
-			})
-			if stateErr != nil {
-				return fmt.Errorf("failed to rebase: %w, and failed to update rebase state: %w", err, stateErr)
-			}
-			return fmt.Errorf("failed to rebase: %w", err)
+			return err
 		}
-
 		return nil
 	})
+
 	if err != nil {
-		stateErr := r.tx.Do(ctx, MainBranch, "fail rebase", func(ctx context.Context) error {
+		stateErr := r.tx.Do(ctx, AdminBranch, "fail rebase", func(ctx context.Context) error {
 			return r.rebaseRepo.UpdateRebaseState(ctx, rebaseID, TaskStateFailed)
 		})
 		if stateErr != nil {
@@ -340,7 +346,7 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 		return fmt.Errorf("rebase failed: %w", err)
 	}
 
-	err = r.tx.Do(ctx, MainBranch, "complete rebase", func(ctx context.Context) error {
+	err = r.tx.Do(ctx, AdminBranch, "complete rebase", func(ctx context.Context) error {
 		err = r.rebaseRepo.UpdateRebaseState(ctx, rebaseID, TaskStateSucceeded)
 		if err != nil {
 			return fmt.Errorf("failed to update rebase state: %w", err)
@@ -351,7 +357,7 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 		return nil
 	})
 	if err != nil {
-		stateErr := r.tx.Do(ctx, MainBranch, "fail rebase completion", func(ctx context.Context) error {
+		stateErr := r.tx.Do(ctx, AdminBranch, "fail rebase completion", func(ctx context.Context) error {
 			return r.rebaseRepo.UpdateRebaseState(ctx, rebaseID, TaskStateFailed)
 		})
 		if stateErr != nil {

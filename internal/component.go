@@ -386,7 +386,7 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 	}
 
 	var hasChangeset bool
-	err := u.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err := u.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		hasChangeset, err = u.changesetRepo.HasChangesetWithName(ctx, req.Changeset)
 		if err != nil {
@@ -539,7 +539,7 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 	}
 
 	var hasChangeset bool
-	err := d.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err := d.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		hasChangeset, err = d.changesetRepo.HasChangesetWithName(ctx, req.Changeset)
 		if err != nil {
@@ -691,7 +691,7 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 	}
 
 	var hasChangeset bool
-	err := r.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err := r.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		hasChangeset, err = r.changesetRepo.HasChangesetWithName(ctx, req.Changeset)
 		if err != nil {

@@ -95,7 +95,7 @@ type ListAppliesResponse struct {
 
 func (l *ListApplies) Exec(ctx context.Context, req ListAppliesRequest) (*ListAppliesResponse, error) {
 	var applies []Apply
-	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err := l.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		applies, err = l.applyRepo.ListApplies(ctx)
 		return err
@@ -209,7 +209,7 @@ func NewRunApply(config *Config, applyRepo ApplyRepo, stateRepo StateRepo, state
 func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	var apply *Apply
 
-	err := a.tx.Do(ctx, MainBranch, "start apply", func(ctx context.Context) error {
+	err := a.tx.Do(ctx, AdminBranch, "start apply", func(ctx context.Context) error {
 		var err error
 		apply, err = a.applyRepo.GetApply(ctx, applyID)
 		if err != nil {
@@ -239,13 +239,13 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	defer logWriter.Close()
 
 	var component *Component
-	err = a.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err = a.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
-		component, err = a.componentRepo.GetComponentAtCommit(ctx, apply.Plan.ComponentID, apply.Plan.Head)
+		component, err = a.componentRepo.GetComponentAtCommit(ctx, apply.Plan.ComponentID, apply.Plan.To)
 		return err
 	})
 	if err != nil {
-		stateErr := a.tx.Do(ctx, MainBranch, "fail apply", func(ctx context.Context) error {
+		stateErr := a.tx.Do(ctx, AdminBranch, "fail apply", func(ctx context.Context) error {
 			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
 		})
 		if stateErr != nil {
@@ -265,7 +265,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	err = executor.Init(ctx)
 	if err != nil {
-		stateErr := a.tx.Do(ctx, MainBranch, "fail apply", func(ctx context.Context) error {
+		stateErr := a.tx.Do(ctx, AdminBranch, "fail apply", func(ctx context.Context) error {
 			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
 		})
 		if stateErr != nil {
@@ -276,7 +276,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	planPath, err := a.planStore.LoadPlan(ctx, apply.PlanID)
 	if err != nil {
-		stateErr := a.tx.Do(ctx, MainBranch, "fail apply", func(ctx context.Context) error {
+		stateErr := a.tx.Do(ctx, AdminBranch, "fail apply", func(ctx context.Context) error {
 			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
 		})
 		if stateErr != nil {
@@ -289,7 +289,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	state, stateResources, err := executor.Apply(ctx, planPath)
 	if err != nil {
-		stateErr := a.tx.Do(ctx, MainBranch, "fail apply", func(ctx context.Context) error {
+		stateErr := a.tx.Do(ctx, AdminBranch, "fail apply", func(ctx context.Context) error {
 			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
 		})
 		if stateErr != nil {
@@ -300,7 +300,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	log.Info("Terraform apply completed successfully")
 
-	err = a.tx.Do(ctx, MainBranch, "complete apply", func(ctx context.Context) error {
+	err = a.tx.Do(ctx, AdminBranch, "complete apply", func(ctx context.Context) error {
 		state.ComponentID = component.ID
 
 		err := a.stateRepo.UpsertState(ctx, &state)

@@ -57,7 +57,7 @@ func (g *GetMerge) Exec(ctx context.Context, req GetMergeRequest) (*GetMergeResp
 	}
 
 	var merge *Merge
-	err := g.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err := g.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		merge, err = g.mergeRepo.GetMerge(ctx, req.MergeID)
 		return err
@@ -105,7 +105,7 @@ func (l *ListMerges) Exec(ctx context.Context, req ListMergesRequest) (*ListMerg
 	}
 
 	var merges []Merge
-	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err := l.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		merges, err = l.mergeRepo.ListMerges(ctx)
 		return err
@@ -152,21 +152,33 @@ func (c *CreateMerge) Exec(ctx context.Context, req CreateMergeRequest) (*Create
 		return nil, UserErr("changeset name is required")
 	}
 
-	var response *CreateMergeResponse
-	err := c.tx.Do(ctx, MainBranch, "create merge", func(ctx context.Context) error {
-		changeset, err := c.changesetRepo.GetChangesetByName(ctx, req.ChangesetName)
-		if err != nil {
-			return UserErrE("changeset not found", err)
-		}
+	var mergeBase string
+	var head string
 
-		mergeBase, err := c.tx.GetMergeBase(ctx, MainBranch, changeset.Name)
+	err := c.tx.Checkout(ctx, req.ChangesetName, func(ctx context.Context) error {
+		var err error
+		mergeBase, err = c.tx.GetMergeBase(ctx, MainBranch, req.ChangesetName)
 		if err != nil {
 			return InternalErrE("failed to get merge base", err)
 		}
 
-		head, err := c.tx.GetBranchHead(ctx, changeset.Name)
+		head, err = c.tx.GetHead(ctx)
 		if err != nil {
-			return InternalErrE("failed to get head of changeset branch", err)
+			return InternalErrE("failed to get head", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var response *CreateMergeResponse
+	err = c.tx.Do(ctx, AdminBranch, "create merge", func(ctx context.Context) error {
+		changeset, err := c.changesetRepo.GetChangesetByName(ctx, req.ChangesetName)
+		if err != nil {
+			return UserErrE("changeset not found", err)
 		}
 
 		merge := &Merge{
@@ -305,7 +317,7 @@ func NewRunMerge(config *Config, mergeRepo MergeRepo, changesetRepo ChangesetRep
 func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 	var merge *Merge
 
-	err := r.tx.Do(ctx, MainBranch, "start merge", func(ctx context.Context) error {
+	err := r.tx.Do(ctx, AdminBranch, "start merge", func(ctx context.Context) error {
 		var err error
 		merge, err = r.mergeRepo.GetMerge(ctx, mergeID)
 		if err != nil {
@@ -351,7 +363,7 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 		return nil
 	})
 	if err != nil {
-		stateErr := r.tx.Do(ctx, MainBranch, "fail merge preparation", func(ctx context.Context) error {
+		stateErr := r.tx.Do(ctx, AdminBranch, "fail merge preparation", func(ctx context.Context) error {
 			return r.mergeRepo.UpdateMergeState(ctx, mergeID, TaskStateFailed)
 		})
 		if stateErr != nil {
@@ -362,7 +374,7 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 
 	if !canMerge {
 		log.Info("Merge validation failed, marking changeset as rejected")
-		err = r.tx.Do(ctx, MainBranch, "reject changeset", func(ctx context.Context) error {
+		err = r.tx.Do(ctx, AdminBranch, "reject changeset", func(ctx context.Context) error {
 			err = r.mergeRepo.UpdateMergeState(ctx, mergeID, TaskStateFailed)
 			if err != nil {
 				return fmt.Errorf("failed to update merge state: %w", err)
@@ -381,19 +393,16 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 
 	log.Info("Merge preparation completed, starting merge operation")
 
-	var createdApplies []uint
-	err = r.tx.Do(ctx, MainBranch, "complete merge", func(ctx context.Context) error {
+	err = r.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		err = r.tx.MergeBranch(ctx, merge.Changeset.Name)
 		if err != nil {
-			stateErr := r.tx.Do(ctx, MainBranch, "fail merge", func(ctx context.Context) error {
-				return r.mergeRepo.UpdateMergeState(ctx, mergeID, TaskStateFailed)
-			})
-			if stateErr != nil {
-				return fmt.Errorf("failed to merge changeset: %w, and failed to update merge state: %w", err, stateErr)
-			}
-			return fmt.Errorf("failed to merge changeset: %w", err)
+			return InternalErrE("failed to create changeset branch", err)
 		}
+		return nil
+	})
 
+	var createdApplies []uint
+	err = r.tx.Do(ctx, AdminBranch, "complete merge", func(ctx context.Context) error {
 		for _, diff := range diffs {
 			if diff.Plan == nil {
 				continue
@@ -420,7 +429,7 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 
 		err = r.changesetRepo.UpdateChangesetState(ctx, merge.ChangesetID, ChangesetStateMerged)
 		if err != nil {
-			stateErr := r.tx.Do(ctx, MainBranch, "fail changeset merge", func(ctx context.Context) error {
+			stateErr := r.tx.Do(ctx, AdminBranch, "fail changeset merge", func(ctx context.Context) error {
 				return r.mergeRepo.UpdateMergeState(ctx, mergeID, TaskStateFailed)
 			})
 			if stateErr != nil {
@@ -439,7 +448,7 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 		return nil
 	})
 	if err != nil {
-		stateErr := r.tx.Do(ctx, MainBranch, "fail merge", func(ctx context.Context) error {
+		stateErr := r.tx.Do(ctx, AdminBranch, "fail merge", func(ctx context.Context) error {
 			return r.mergeRepo.UpdateMergeState(ctx, mergeID, TaskStateFailed)
 		})
 		if stateErr != nil {

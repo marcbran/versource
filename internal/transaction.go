@@ -3,6 +3,7 @@ package internal
 import "context"
 
 const MainBranch = "main"
+const AdminBranch = "admin"
 
 type TransactionManager interface {
 	Do(ctx context.Context, branch, message string, fn func(ctx context.Context) error) error
@@ -12,13 +13,12 @@ type TransactionManager interface {
 	CreateBranch(ctx context.Context, branch string) error
 	MergeBranch(ctx context.Context, branch string) error
 	DeleteBranch(ctx context.Context, branch string) error
+	RebaseBranch(ctx context.Context, onto string) error
 
 	GetMergeBase(ctx context.Context, source, branch string) (string, error)
 	GetHead(ctx context.Context) (string, error)
 	GetBranchHead(ctx context.Context, branch string) (string, error)
 	HasCommitsAfter(ctx context.Context, branch, commit string) (bool, error)
-
-	Rebase(ctx context.Context, branch, onto string) error
 }
 
 func IsValidCommitHash(hash string) bool {

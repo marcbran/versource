@@ -61,7 +61,7 @@ type ListChangesetsResponse struct {
 
 func (l *ListChangesets) Exec(ctx context.Context, req ListChangesetsRequest) (*ListChangesetsResponse, error) {
 	var changesets []Changeset
-	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err := l.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		changesets, err = l.changesetRepo.ListChangesets(ctx)
 		return err
@@ -103,7 +103,7 @@ func (c *CreateChangeset) Exec(ctx context.Context, req CreateChangesetRequest) 
 	}
 
 	var response *CreateChangesetResponse
-	err := c.tx.Do(ctx, MainBranch, "create changeset", func(ctx context.Context) error {
+	err := c.tx.Do(ctx, AdminBranch, "create changeset", func(ctx context.Context) error {
 		hasChangesets, err := c.changesetRepo.HasChangesetWithName(ctx, req.Name)
 		if err != nil {
 			return InternalErrE("failed to check for changesets", err)
@@ -135,7 +135,14 @@ func (c *CreateChangeset) Exec(ctx context.Context, req CreateChangesetRequest) 
 		return nil, fmt.Errorf("failed to create changeset: %w", err)
 	}
 
-	err = c.tx.CreateBranch(ctx, req.Name)
+	err = c.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+		err = c.tx.CreateBranch(ctx, req.Name)
+		if err != nil {
+			return InternalErrE("failed to create changeset branch", err)
+		}
+		return nil
+	})
+
 	if err != nil {
 		return nil, InternalErrE("failed to create changeset branch", err)
 	}
@@ -173,7 +180,7 @@ func (e *EnsureChangeset) Exec(ctx context.Context, req EnsureChangesetRequest) 
 	}
 
 	var existingChangeset *Changeset
-	err := e.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err := e.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		existingChangeset, err = e.changesetRepo.GetChangesetByName(ctx, req.Name)
 		if err != nil {

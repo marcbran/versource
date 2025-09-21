@@ -154,8 +154,8 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, changese
 			p.id as plan_id,
 			p.component_id as plan_component_id,
 			p.changeset_id as plan_changeset_id,
-			p.merge_base as plan_merge_base,
-			p.head as plan_head,
+			p.from as plan_from,
+			p.to as plan_to,
 			p.state as plan_state,
 			p.add as plan_add,
 			p.change as plan_change,
@@ -164,8 +164,8 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, changese
 		  FROM dolt_diff_components d
 		  JOIN dolt_log(?, "--not", "main", "--tables", "components") l
 			ON d.to_commit = l.commit_hash
-		  LEFT JOIN plans AS OF "main" AS p
-			ON d.to_id = p.component_id AND d.to_commit = p.head
+		  LEFT JOIN plans AS OF "admin" AS p
+			ON d.to_id = p.component_id AND d.to_commit = p.to
 		  ORDER BY d.to_id
 		)
 		SELECT *
@@ -210,8 +210,8 @@ func (r *GormComponentDiffRepo) GetComponentDiff(ctx context.Context, componentI
 			p.id as plan_id,
 			p.component_id as plan_component_id,
 			p.changeset_id as plan_changeset_id,
-			p.merge_base as plan_merge_base,
-			p.head as plan_head,
+			p.from as plan_from,
+			p.to as plan_to,
 			p.state as plan_state,
 			p.add as plan_add,
 			p.change as plan_change,
@@ -219,8 +219,8 @@ func (r *GormComponentDiffRepo) GetComponentDiff(ctx context.Context, componentI
 		FROM dolt_diff_components d
 		JOIN dolt_log(?, "--not", "main", "--tables", "components") l
 			ON d.to_commit = l.commit_hash
-		LEFT JOIN plans AS OF "main" AS p
-			ON d.to_id = p.component_id AND d.to_commit = p.head
+		LEFT JOIN plans AS OF "admin" AS p
+			ON d.to_id = p.component_id AND d.to_commit = p.to
 		WHERE d.to_id = ?
 		ORDER BY d.to_commit_date DESC
 		LIMIT 1;
@@ -243,7 +243,12 @@ func (r *GormComponentDiffRepo) HasComponentConflicts(ctx context.Context, chang
 
 	db := getTxOrDb(ctx, r.db)
 
-	query := fmt.Sprintf(`SELECT count(1) FROM dolt_diff("main...%s", "components") b JOIN dolt_diff("%s...main", "components") m ON b.to_id = m.to_id`, changesetName, changesetName)
+	query := fmt.Sprintf(`
+		SELECT count(1)
+		FROM dolt_diff("main...%s", "components") b
+		JOIN dolt_diff("%s...main", "components") m
+		ON b.to_id = m.to_id
+		OR b.to_name = m.to_name`, changesetName, changesetName)
 
 	var count int64
 	err := db.WithContext(ctx).Raw(query).Scan(&count).Error
@@ -273,8 +278,8 @@ type rawDiff struct {
 	PlanID              *uint          `json:"plan_id"`
 	PlanComponentID     *uint          `json:"plan_component_id"`
 	PlanChangesetID     *uint          `json:"plan_changeset_id"`
-	PlanMergeBase       *string        `json:"plan_merge_base"`
-	PlanHead            *string        `json:"plan_head"`
+	PlanFrom            *string        `json:"plan_from"`
+	PlanTo              *string        `json:"plan_to"`
 	PlanState           *string        `json:"plan_state"`
 	PlanAdd             *int           `json:"plan_add"`
 	PlanChange          *int           `json:"plan_change"`
@@ -329,8 +334,8 @@ func convertRawDiffToComponentDiff(raw rawDiff) internal.ComponentDiff {
 			ID:          *raw.PlanID,
 			ComponentID: *raw.PlanComponentID,
 			ChangesetID: *raw.PlanChangesetID,
-			MergeBase:   *raw.PlanMergeBase,
-			Head:        *raw.PlanHead,
+			From:        *raw.PlanFrom,
+			To:          *raw.PlanTo,
 			State:       internal.TaskState(*raw.PlanState),
 			Add:         raw.PlanAdd,
 			Change:      raw.PlanChange,

@@ -20,7 +20,7 @@ type DetailViewModel struct {
 	ID          uint   `yaml:"id"`
 	ChangesetID uint   `yaml:"changeset_id"`
 	State       string `yaml:"state"`
-	RebaseBase  string `yaml:"rebase_base"`
+	MergeBase   string `yaml:"merge_base"`
 	Head        string `yaml:"head"`
 }
 
@@ -63,7 +63,7 @@ func (p *DetailData) ResolveData(data internal.GetRebaseResponse) string {
 		ID:          data.ID,
 		ChangesetID: data.ChangesetID,
 		State:       string(data.State),
-		RebaseBase:  data.RebaseBase,
+		MergeBase:   data.MergeBase,
 		Head:        data.Head,
 	}
 

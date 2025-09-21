@@ -56,7 +56,7 @@ func (p *TableData) ResolveData(data []internal.Rebase) ([]table.Column, []table
 			strconv.FormatUint(uint64(rebase.ID), 10),
 			rebase.Changeset.Name,
 			string(rebase.State),
-			rebase.RebaseBase,
+			rebase.MergeBase,
 			rebase.Head,
 		})
 		elems = append(elems, rebase)

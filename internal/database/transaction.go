@@ -9,8 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type txKey struct{}
-
 type GormTransactionManager struct {
 	db *gorm.DB
 }
@@ -18,6 +16,8 @@ type GormTransactionManager struct {
 func NewGormTransactionManager(db *gorm.DB) *GormTransactionManager {
 	return &GormTransactionManager{db: db}
 }
+
+type txKey struct{}
 
 func withTx(ctx context.Context, tx *gorm.DB) context.Context {
 	return context.WithValue(ctx, txKey{}, tx)
@@ -30,6 +30,20 @@ func getTxOrDb(ctx context.Context, db *gorm.DB) *gorm.DB {
 	return db
 }
 
+type branchKey struct{}
+
+func withBranch(ctx context.Context, branch string) context.Context {
+	return context.WithValue(ctx, branchKey{}, branch)
+}
+
+func getBranch(ctx context.Context) string {
+	branch, ok := ctx.Value(branchKey{}).(string)
+	if !ok {
+		return ""
+	}
+	return branch
+}
+
 func (tm *GormTransactionManager) Do(ctx context.Context, branch, message string, fn func(ctx context.Context) error) error {
 	return tm.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		err := ensureBranch(tx, branch)
@@ -37,7 +51,7 @@ func (tm *GormTransactionManager) Do(ctx context.Context, branch, message string
 			return fmt.Errorf("failed to ensure branch %s: %w", branch, err)
 		}
 
-		err = fn(withTx(ctx, tx))
+		err = fn(withTx(withBranch(ctx, branch), tx))
 		if err != nil {
 			return err
 		}
@@ -57,10 +71,14 @@ func (tm *GormTransactionManager) Checkout(ctx context.Context, branch string, f
 		return fmt.Errorf("failed to ensure branch %s: %w", branch, err)
 	}
 
-	return fn(ctx)
+	return fn(withBranch(ctx, branch))
 }
 
 func ensureBranch(tx *gorm.DB, branch string) error {
+	if !internal.IsValidBranch(branch) {
+		return fmt.Errorf("invalid branch: %s", branch)
+	}
+
 	var activeBranch sql.NullString
 	err := tx.Raw("SELECT active_branch()").Scan(&activeBranch).Error
 	if err != nil {
@@ -130,8 +148,12 @@ func (tm *GormTransactionManager) HasBranch(ctx context.Context, branch string) 
 
 func (tm *GormTransactionManager) CreateBranch(ctx context.Context, branch string) error {
 	tx := getTxOrDb(ctx, tm.db)
+	parent := getBranch(ctx)
+	if parent == branch {
+		return fmt.Errorf("cannot create branch with same name as checked out branch %s", branch)
+	}
 
-	err := tx.Exec("CALL DOLT_BRANCH(?, ?)", branch, internal.MainBranch).Error
+	err := tx.Exec("CALL DOLT_BRANCH(?, ?)", branch, parent).Error
 	if err != nil {
 		return fmt.Errorf("failed to create branch %s: %w", branch, err)
 	}
@@ -141,6 +163,10 @@ func (tm *GormTransactionManager) CreateBranch(ctx context.Context, branch strin
 
 func (tm *GormTransactionManager) MergeBranch(ctx context.Context, branch string) error {
 	tx := getTxOrDb(ctx, tm.db)
+	parent := getBranch(ctx)
+	if parent == branch {
+		return fmt.Errorf("cannot merge currently checked out branch %s into itself", branch)
+	}
 
 	err := tx.Exec("CALL DOLT_MERGE(?, '--no-ff')", branch).Error
 	if err != nil {
@@ -150,8 +176,42 @@ func (tm *GormTransactionManager) MergeBranch(ctx context.Context, branch string
 	return nil
 }
 
+func (tm *GormTransactionManager) RebaseBranch(ctx context.Context, onto string) error {
+	tx := getTxOrDb(ctx, tm.db)
+	branch := getBranch(ctx)
+	if branch == onto {
+		return fmt.Errorf("cannot rebase currently checked out branch %s onto itself", branch)
+	}
+
+	var count int64
+	err := tx.Raw("SELECT COUNT(*) FROM DOLT_LOG(?, '--not', ?)", branch, onto).Scan(&count).Error
+	if err != nil {
+		return fmt.Errorf("failed to check commits to rebase: %w", err)
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	err = tx.Exec("CALL DOLT_REBASE('-i', ?)", onto).Error
+	if err != nil {
+		return fmt.Errorf("failed to start rebase of %s onto %s: %w", branch, onto, err)
+	}
+
+	err = tx.Exec("CALL DOLT_REBASE('--continue')").Error
+	if err != nil {
+		return fmt.Errorf("failed to continue rebase of %s onto %s: %w", branch, onto, err)
+	}
+
+	return nil
+}
+
 func (tm *GormTransactionManager) DeleteBranch(ctx context.Context, branch string) error {
 	tx := getTxOrDb(ctx, tm.db)
+	parent := getBranch(ctx)
+	if parent == branch {
+		return fmt.Errorf("cannot delete currently checked out branch %s", branch)
+	}
 
 	err := tx.Exec("CALL DOLT_BRANCH('--force', '--delete', ?)", branch).Error
 	if err != nil {
@@ -207,30 +267,4 @@ func (tm *GormTransactionManager) HasCommitsAfter(ctx context.Context, branch, c
 	}
 
 	return count > 0, nil
-}
-
-func (tm *GormTransactionManager) Rebase(ctx context.Context, branch, onto string) error {
-	tx := getTxOrDb(ctx, tm.db)
-
-	var count int64
-	err := tx.Raw("SELECT COUNT(*) FROM DOLT_LOG(?, '--not', ?)", branch, onto).Scan(&count).Error
-	if err != nil {
-		return fmt.Errorf("failed to check commits to rebase: %w", err)
-	}
-
-	if count == 0 {
-		return nil
-	}
-
-	err = tx.Exec("CALL DOLT_REBASE('-i', ?)", onto).Error
-	if err != nil {
-		return fmt.Errorf("failed to start rebase of %s onto %s: %w", branch, onto, err)
-	}
-
-	err = tx.Exec("CALL DOLT_REBASE('--continue')").Error
-	if err != nil {
-		return fmt.Errorf("failed to continue rebase of %s onto %s: %w", branch, onto, err)
-	}
-
-	return nil
 }

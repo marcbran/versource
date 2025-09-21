@@ -14,8 +14,8 @@ type Plan struct {
 	Changeset   Changeset `gorm:"foreignKey:ChangesetID"`
 	ChangesetID uint
 	ComponentID uint
-	MergeBase   string    `gorm:"column:merge_base"`
-	Head        string    `gorm:"column:head"`
+	From        string    `gorm:"column:from"`
+	To          string    `gorm:"column:to"`
 	State       TaskState `gorm:"default:Queued"`
 	Add         *int      `gorm:"column:add"`
 	Change      *int      `gorm:"column:change"`
@@ -62,8 +62,8 @@ type GetPlanResponse struct {
 	ID          uint      `json:"id"`
 	ComponentID uint      `json:"component_id"`
 	ChangesetID uint      `json:"changeset_id"`
-	MergeBase   string    `json:"merge_base"`
-	Head        string    `json:"head"`
+	From        string    `json:"from"`
+	To          string    `json:"to"`
 	State       TaskState `json:"state"`
 	Add         *int      `json:"add"`
 	Change      *int      `json:"change"`
@@ -78,7 +78,7 @@ func (g *GetPlan) Exec(ctx context.Context, req GetPlanRequest) (*GetPlanRespons
 	}
 
 	var plan *Plan
-	err := g.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err := g.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		plan, err = g.planRepo.GetPlan(ctx, req.PlanID)
 		return err
@@ -95,7 +95,7 @@ func (g *GetPlan) Exec(ctx context.Context, req GetPlanRequest) (*GetPlanRespons
 
 	err = g.tx.Checkout(ctx, branch, func(ctx context.Context) error {
 		var err error
-		component, err = g.componentRepo.GetComponentAtCommit(ctx, plan.ComponentID, plan.Head)
+		component, err = g.componentRepo.GetComponentAtCommit(ctx, plan.ComponentID, plan.To)
 		return err
 	})
 	if err != nil {
@@ -106,8 +106,8 @@ func (g *GetPlan) Exec(ctx context.Context, req GetPlanRequest) (*GetPlanRespons
 		ID:          plan.ID,
 		ComponentID: plan.ComponentID,
 		ChangesetID: plan.ChangesetID,
-		MergeBase:   plan.MergeBase,
-		Head:        plan.Head,
+		From:        plan.From,
+		To:          plan.To,
 		State:       plan.State,
 		Add:         plan.Add,
 		Change:      plan.Change,
@@ -144,7 +144,7 @@ func (g *GetPlanLog) Exec(ctx context.Context, req GetPlanLogRequest) (*GetPlanL
 	}
 
 	var reader io.ReadCloser
-	err := g.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err := g.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		reader, err = g.logStore.LoadLog(ctx, "plan", req.PlanID)
 		return err
@@ -181,7 +181,7 @@ type ListPlansResponse struct {
 func (l *ListPlans) Exec(ctx context.Context, req ListPlansRequest) (*ListPlansResponse, error) {
 	var plans []Plan
 
-	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+	err := l.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		plans, err = l.planRepo.ListPlans(ctx)
 		return err
@@ -222,8 +222,8 @@ type CreatePlanResponse struct {
 	ID          uint      `json:"id"`
 	ComponentID uint      `json:"component_id"`
 	ChangesetID uint      `json:"changeset_id"`
-	MergeBase   string    `json:"merge_base"`
-	Head        string    `json:"head"`
+	From        string    `json:"from"`
+	To          string    `json:"to"`
 	State       TaskState `json:"state"`
 }
 
@@ -232,17 +232,17 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 		return nil, UserErr("changeset is required")
 	}
 
-	var mergeBase string
-	var head string
+	var from string
+	var to string
 
 	err := c.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
 		var err error
-		mergeBase, err = c.tx.GetMergeBase(ctx, MainBranch, req.Changeset)
+		from, err = c.tx.GetMergeBase(ctx, MainBranch, req.Changeset)
 		if err != nil {
 			return InternalErrE("failed to get merge base", err)
 		}
 
-		head, err = c.tx.GetHead(ctx)
+		to, err = c.tx.GetHead(ctx)
 		if err != nil {
 			return InternalErrE("failed to get head", err)
 		}
@@ -255,7 +255,7 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 	}
 
 	var response *CreatePlanResponse
-	err = c.tx.Do(ctx, MainBranch, "create plan", func(ctx context.Context) error {
+	err = c.tx.Do(ctx, AdminBranch, "create plan", func(ctx context.Context) error {
 		changeset, err := c.changesetRepo.GetChangesetByName(ctx, req.Changeset)
 		if err != nil {
 			return UserErrE("changeset not found", err)
@@ -264,8 +264,8 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 		plan := &Plan{
 			ComponentID: req.ComponentID,
 			ChangesetID: changeset.ID,
-			MergeBase:   mergeBase,
-			Head:        head,
+			From:        from,
+			To:          to,
 		}
 
 		err = c.planRepo.CreatePlan(ctx, plan)
@@ -277,8 +277,8 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 			ID:          plan.ID,
 			ComponentID: plan.ComponentID,
 			ChangesetID: plan.ChangesetID,
-			MergeBase:   plan.MergeBase,
-			Head:        plan.Head,
+			From:        plan.From,
+			To:          plan.To,
 			State:       plan.State,
 		}
 
@@ -390,7 +390,7 @@ func NewRunPlan(config *Config, planRepo PlanRepo, planStore PlanStore, logStore
 func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
 	var plan *Plan
 
-	err := r.tx.Do(ctx, MainBranch, "start plan", func(ctx context.Context) error {
+	err := r.tx.Do(ctx, AdminBranch, "start plan", func(ctx context.Context) error {
 		var err error
 		plan, err = r.planRepo.GetPlan(ctx, planID)
 		if err != nil {
@@ -416,11 +416,11 @@ func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
 	var component *Component
 	err = r.tx.Checkout(ctx, plan.Changeset.Name, func(ctx context.Context) error {
 		var err error
-		component, err = r.componentRepo.GetComponentAtCommit(ctx, plan.ComponentID, plan.Head)
+		component, err = r.componentRepo.GetComponentAtCommit(ctx, plan.ComponentID, plan.To)
 		return err
 	})
 	if err != nil {
-		stateErr := r.tx.Do(ctx, MainBranch, "fail plan", func(ctx context.Context) error {
+		stateErr := r.tx.Do(ctx, AdminBranch, "fail plan", func(ctx context.Context) error {
 			return r.planRepo.UpdatePlanState(ctx, planID, TaskStateFailed)
 		})
 		if stateErr != nil {
@@ -447,7 +447,7 @@ func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
 
 	err = executor.Init(ctx)
 	if err != nil {
-		stateErr := r.tx.Do(ctx, MainBranch, "fail plan", func(ctx context.Context) error {
+		stateErr := r.tx.Do(ctx, AdminBranch, "fail plan", func(ctx context.Context) error {
 			return r.planRepo.UpdatePlanState(ctx, planID, TaskStateFailed)
 		})
 		if stateErr != nil {
@@ -458,7 +458,7 @@ func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
 
 	planPath, resourceCounts, err := executor.Plan(ctx)
 	if err != nil {
-		stateErr := r.tx.Do(ctx, MainBranch, "fail plan", func(ctx context.Context) error {
+		stateErr := r.tx.Do(ctx, AdminBranch, "fail plan", func(ctx context.Context) error {
 			return r.planRepo.UpdatePlanState(ctx, planID, TaskStateFailed)
 		})
 		if stateErr != nil {
@@ -469,7 +469,7 @@ func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
 
 	err = r.planStore.StorePlan(ctx, planID, planPath)
 	if err != nil {
-		stateErr := r.tx.Do(ctx, MainBranch, "fail plan", func(ctx context.Context) error {
+		stateErr := r.tx.Do(ctx, AdminBranch, "fail plan", func(ctx context.Context) error {
 			return r.planRepo.UpdatePlanState(ctx, planID, TaskStateFailed)
 		})
 		if stateErr != nil {
@@ -478,7 +478,7 @@ func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
 		return fmt.Errorf("failed to store plan: %w", err)
 	}
 
-	err = r.tx.Do(ctx, MainBranch, "complete plan", func(ctx context.Context) error {
+	err = r.tx.Do(ctx, AdminBranch, "complete plan", func(ctx context.Context) error {
 		updateErr := r.planRepo.UpdatePlanResourceCounts(ctx, planID, resourceCounts)
 		if updateErr != nil {
 			return fmt.Errorf("failed to update plan resource counts: %w", updateErr)

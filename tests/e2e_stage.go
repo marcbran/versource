@@ -31,6 +31,8 @@ type Stage struct {
 	LastOutputMap map[string]any
 	LastError     string
 	LastExitCode  int
+
+	LastQueryResult string
 }
 
 func scenario(t *testing.T) (*Stage, *Stage, *Stage) {
@@ -50,6 +52,7 @@ func (s *Stage) the_stage_is_cleared() *Stage {
 	s.LastOutputMap = nil
 	s.LastError = ""
 	s.LastExitCode = 0
+	s.LastQueryResult = ""
 	return s
 }
 
@@ -135,7 +138,34 @@ func (s *Stage) the_dataset(dataset Dataset) *Stage {
 func (s *Stage) a_dataset_is_cloned(dataset Dataset) *Stage {
 	return s.
 		a_db_query_is_run_as_root("DROP DATABASE IF EXISTS versource;").and().
-		a_db_query_is_run_as_root("CALL DOLT_CLONE('file:///datasets/" + dataset.Name + "', 'versource')")
+		a_db_query_is_run_as_root("CALL DOLT_CLONE('file:///datasets/" + dataset.Name + "', 'versource')").and().
+		remote_branches_are_tracked_locally()
+}
+
+func (s *Stage) remote_branches_are_tracked_locally() *Stage {
+	s.a_db_query_is_run_as_versource("SELECT name FROM dolt_remote_branches")
+
+	lines := strings.Split(s.LastQueryResult, "\n")
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || line == "name" {
+			continue
+		}
+
+		if !strings.HasPrefix(line, "remotes/origin/") {
+			continue
+		}
+
+		branchName := strings.TrimPrefix(line, "remotes/origin/")
+		if branchName == "main" {
+			continue
+		}
+
+		s.a_db_query_is_run_as_versource(fmt.Sprintf("CALL DOLT_BRANCH('%s', 'origin/%s')", branchName, branchName))
+	}
+
+	return s
 }
 
 func (s *Stage) a_restarted_server() *Stage {
@@ -247,6 +277,8 @@ func (s *Stage) a_dolt_client_command_is_executed(query string, args ...string) 
 	}
 
 	require.NoError(s.t, err)
+
+	s.LastQueryResult = output
 
 	return s
 }

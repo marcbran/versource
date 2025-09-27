@@ -11,15 +11,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type ChangesetDiffDetailData struct {
+type ChangesetChangeDetailData struct {
 	facade        internal.Facade
 	componentID   string
 	changesetName string
 }
 
-func NewChangesetDiffDetail(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewChangesetChangeDetail(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDiffView(NewChangesetDiffDetailData(
+		return platform.NewDiffView(NewChangesetChangeDetailData(
 			facade,
 			params["componentID"],
 			params["changesetName"],
@@ -27,15 +27,15 @@ func NewChangesetDiffDetail(facade internal.Facade) func(params map[string]strin
 	}
 }
 
-func NewChangesetDiffDetailData(facade internal.Facade, componentID string, changesetName string) *ChangesetDiffDetailData {
-	return &ChangesetDiffDetailData{
+func NewChangesetChangeDetailData(facade internal.Facade, componentID string, changesetName string) *ChangesetChangeDetailData {
+	return &ChangesetChangeDetailData{
 		facade:        facade,
 		componentID:   componentID,
 		changesetName: changesetName,
 	}
 }
 
-func (p *ChangesetDiffDetailData) LoadData() (*internal.GetComponentDiffResponse, error) {
+func (p *ChangesetChangeDetailData) LoadData() (*internal.GetComponentChangeResponse, error) {
 	ctx := context.Background()
 
 	componentIDUint, err := strconv.ParseUint(p.componentID, 10, 32)
@@ -43,7 +43,7 @@ func (p *ChangesetDiffDetailData) LoadData() (*internal.GetComponentDiffResponse
 		return nil, err
 	}
 
-	diffResp, err := p.facade.GetComponentDiff(ctx, internal.GetComponentDiffRequest{
+	changeResp, err := p.facade.GetComponentChange(ctx, internal.GetComponentChangeRequest{
 		ComponentID: uint(componentIDUint),
 		Changeset:   p.changesetName,
 	})
@@ -51,14 +51,14 @@ func (p *ChangesetDiffDetailData) LoadData() (*internal.GetComponentDiffResponse
 		return nil, err
 	}
 
-	return diffResp, nil
+	return changeResp, nil
 }
 
-func (p *ChangesetDiffDetailData) ResolveData(data internal.GetComponentDiffResponse) platform.Diff {
+func (p *ChangesetChangeDetailData) ResolveData(data internal.GetComponentChangeResponse) platform.Diff {
 	var leftYAML, rightYAML string
 
-	if data.Diff.FromComponent != nil {
-		fromYAML, err := p.componentToYAML(data.Diff.FromComponent)
+	if data.Change.FromComponent != nil {
+		fromYAML, err := p.componentToYAML(data.Change.FromComponent)
 		if err != nil {
 			leftYAML = fmt.Sprintf("Error: %v", err)
 		} else {
@@ -68,8 +68,8 @@ func (p *ChangesetDiffDetailData) ResolveData(data internal.GetComponentDiffResp
 		leftYAML = ""
 	}
 
-	if data.Diff.ToComponent != nil {
-		toYAML, err := p.componentToYAML(data.Diff.ToComponent)
+	if data.Change.ToComponent != nil {
+		toYAML, err := p.componentToYAML(data.Change.ToComponent)
 		if err != nil {
 			rightYAML = fmt.Sprintf("Error: %v", err)
 		} else {
@@ -85,7 +85,7 @@ func (p *ChangesetDiffDetailData) ResolveData(data internal.GetComponentDiffResp
 	}
 }
 
-func (p *ChangesetDiffDetailData) componentToYAML(component *internal.Component) (string, error) {
+func (p *ChangesetChangeDetailData) componentToYAML(component *internal.Component) (string, error) {
 	viewModel := struct {
 		ID     uint   `yaml:"id"`
 		Name   string `yaml:"name"`
@@ -149,30 +149,30 @@ func (p *ChangesetDiffDetailData) componentToYAML(component *internal.Component)
 	return string(yamlData), nil
 }
 
-func (p *ChangesetDiffDetailData) KeyBindings(elem internal.GetComponentDiffResponse) platform.KeyBindings {
+func (p *ChangesetChangeDetailData) KeyBindings(elem internal.GetComponentChangeResponse) platform.KeyBindings {
 	keyBindings := platform.KeyBindings{}
 
-	if elem.Diff.ToComponent != nil {
+	if elem.Change.ToComponent != nil {
 		keyBindings = append(keyBindings, platform.KeyBinding{
 			Key:     "c",
 			Help:    "View component detail",
-			Command: fmt.Sprintf("changesets/%s/components/%d", p.changesetName, elem.Diff.ToComponent.ID),
+			Command: fmt.Sprintf("changesets/%s/components/%d", p.changesetName, elem.Change.ToComponent.ID),
 		})
 	}
 
-	if elem.Diff.ToComponent != nil && elem.Diff.ToComponent.ModuleVersion.Module.ID != 0 {
+	if elem.Change.ToComponent != nil && elem.Change.ToComponent.ModuleVersion.Module.ID != 0 {
 		keyBindings = append(keyBindings, platform.KeyBinding{
 			Key:     "m",
 			Help:    "View module",
-			Command: fmt.Sprintf("modules/%d", elem.Diff.ToComponent.ModuleVersion.Module.ID),
+			Command: fmt.Sprintf("modules/%d", elem.Change.ToComponent.ModuleVersion.Module.ID),
 		})
 	}
 
-	if elem.Diff.Plan != nil {
+	if elem.Change.Plan != nil {
 		keyBindings = append(keyBindings, platform.KeyBinding{
 			Key:     "p",
 			Help:    "View plan",
-			Command: fmt.Sprintf("changesets/%s/plans/%d", p.changesetName, elem.Diff.Plan.ID),
+			Command: fmt.Sprintf("changesets/%s/plans/%d", p.changesetName, elem.Change.Plan.ID),
 		})
 	}
 

@@ -94,8 +94,8 @@ func (c *Client) ListComponents(ctx context.Context, req internal.ListComponents
 	return &componentsResp, nil
 }
 
-func (c *Client) GetComponentDiff(ctx context.Context, req internal.GetComponentDiffRequest) (*internal.GetComponentDiffResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d/diff", c.baseURL, req.Changeset, req.ComponentID)
+func (c *Client) GetComponentChange(ctx context.Context, req internal.GetComponentChangeRequest) (*internal.GetComponentChangeResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d/change", c.baseURL, req.Changeset, req.ComponentID)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -116,16 +116,16 @@ func (c *Client) GetComponentDiff(ctx context.Context, req internal.GetComponent
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var diffResp internal.GetComponentDiffResponse
-	if err := json.NewDecoder(resp.Body).Decode(&diffResp); err != nil {
+	var changeResp internal.GetComponentChangeResponse
+	if err := json.NewDecoder(resp.Body).Decode(&changeResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return &diffResp, nil
+	return &changeResp, nil
 }
 
-func (c *Client) ListComponentDiffs(ctx context.Context, req internal.ListComponentDiffsRequest) (*internal.ListComponentDiffsResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/diffs", c.baseURL, req.Changeset)
+func (c *Client) ListComponentChanges(ctx context.Context, req internal.ListComponentChangesRequest) (*internal.ListComponentChangesResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/changes", c.baseURL, req.Changeset)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -146,12 +146,12 @@ func (c *Client) ListComponentDiffs(ctx context.Context, req internal.ListCompon
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var diffsResp internal.ListComponentDiffsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&diffsResp); err != nil {
+	var changesResp internal.ListComponentChangesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&changesResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return &diffsResp, nil
+	return &changesResp, nil
 }
 
 func (c *Client) CreateComponent(ctx context.Context, req internal.CreateComponentRequest) (*internal.CreateComponentResponse, error) {

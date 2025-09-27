@@ -58,5 +58,5 @@ func (c *CreateComponentData) SaveData(ctx context.Context, data internal.Create
 		return "", err
 	}
 
-	return fmt.Sprintf("changesets/%s/diffs", data.Changeset), nil
+	return fmt.Sprintf("changesets/%s/changes", data.Changeset), nil
 }

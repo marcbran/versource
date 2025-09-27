@@ -122,15 +122,15 @@ func (r *GormComponentRepo) UpdateComponent(ctx context.Context, component *inte
 	return nil
 }
 
-type GormComponentDiffRepo struct {
+type GormComponentChangeRepo struct {
 	db *gorm.DB
 }
 
-func NewGormComponentDiffRepo(db *gorm.DB) *GormComponentDiffRepo {
-	return &GormComponentDiffRepo{db: db}
+func NewGormComponentChangeRepo(db *gorm.DB) *GormComponentChangeRepo {
+	return &GormComponentChangeRepo{db: db}
 }
 
-func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, changeset string) ([]internal.ComponentDiff, error) {
+func (r *GormComponentChangeRepo) ListComponentChanges(ctx context.Context, changeset string) ([]internal.ComponentChange, error) {
 	db := getTxOrDb(ctx, r.db)
 
 	query := `
@@ -176,18 +176,18 @@ func (r *GormComponentDiffRepo) ListComponentDiffs(ctx context.Context, changese
 	var rawDiffs []rawDiff
 	err := db.WithContext(ctx).Raw(query, changeset).Scan(&rawDiffs).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to list component diffs: %w", err)
+		return nil, fmt.Errorf("failed to list component changes: %w", err)
 	}
 
-	diffs := make([]internal.ComponentDiff, len(rawDiffs))
+	changes := make([]internal.ComponentChange, len(rawDiffs))
 	for i, raw := range rawDiffs {
-		diffs[i] = convertRawDiffToComponentDiff(raw)
+		changes[i] = convertRawDiffToComponentChange(raw)
 	}
 
-	return diffs, nil
+	return changes, nil
 }
 
-func (r *GormComponentDiffRepo) GetComponentDiff(ctx context.Context, componentID uint, changeset string) (*internal.ComponentDiff, error) {
+func (r *GormComponentChangeRepo) GetComponentChange(ctx context.Context, componentID uint, changeset string) (*internal.ComponentChange, error) {
 	db := getTxOrDb(ctx, r.db)
 
 	query := `
@@ -229,14 +229,14 @@ func (r *GormComponentDiffRepo) GetComponentDiff(ctx context.Context, componentI
 	var singleRawDiff rawDiff
 	err := db.WithContext(ctx).Raw(query, changeset, componentID).Scan(&singleRawDiff).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to get component diff: %w", err)
+		return nil, fmt.Errorf("failed to get component change: %w", err)
 	}
 
-	diff := convertRawDiffToComponentDiff(singleRawDiff)
-	return &diff, nil
+	change := convertRawDiffToComponentChange(singleRawDiff)
+	return &change, nil
 }
 
-func (r *GormComponentDiffRepo) HasComponentConflicts(ctx context.Context, changesetName string) (bool, error) {
+func (r *GormComponentChangeRepo) HasComponentConflicts(ctx context.Context, changesetName string) (bool, error) {
 	if !internal.IsValidBranch(changesetName) {
 		return false, fmt.Errorf("invalid branch name: %s", changesetName)
 	}
@@ -286,7 +286,7 @@ type rawDiff struct {
 	PlanDestroy         *int           `json:"plan_destroy"`
 }
 
-func convertRawDiffToComponentDiff(raw rawDiff) internal.ComponentDiff {
+func convertRawDiffToComponentChange(raw rawDiff) internal.ComponentChange {
 	var fromComponent, toComponent *internal.Component
 
 	if raw.FromID != nil {
@@ -319,13 +319,13 @@ func convertRawDiffToComponentDiff(raw rawDiff) internal.ComponentDiff {
 		}
 	}
 
-	diffType := internal.DiffType(raw.DiffType)
+	changeType := internal.ChangeType(raw.DiffType)
 	if raw.ToStatus != nil && *raw.ToStatus == string(internal.ComponentStatusDeleted) {
-		diffType = internal.DiffTypeDeleted
+		changeType = internal.ChangeTypeDeleted
 	} else if raw.DiffType == "added" {
-		diffType = internal.DiffTypeCreated
+		changeType = internal.ChangeTypeCreated
 	} else if raw.DiffType == "modified" {
-		diffType = internal.DiffTypeModified
+		changeType = internal.ChangeTypeModified
 	}
 
 	var plan *internal.Plan
@@ -343,10 +343,10 @@ func convertRawDiffToComponentDiff(raw rawDiff) internal.ComponentDiff {
 		}
 	}
 
-	return internal.ComponentDiff{
+	return internal.ComponentChange{
 		FromComponent: fromComponent,
 		ToComponent:   toComponent,
-		DiffType:      diffType,
+		ChangeType:    changeType,
 		Plan:          plan,
 	}
 }

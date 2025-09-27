@@ -24,19 +24,19 @@ const (
 	ComponentStatusDeleted ComponentStatus = "Deleted"
 )
 
-type ComponentDiff struct {
+type ComponentChange struct {
 	FromComponent *Component
 	ToComponent   *Component
-	DiffType      DiffType
+	ChangeType    ChangeType
 	Plan          *Plan
 }
 
-type DiffType string
+type ChangeType string
 
 const (
-	DiffTypeCreated  DiffType = "Created"
-	DiffTypeDeleted  DiffType = "Deleted"
-	DiffTypeModified DiffType = "Modified"
+	ChangeTypeCreated  ChangeType = "Created"
+	ChangeTypeDeleted  ChangeType = "Deleted"
+	ChangeTypeModified ChangeType = "Modified"
 )
 
 type ComponentRepo interface {
@@ -50,9 +50,9 @@ type ComponentRepo interface {
 	UpdateComponent(ctx context.Context, component *Component) error
 }
 
-type ComponentDiffRepo interface {
-	ListComponentDiffs(ctx context.Context, changeset string) ([]ComponentDiff, error)
-	GetComponentDiff(ctx context.Context, componentID uint, changeset string) (*ComponentDiff, error)
+type ComponentChangeRepo interface {
+	ListComponentChanges(ctx context.Context, changeset string) ([]ComponentChange, error)
+	GetComponentChange(ctx context.Context, componentID uint, changeset string) (*ComponentChange, error)
 	HasComponentConflicts(ctx context.Context, changesetName string) (bool, error)
 }
 
@@ -151,84 +151,84 @@ func (l *ListComponents) Exec(ctx context.Context, req ListComponentsRequest) (*
 	}, nil
 }
 
-type GetComponentDiff struct {
-	componentDiffRepo ComponentDiffRepo
-	tx                TransactionManager
+type GetComponentChange struct {
+	componentChangeRepo ComponentChangeRepo
+	tx                  TransactionManager
 }
 
-func NewGetComponentDiff(componentDiffRepo ComponentDiffRepo, tx TransactionManager) *GetComponentDiff {
-	return &GetComponentDiff{
-		componentDiffRepo: componentDiffRepo,
-		tx:                tx,
+func NewGetComponentChange(componentChangeRepo ComponentChangeRepo, tx TransactionManager) *GetComponentChange {
+	return &GetComponentChange{
+		componentChangeRepo: componentChangeRepo,
+		tx:                  tx,
 	}
 }
 
-type GetComponentDiffRequest struct {
+type GetComponentChangeRequest struct {
 	ComponentID uint   `json:"component_id"`
 	Changeset   string `json:"changeset"`
 }
 
-type GetComponentDiffResponse struct {
-	Diff ComponentDiff `json:"diff"`
+type GetComponentChangeResponse struct {
+	Change ComponentChange `json:"change"`
 }
 
-func (g *GetComponentDiff) Exec(ctx context.Context, req GetComponentDiffRequest) (*GetComponentDiffResponse, error) {
+func (g *GetComponentChange) Exec(ctx context.Context, req GetComponentChangeRequest) (*GetComponentChangeResponse, error) {
 	if req.Changeset == "" {
 		return nil, UserErr("changeset is required")
 	}
 
-	var diff *ComponentDiff
+	var change *ComponentChange
 	err := g.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
 		var err error
-		diff, err = g.componentDiffRepo.GetComponentDiff(ctx, req.ComponentID, req.Changeset)
+		change, err = g.componentChangeRepo.GetComponentChange(ctx, req.ComponentID, req.Changeset)
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to get component diff", err)
+		return nil, InternalErrE("failed to get component change", err)
 	}
 
-	return &GetComponentDiffResponse{
-		Diff: *diff,
+	return &GetComponentChangeResponse{
+		Change: *change,
 	}, nil
 }
 
-type ListComponentDiffs struct {
-	componentDiffRepo ComponentDiffRepo
-	tx                TransactionManager
+type ListComponentChanges struct {
+	componentChangeRepo ComponentChangeRepo
+	tx                  TransactionManager
 }
 
-func NewListComponentDiffs(componentDiffRepo ComponentDiffRepo, tx TransactionManager) *ListComponentDiffs {
-	return &ListComponentDiffs{
-		componentDiffRepo: componentDiffRepo,
-		tx:                tx,
+func NewListComponentChanges(componentChangeRepo ComponentChangeRepo, tx TransactionManager) *ListComponentChanges {
+	return &ListComponentChanges{
+		componentChangeRepo: componentChangeRepo,
+		tx:                  tx,
 	}
 }
 
-type ListComponentDiffsRequest struct {
+type ListComponentChangesRequest struct {
 	Changeset string `json:"changeset"`
 }
 
-type ListComponentDiffsResponse struct {
-	Diffs []ComponentDiff `json:"diffs"`
+type ListComponentChangesResponse struct {
+	Changes []ComponentChange `json:"changes"`
 }
 
-func (l *ListComponentDiffs) Exec(ctx context.Context, req ListComponentDiffsRequest) (*ListComponentDiffsResponse, error) {
+func (l *ListComponentChanges) Exec(ctx context.Context, req ListComponentChangesRequest) (*ListComponentChangesResponse, error) {
 	if req.Changeset == "" {
 		return nil, UserErr("changeset is required")
 	}
 
-	var diffs []ComponentDiff
+	var changes []ComponentChange
 	err := l.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
 		var err error
-		diffs, err = l.componentDiffRepo.ListComponentDiffs(ctx, req.Changeset)
+		changes, err = l.componentChangeRepo.ListComponentChanges(ctx, req.Changeset)
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to list component diffs", err)
+		return nil, InternalErrE("failed to list component changes", err)
 	}
 
-	return &ListComponentDiffsResponse{
-		Diffs: diffs,
+	return &ListComponentChangesResponse{
+		Changes: changes,
 	}, nil
 }
 
@@ -499,22 +499,22 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 }
 
 type DeleteComponent struct {
-	componentRepo     ComponentRepo
-	componentDiffRepo ComponentDiffRepo
-	changesetRepo     ChangesetRepo
-	ensureChangeset   *EnsureChangeset
-	createPlan        *CreatePlan
-	tx                TransactionManager
+	componentRepo       ComponentRepo
+	componentChangeRepo ComponentChangeRepo
+	changesetRepo       ChangesetRepo
+	ensureChangeset     *EnsureChangeset
+	createPlan          *CreatePlan
+	tx                  TransactionManager
 }
 
-func NewDeleteComponent(componentRepo ComponentRepo, componentDiffRepo ComponentDiffRepo, changesetRepo ChangesetRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *DeleteComponent {
+func NewDeleteComponent(componentRepo ComponentRepo, componentChangeRepo ComponentChangeRepo, changesetRepo ChangesetRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *DeleteComponent {
 	return &DeleteComponent{
-		componentRepo:     componentRepo,
-		componentDiffRepo: componentDiffRepo,
-		changesetRepo:     changesetRepo,
-		ensureChangeset:   ensureChangeset,
-		createPlan:        createPlan,
-		tx:                tx,
+		componentRepo:       componentRepo,
+		componentChangeRepo: componentChangeRepo,
+		changesetRepo:       changesetRepo,
+		ensureChangeset:     ensureChangeset,
+		createPlan:          createPlan,
+		tx:                  tx,
 	}
 }
 
@@ -592,17 +592,17 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 			return UserErr("component is already deleted")
 		}
 
-		componentDiff, err := d.componentDiffRepo.GetComponentDiff(ctx, req.ComponentID, req.Changeset)
+		componentChange, err := d.componentChangeRepo.GetComponentChange(ctx, req.ComponentID, req.Changeset)
 		if err != nil {
-			return InternalErrE("failed to get component diff", err)
+			return InternalErrE("failed to get component change", err)
 		}
 
-		if componentDiff.FromComponent != nil {
-			component.ModuleVersionID = componentDiff.FromComponent.ModuleVersionID
-			if componentDiff.FromComponent.Variables == nil {
+		if componentChange.FromComponent != nil {
+			component.ModuleVersionID = componentChange.FromComponent.ModuleVersionID
+			if componentChange.FromComponent.Variables == nil {
 				component.Variables = datatypes.JSON("{}")
 			} else {
-				component.Variables = componentDiff.FromComponent.Variables
+				component.Variables = componentChange.FromComponent.Variables
 			}
 		}
 
@@ -651,22 +651,22 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 }
 
 type RestoreComponent struct {
-	componentRepo     ComponentRepo
-	componentDiffRepo ComponentDiffRepo
-	changesetRepo     ChangesetRepo
-	ensureChangeset   *EnsureChangeset
-	createPlan        *CreatePlan
-	tx                TransactionManager
+	componentRepo       ComponentRepo
+	componentChangeRepo ComponentChangeRepo
+	changesetRepo       ChangesetRepo
+	ensureChangeset     *EnsureChangeset
+	createPlan          *CreatePlan
+	tx                  TransactionManager
 }
 
-func NewRestoreComponent(componentRepo ComponentRepo, componentDiffRepo ComponentDiffRepo, changesetRepo ChangesetRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *RestoreComponent {
+func NewRestoreComponent(componentRepo ComponentRepo, componentChangeRepo ComponentChangeRepo, changesetRepo ChangesetRepo, ensureChangeset *EnsureChangeset, createPlan *CreatePlan, tx TransactionManager) *RestoreComponent {
 	return &RestoreComponent{
-		componentRepo:     componentRepo,
-		componentDiffRepo: componentDiffRepo,
-		changesetRepo:     changesetRepo,
-		ensureChangeset:   ensureChangeset,
-		createPlan:        createPlan,
-		tx:                tx,
+		componentRepo:       componentRepo,
+		componentChangeRepo: componentChangeRepo,
+		changesetRepo:       changesetRepo,
+		ensureChangeset:     ensureChangeset,
+		createPlan:          createPlan,
+		tx:                  tx,
 	}
 }
 
@@ -744,17 +744,17 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 			return UserErr("component is not deleted")
 		}
 
-		componentDiff, err := r.componentDiffRepo.GetComponentDiff(ctx, req.ComponentID, req.Changeset)
+		componentChange, err := r.componentChangeRepo.GetComponentChange(ctx, req.ComponentID, req.Changeset)
 		if err != nil {
-			return InternalErrE("failed to get component diff", err)
+			return InternalErrE("failed to get component change", err)
 		}
 
-		if componentDiff.FromComponent != nil {
-			component.ModuleVersionID = componentDiff.FromComponent.ModuleVersionID
-			if componentDiff.FromComponent.Variables == nil {
+		if componentChange.FromComponent != nil {
+			component.ModuleVersionID = componentChange.FromComponent.ModuleVersionID
+			if componentChange.FromComponent.Variables == nil {
 				component.Variables = datatypes.JSON("{}")
 			} else {
-				component.Variables = componentDiff.FromComponent.Variables
+				component.Variables = componentChange.FromComponent.Variables
 			}
 		}
 

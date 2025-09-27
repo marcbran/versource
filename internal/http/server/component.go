@@ -71,7 +71,7 @@ func (s *Server) handleListComponents(w http.ResponseWriter, r *http.Request) {
 	returnSuccess(w, resp)
 }
 
-func (s *Server) handleGetComponentDiff(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleGetComponentChange(w http.ResponseWriter, r *http.Request) {
 	changesetName := chi.URLParam(r, "changesetName")
 	if changesetName == "" {
 		returnBadRequest(w, fmt.Errorf("changeset name is required"))
@@ -85,12 +85,12 @@ func (s *Server) handleGetComponentDiff(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	req := internal.GetComponentDiffRequest{
+	req := internal.GetComponentChangeRequest{
 		ComponentID: uint(componentID),
 		Changeset:   changesetName,
 	}
 
-	resp, err := s.facade.GetComponentDiff(r.Context(), req)
+	resp, err := s.facade.GetComponentChange(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return
@@ -99,18 +99,18 @@ func (s *Server) handleGetComponentDiff(w http.ResponseWriter, r *http.Request) 
 	returnSuccess(w, resp)
 }
 
-func (s *Server) handleListComponentDiffs(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleListComponentChanges(w http.ResponseWriter, r *http.Request) {
 	changeset := chi.URLParam(r, "changesetName")
 	if changeset == "" {
 		returnBadRequest(w, fmt.Errorf("changeset name is required"))
 		return
 	}
 
-	req := internal.ListComponentDiffsRequest{
+	req := internal.ListComponentChangesRequest{
 		Changeset: changeset,
 	}
 
-	resp, err := s.facade.ListComponentDiffs(r.Context(), req)
+	resp, err := s.facade.ListComponentChanges(r.Context(), req)
 	if err != nil {
 		returnError(w, err)
 		return

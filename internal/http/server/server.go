@@ -70,7 +70,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 	}
 
 	componentRepo := database.NewGormComponentRepo(db)
-	componentDiffRepo := database.NewGormComponentDiffRepo(db)
+	componentChangeRepo := database.NewGormComponentChangeRepo(db)
 	stateRepo := database.NewGormStateRepo(db)
 	stateResourceRepo := database.NewGormStateResourceRepo(db)
 	resourceRepo := database.NewGormResourceRepo(db)
@@ -90,7 +90,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 	facade := internal.NewFacade(
 		config,
 		componentRepo,
-		componentDiffRepo,
+		componentChangeRepo,
 		stateRepo,
 		stateResourceRepo,
 		resourceRepo,
@@ -154,7 +154,7 @@ func (s *Server) setupRoutes() {
 			r.Delete("/", s.handleDeleteChangeset)
 			r.Get("/components", s.handleListComponents)
 			r.Post("/components", s.handleCreateComponent)
-			r.Get("/components/diffs", s.handleListComponentDiffs)
+			r.Get("/components/changes", s.handleListComponentChanges)
 			r.Route("/plans", func(r chi.Router) {
 				r.Get("/", s.handleListPlans)
 				r.Route("/{planID}", func(r chi.Router) {
@@ -164,7 +164,7 @@ func (s *Server) setupRoutes() {
 			})
 			r.Route("/components/{componentID}", func(r chi.Router) {
 				r.Get("/", s.handleGetComponent)
-				r.Get("/diff", s.handleGetComponentDiff)
+				r.Get("/change", s.handleGetComponentChange)
 				r.Patch("/", s.handleUpdateComponent)
 				r.Delete("/", s.handleDeleteComponent)
 				r.Post("/restore", s.handleRestoreComponent)

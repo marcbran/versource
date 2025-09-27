@@ -62,7 +62,7 @@ func (p *TableData) KeyBindings() platform.KeyBindings {
 
 func (p *TableData) ElemKeyBindings(elem internal.Changeset) platform.KeyBindings {
 	return platform.KeyBindings{
-		{Key: "enter", Help: "View diffs", Command: fmt.Sprintf("changesets/%s/diffs", elem.Name)},
+		{Key: "enter", Help: "View changes", Command: fmt.Sprintf("changesets/%s/changes", elem.Name)},
 		{Key: "M", Help: "Merge changeset", Command: fmt.Sprintf("changesets/%s/merge", elem.Name)},
 		{Key: "R", Help: "Rebase changeset", Command: fmt.Sprintf("changesets/%s/rebase", elem.Name)},
 		{Key: "D", Help: "Delete changeset", Command: fmt.Sprintf("changesets/%s/delete", elem.Name)},

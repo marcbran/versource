@@ -30,8 +30,8 @@ type Facade interface {
 
 	GetComponent(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error)
 	ListComponents(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error)
-	GetComponentDiff(ctx context.Context, req GetComponentDiffRequest) (*GetComponentDiffResponse, error)
-	ListComponentDiffs(ctx context.Context, req ListComponentDiffsRequest) (*ListComponentDiffsResponse, error)
+	GetComponentChange(ctx context.Context, req GetComponentChangeRequest) (*GetComponentChangeResponse, error)
+	ListComponentChanges(ctx context.Context, req ListComponentChangesRequest) (*ListComponentChangesResponse, error)
 	CreateComponent(ctx context.Context, req CreateComponentRequest) (*CreateComponentResponse, error)
 	UpdateComponent(ctx context.Context, req UpdateComponentRequest) (*UpdateComponentResponse, error)
 	DeleteComponent(ctx context.Context, req DeleteComponentRequest) (*DeleteComponentResponse, error)
@@ -70,14 +70,14 @@ type facade struct {
 	listRebases  *ListRebases
 	createRebase *CreateRebase
 
-	getComponent       *GetComponent
-	listComponents     *ListComponents
-	getComponentDiff   *GetComponentDiff
-	listComponentDiffs *ListComponentDiffs
-	createComponent    *CreateComponent
-	updateComponent    *UpdateComponent
-	deleteComponent    *DeleteComponent
-	restoreComponent   *RestoreComponent
+	getComponent         *GetComponent
+	listComponents       *ListComponents
+	getComponentChange   *GetComponentChange
+	listComponentChanges *ListComponentChanges
+	createComponent      *CreateComponent
+	updateComponent      *UpdateComponent
+	deleteComponent      *DeleteComponent
+	restoreComponent     *RestoreComponent
 
 	getPlan    *GetPlan
 	getPlanLog *GetPlanLog
@@ -98,7 +98,7 @@ type facade struct {
 func NewFacade(
 	config *Config,
 	componentRepo ComponentRepo,
-	componentDiffRepo ComponentDiffRepo,
+	componentChangeRepo ComponentChangeRepo,
 	stateRepo StateRepo,
 	stateResourceRepo StateResourceRepo,
 	resourceRepo ResourceRepo,
@@ -116,9 +116,9 @@ func NewFacade(
 ) Facade {
 	runApply := NewRunApply(config, applyRepo, stateRepo, stateResourceRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor, componentRepo)
 	runPlan := NewRunPlan(config, planRepo, planStore, logStore, transactionManager, newExecutor, componentRepo)
-	listComponentDiffs := NewListComponentDiffs(componentDiffRepo, transactionManager)
+	listComponentChanges := NewListComponentChanges(componentChangeRepo, transactionManager)
 	applyWorker := NewApplyWorker(runApply, applyRepo)
-	runMerge := NewRunMerge(config, mergeRepo, changesetRepo, planRepo, planStore, logStore, transactionManager, listComponentDiffs, componentDiffRepo, applyRepo, applyWorker)
+	runMerge := NewRunMerge(config, mergeRepo, changesetRepo, planRepo, planStore, logStore, transactionManager, listComponentChanges, componentChangeRepo, applyRepo, applyWorker)
 	runRebase := NewRunRebase(config, rebaseRepo, changesetRepo, transactionManager)
 	planWorker := NewPlanWorker(runPlan, planRepo)
 	mergeWorker := NewMergeWorker(runMerge, mergeRepo)
@@ -136,43 +136,43 @@ func NewFacade(
 	ensureChangeset := NewEnsureChangeset(changesetRepo, transactionManager)
 
 	return &facade{
-		getModule:          NewGetModule(moduleRepo, moduleVersionRepo, transactionManager),
-		listModules:        NewListModules(moduleRepo, transactionManager),
-		createModule:       NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
-		updateModule:       NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
-		deleteModule:       NewDeleteModule(moduleRepo, componentRepo, transactionManager),
-		getModuleVersion:   NewGetModuleVersion(moduleVersionRepo, transactionManager),
-		listModuleVersions: NewListModuleVersions(moduleVersionRepo, transactionManager),
-		listChangesets:     NewListChangesets(changesetRepo, transactionManager),
-		createChangeset:    NewCreateChangeset(changesetRepo, transactionManager),
-		deleteChangeset:    NewDeleteChangeset(changesetRepo, planRepo, applyRepo, planStore, logStore, transactionManager),
-		ensureChangeset:    ensureChangeset,
-		getMerge:           getMerge,
-		listMerges:         listMerges,
-		createMerge:        createMerge,
-		getRebase:          getRebase,
-		listRebases:        listRebases,
-		createRebase:       createRebase,
-		getComponent:       NewGetComponent(componentRepo, transactionManager),
-		listComponents:     NewListComponents(componentRepo, transactionManager),
-		getComponentDiff:   NewGetComponentDiff(componentDiffRepo, transactionManager),
-		listComponentDiffs: listComponentDiffs,
-		createComponent:    NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
-		updateComponent:    NewUpdateComponent(componentRepo, moduleVersionRepo, changesetRepo, ensureChangeset, createPlan, transactionManager),
-		deleteComponent:    NewDeleteComponent(componentRepo, componentDiffRepo, changesetRepo, ensureChangeset, createPlan, transactionManager),
-		restoreComponent:   NewRestoreComponent(componentRepo, componentDiffRepo, changesetRepo, ensureChangeset, createPlan, transactionManager),
-		getPlan:            getPlan,
-		getPlanLog:         getPlanLog,
-		listPlans:          NewListPlans(planRepo, transactionManager),
-		createPlan:         createPlan,
-		runPlan:            runPlan,
-		getApplyLog:        getApplyLog,
-		listApplies:        NewListApplies(applyRepo, transactionManager),
-		runApply:           runApply,
-		planWorker:         planWorker,
-		applyWorker:        applyWorker,
-		mergeWorker:        mergeWorker,
-		rebaseWorker:       rebaseWorker,
+		getModule:            NewGetModule(moduleRepo, moduleVersionRepo, transactionManager),
+		listModules:          NewListModules(moduleRepo, transactionManager),
+		createModule:         NewCreateModule(moduleRepo, moduleVersionRepo, transactionManager),
+		updateModule:         NewUpdateModule(moduleRepo, moduleVersionRepo, transactionManager),
+		deleteModule:         NewDeleteModule(moduleRepo, componentRepo, transactionManager),
+		getModuleVersion:     NewGetModuleVersion(moduleVersionRepo, transactionManager),
+		listModuleVersions:   NewListModuleVersions(moduleVersionRepo, transactionManager),
+		listChangesets:       NewListChangesets(changesetRepo, transactionManager),
+		createChangeset:      NewCreateChangeset(changesetRepo, transactionManager),
+		deleteChangeset:      NewDeleteChangeset(changesetRepo, planRepo, applyRepo, planStore, logStore, transactionManager),
+		ensureChangeset:      ensureChangeset,
+		getMerge:             getMerge,
+		listMerges:           listMerges,
+		createMerge:          createMerge,
+		getRebase:            getRebase,
+		listRebases:          listRebases,
+		createRebase:         createRebase,
+		getComponent:         NewGetComponent(componentRepo, transactionManager),
+		listComponents:       NewListComponents(componentRepo, transactionManager),
+		getComponentChange:   NewGetComponentChange(componentChangeRepo, transactionManager),
+		listComponentChanges: listComponentChanges,
+		createComponent:      NewCreateComponent(componentRepo, moduleRepo, moduleVersionRepo, ensureChangeset, createPlan, transactionManager),
+		updateComponent:      NewUpdateComponent(componentRepo, moduleVersionRepo, changesetRepo, ensureChangeset, createPlan, transactionManager),
+		deleteComponent:      NewDeleteComponent(componentRepo, componentChangeRepo, changesetRepo, ensureChangeset, createPlan, transactionManager),
+		restoreComponent:     NewRestoreComponent(componentRepo, componentChangeRepo, changesetRepo, ensureChangeset, createPlan, transactionManager),
+		getPlan:              getPlan,
+		getPlanLog:           getPlanLog,
+		listPlans:            NewListPlans(planRepo, transactionManager),
+		createPlan:           createPlan,
+		runPlan:              runPlan,
+		getApplyLog:          getApplyLog,
+		listApplies:          NewListApplies(applyRepo, transactionManager),
+		runApply:             runApply,
+		planWorker:           planWorker,
+		applyWorker:          applyWorker,
+		mergeWorker:          mergeWorker,
+		rebaseWorker:         rebaseWorker,
 	}
 }
 
@@ -252,12 +252,12 @@ func (f *facade) ListComponents(ctx context.Context, req ListComponentsRequest) 
 	return f.listComponents.Exec(ctx, req)
 }
 
-func (f *facade) GetComponentDiff(ctx context.Context, req GetComponentDiffRequest) (*GetComponentDiffResponse, error) {
-	return f.getComponentDiff.Exec(ctx, req)
+func (f *facade) GetComponentChange(ctx context.Context, req GetComponentChangeRequest) (*GetComponentChangeResponse, error) {
+	return f.getComponentChange.Exec(ctx, req)
 }
 
-func (f *facade) ListComponentDiffs(ctx context.Context, req ListComponentDiffsRequest) (*ListComponentDiffsResponse, error) {
-	return f.listComponentDiffs.Exec(ctx, req)
+func (f *facade) ListComponentChanges(ctx context.Context, req ListComponentChangesRequest) (*ListComponentChangesResponse, error) {
+	return f.listComponentChanges.Exec(ctx, req)
 }
 
 func (f *facade) CreateComponent(ctx context.Context, req CreateComponentRequest) (*CreateComponentResponse, error) {

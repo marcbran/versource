@@ -37,7 +37,10 @@ var planGetCmd = &cobra.Command{
 			return err
 		}
 
-		waitForCompletion, _ := cmd.Flags().GetBool("wait-for-completion")
+		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
+		if err != nil {
+			return err
+		}
 		if !waitForCompletion || internal.IsTaskCompleted(planResp.State) {
 			return renderValue(planResp, func() string {
 				return detailData.ResolveData(*planResp)

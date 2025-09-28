@@ -34,7 +34,7 @@ func (s *Stage) a_component_is_created(changeset, moduleID, name, variables stri
 				s.ComponentID = fmt.Sprintf("%.0f", idFloat)
 			}
 		}
-		if id, ok := s.LastOutputMap["plan_id"]; ok {
+		if id, ok := s.LastOutputMap["planId"]; ok {
 			if idFloat, ok := id.(float64); ok {
 				s.PlanID = fmt.Sprintf("%.0f", idFloat)
 			}
@@ -101,7 +101,7 @@ func (s *Stage) a_component_is_updated(componentID, changeset, variables string)
 				s.ComponentID = fmt.Sprintf("%.0f", idFloat)
 			}
 		}
-		if id, ok := s.LastOutputMap["plan_id"]; ok {
+		if id, ok := s.LastOutputMap["planId"]; ok {
 			if idFloat, ok := id.(float64); ok {
 				s.PlanID = fmt.Sprintf("%.0f", idFloat)
 			}
@@ -166,7 +166,7 @@ func (s *Stage) a_component_is_deleted(componentID, changeset string) *Stage {
 				s.ComponentID = fmt.Sprintf("%.0f", idFloat)
 			}
 		}
-		if id, ok := s.LastOutputMap["plan_id"]; ok {
+		if id, ok := s.LastOutputMap["planId"]; ok {
 			if idFloat, ok := id.(float64); ok {
 				s.PlanID = fmt.Sprintf("%.0f", idFloat)
 			}
@@ -227,7 +227,7 @@ func (s *Stage) a_component_is_restored(componentID, changeset string) *Stage {
 				s.ComponentID = fmt.Sprintf("%.0f", idFloat)
 			}
 		}
-		if id, ok := s.LastOutputMap["plan_id"]; ok {
+		if id, ok := s.LastOutputMap["planId"]; ok {
 			if idFloat, ok := id.(float64); ok {
 				s.PlanID = fmt.Sprintf("%.0f", idFloat)
 			}

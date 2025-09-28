@@ -7,19 +7,19 @@ import (
 )
 
 type Module struct {
-	ID           uint   `gorm:"primarykey"`
-	Name         string `gorm:"uniqueIndex;not null"`
-	Source       string
-	ExecutorType string `gorm:"not null;default:'terraform-module'"`
+	ID           uint   `gorm:"primarykey" json:"id"`
+	Name         string `gorm:"uniqueIndex;not null" json:"name"`
+	Source       string `json:"source"`
+	ExecutorType string `gorm:"not null;default:'terraform-module'" json:"executorType"`
 }
 
 type ModuleVersion struct {
-	ID        uint   `gorm:"primarykey"`
-	Module    Module `gorm:"foreignKey:ModuleID"`
-	ModuleID  uint
-	Version   string
-	Variables datatypes.JSON `gorm:"type:jsonb"`
-	Outputs   datatypes.JSON `gorm:"type:jsonb"`
+	ID        uint           `gorm:"primarykey" json:"id"`
+	Module    Module         `gorm:"foreignKey:ModuleID" json:"module"`
+	ModuleID  uint           `json:"moduleId"`
+	Version   string         `json:"version"`
+	Variables datatypes.JSON `gorm:"type:jsonb" json:"variables"`
+	Outputs   datatypes.JSON `gorm:"type:jsonb" json:"outputs"`
 }
 
 type ModuleRepo interface {
@@ -54,12 +54,12 @@ func NewGetModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo, tx
 }
 
 type GetModuleRequest struct {
-	ModuleID uint `json:"module_id"`
+	ModuleID uint `json:"moduleId"`
 }
 
 type GetModuleResponse struct {
 	Module        Module         `json:"module"`
-	LatestVersion *ModuleVersion `json:"latest_version,omitempty"`
+	LatestVersion *ModuleVersion `json:"latestVersion,omitempty"`
 }
 
 func (g *GetModule) Exec(ctx context.Context, req GetModuleRequest) (*GetModuleResponse, error) {
@@ -141,14 +141,14 @@ type CreateModuleRequest struct {
 	Name         string `json:"name" yaml:"name"`
 	Source       string `json:"source" yaml:"source"`
 	Version      string `json:"version" yaml:"version"`
-	ExecutorType string `json:"executor_type,omitempty" yaml:"executorType,omitempty"`
+	ExecutorType string `json:"executorType,omitempty" yaml:"executorType,omitempty"`
 }
 
 type CreateModuleResponse struct {
 	ID        uint   `json:"id"`
 	Name      string `json:"name"`
 	Source    string `json:"source"`
-	VersionID uint   `json:"version_id"`
+	VersionID uint   `json:"versionId"`
 	Version   string `json:"version"`
 }
 
@@ -221,13 +221,13 @@ func NewUpdateModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo,
 }
 
 type UpdateModuleRequest struct {
-	ModuleID uint   `json:"module_id"`
+	ModuleID uint   `json:"moduleId"`
 	Version  string `json:"version"`
 }
 
 type UpdateModuleResponse struct {
-	ModuleID  uint   `json:"module_id"`
-	VersionID uint   `json:"version_id"`
+	ModuleID  uint   `json:"moduleId"`
+	VersionID uint   `json:"versionId"`
 	Version   string `json:"version"`
 }
 
@@ -298,11 +298,11 @@ func NewDeleteModule(moduleRepo ModuleRepo, componentRepo ComponentRepo, tx Tran
 }
 
 type DeleteModuleRequest struct {
-	ModuleID uint `json:"module_id"`
+	ModuleID uint `json:"moduleId"`
 }
 
 type DeleteModuleResponse struct {
-	ModuleID uint `json:"module_id"`
+	ModuleID uint `json:"moduleId"`
 }
 
 func (d *DeleteModule) Exec(ctx context.Context, req DeleteModuleRequest) (*DeleteModuleResponse, error) {
@@ -360,11 +360,11 @@ func NewGetModuleVersion(moduleVersionRepo ModuleVersionRepo, tx TransactionMana
 }
 
 type GetModuleVersionRequest struct {
-	ModuleVersionID uint `json:"module_version_id"`
+	ModuleVersionID uint `json:"moduleVersionId"`
 }
 
 type GetModuleVersionResponse struct {
-	ModuleVersion ModuleVersion `json:"module_version"`
+	ModuleVersion ModuleVersion `json:"moduleVersion"`
 }
 
 func (g *GetModuleVersion) Exec(ctx context.Context, req GetModuleVersionRequest) (*GetModuleVersionResponse, error) {
@@ -400,11 +400,11 @@ func NewListModuleVersions(moduleVersionRepo ModuleVersionRepo, tx TransactionMa
 }
 
 type ListModuleVersionsRequest struct {
-	ModuleID *uint `json:"module_id,omitempty"`
+	ModuleID *uint `json:"moduleId,omitempty"`
 }
 
 type ListModuleVersionsResponse struct {
-	ModuleVersions []ModuleVersion `json:"module_versions"`
+	ModuleVersions []ModuleVersion `json:"moduleVersions"`
 }
 
 func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error) {

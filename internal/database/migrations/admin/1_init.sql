@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS plans (
     id INT AUTO_INCREMENT PRIMARY KEY,
     component_id INT NOT NULL,
     changeset_id INT NOT NULL,
-    `from` VARCHAR(255) NOT NULL,
+    `from` VARCHAR(255) NULL,
     `to` VARCHAR(255) NOT NULL,
     state VARCHAR(50) NOT NULL DEFAULT ('Queued'),
     `add` INT NULL,

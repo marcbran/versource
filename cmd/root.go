@@ -60,12 +60,12 @@ func renderViewpointData[T any](detailData platform.ViewportData[T]) error {
 }
 
 func renderTableData[T any](tableData platform.TableData[T]) error {
-	modules, err := tableData.LoadData()
+	resp, err := tableData.LoadData()
 	if err != nil {
 		return err
 	}
-	return renderValue(modules, func() string {
-		columns, rows, _ := tableData.ResolveData(modules)
+	return renderValue(resp, func() string {
+		columns, rows, _ := tableData.ResolveData(resp)
 		return renderTable(columns, rows)
 	})
 }

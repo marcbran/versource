@@ -10,16 +10,16 @@ import (
 )
 
 type Plan struct {
-	ID          uint      `gorm:"primarykey"`
-	Changeset   Changeset `gorm:"foreignKey:ChangesetID"`
-	ChangesetID uint
-	ComponentID uint
-	From        string    `gorm:"column:from"`
-	To          string    `gorm:"column:to"`
-	State       TaskState `gorm:"default:Queued"`
-	Add         *int      `gorm:"column:add"`
-	Change      *int      `gorm:"column:change"`
-	Destroy     *int      `gorm:"column:destroy"`
+	ID          uint      `gorm:"primarykey" json:"id"`
+	Changeset   Changeset `gorm:"foreignKey:ChangesetID" json:"changeset"`
+	ChangesetID uint      `json:"changesetId"`
+	ComponentID uint      `json:"componentId"`
+	From        string    `gorm:"column:from" json:"from"`
+	To          string    `gorm:"column:to" json:"to"`
+	State       TaskState `gorm:"default:Queued" json:"state"`
+	Add         *int      `gorm:"column:add" json:"add"`
+	Change      *int      `gorm:"column:change" json:"change"`
+	Destroy     *int      `gorm:"column:destroy" json:"destroy"`
 }
 
 type PlanRepo interface {
@@ -54,14 +54,14 @@ func NewGetPlan(planRepo PlanRepo, componentRepo ComponentRepo, tx TransactionMa
 }
 
 type GetPlanRequest struct {
-	ChangesetName *string `json:"changeset_name"`
-	PlanID        uint    `json:"plan_id"`
+	ChangesetName *string `json:"changesetName"`
+	PlanID        uint    `json:"planId"`
 }
 
 type GetPlanResponse struct {
 	ID          uint      `json:"id"`
-	ComponentID uint      `json:"component_id"`
-	ChangesetID uint      `json:"changeset_id"`
+	ComponentID uint      `json:"componentId"`
+	ChangesetID uint      `json:"changesetId"`
 	From        string    `json:"from"`
 	To          string    `json:"to"`
 	State       TaskState `json:"state"`
@@ -130,8 +130,8 @@ func NewGetPlanLog(logStore LogStore, tx TransactionManager) *GetPlanLog {
 }
 
 type GetPlanLogRequest struct {
-	ChangesetName *string `json:"changeset_name"`
-	PlanID        uint    `json:"plan_id"`
+	ChangesetName *string `json:"changesetName"`
+	PlanID        uint    `json:"planId"`
 }
 
 type GetPlanLogResponse struct {
@@ -196,32 +196,34 @@ func (l *ListPlans) Exec(ctx context.Context, req ListPlansRequest) (*ListPlansR
 }
 
 type CreatePlan struct {
-	componentRepo ComponentRepo
-	planRepo      PlanRepo
-	changesetRepo ChangesetRepo
-	tx            TransactionManager
-	planWorker    *PlanWorker
+	componentRepo       ComponentRepo
+	componentChangeRepo ComponentChangeRepo
+	planRepo            PlanRepo
+	changesetRepo       ChangesetRepo
+	tx                  TransactionManager
+	planWorker          *PlanWorker
 }
 
-func NewCreatePlan(componentRepo ComponentRepo, planRepo PlanRepo, changesetRepo ChangesetRepo, tx TransactionManager, planWorker *PlanWorker) *CreatePlan {
+func NewCreatePlan(componentRepo ComponentRepo, componentChangeRepo ComponentChangeRepo, planRepo PlanRepo, changesetRepo ChangesetRepo, tx TransactionManager, planWorker *PlanWorker) *CreatePlan {
 	return &CreatePlan{
-		componentRepo: componentRepo,
-		planRepo:      planRepo,
-		changesetRepo: changesetRepo,
-		tx:            tx,
-		planWorker:    planWorker,
+		componentRepo:       componentRepo,
+		componentChangeRepo: componentChangeRepo,
+		planRepo:            planRepo,
+		changesetRepo:       changesetRepo,
+		tx:                  tx,
+		planWorker:          planWorker,
 	}
 }
 
 type CreatePlanRequest struct {
-	ComponentID uint   `json:"component_id"`
+	ComponentID uint   `json:"componentId"`
 	Changeset   string `json:"changeset"`
 }
 
 type CreatePlanResponse struct {
 	ID          uint      `json:"id"`
-	ComponentID uint      `json:"component_id"`
-	ChangesetID uint      `json:"changeset_id"`
+	ComponentID uint      `json:"componentId"`
+	ChangesetID uint      `json:"changesetId"`
 	From        string    `json:"from"`
 	To          string    `json:"to"`
 	State       TaskState `json:"state"`
@@ -235,18 +237,34 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 	var from string
 	var to string
 
-	err := c.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
-		var err error
-		from, err = c.tx.GetMergeBase(ctx, MainBranch, req.Changeset)
+	err := c.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
+		change, err := c.componentChangeRepo.GetComponentChange(ctx, req.ComponentID)
 		if err != nil {
-			return InternalErrE("failed to get merge base", err)
+			return InternalErrE("failed to get component change from main", err)
 		}
 
-		to, err = c.tx.GetHead(ctx)
-		if err != nil {
-			return InternalErrE("failed to get head", err)
+		if change.ToComponent != nil {
+			from = change.ToCommit
 		}
 
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
+		change, err := c.componentChangeRepo.GetComponentChange(ctx, req.ComponentID)
+		if err != nil {
+			return InternalErrE("failed to get component change from changeset", err)
+		}
+
+		if change.ToComponent == nil {
+			return UserErr("cannot create plan for component with no changes")
+		}
+
+		to = change.ToCommit
 		return nil
 	})
 

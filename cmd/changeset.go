@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/changeset"
+	"github.com/marcbran/versource/internal/tui/component"
 	"github.com/spf13/cobra"
 )
 
@@ -157,13 +159,98 @@ var changesetDeleteCmd = &cobra.Command{
 	},
 }
 
+var changesetChangeCmd = &cobra.Command{
+	Use:   "change",
+	Short: "Manage changeset changes",
+	Long:  `Manage changeset changes`,
+}
+
+var changesetChangeListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List changes in a changeset",
+	Long:  `List all component changes in a specific changeset`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
+		config, err := LoadConfig(cmd)
+		if err != nil {
+			return err
+		}
+		changesetName, err := cmd.Flags().GetString("changeset")
+		if err != nil {
+			return fmt.Errorf("failed to get changeset flag: %w", err)
+		}
+		if changesetName == "" {
+			return fmt.Errorf("changeset is required")
+		}
+		httpClient := client.NewClient(config)
+		tableData := component.NewChangesetChangesTableData(httpClient, changesetName)
+		changes, err := tableData.LoadData()
+		if err != nil {
+			return fmt.Errorf("failed to load changeset changes: %w", err)
+		}
+
+		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
+		if err != nil {
+			return fmt.Errorf("failed to get wait-for-completion flag: %w", err)
+		}
+		if !waitForCompletion || allPlansCompleted(changes) {
+			return renderValue(changes, func() string {
+				columns, rows, _ := tableData.ResolveData(changes)
+				return renderTable(columns, rows)
+			})
+		}
+
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-ticker.C:
+				changes, err = tableData.LoadData()
+				if err != nil {
+					return fmt.Errorf("failed to load changeset changes: %w", err)
+				}
+
+				if !allPlansCompleted(changes) {
+					continue
+				}
+
+				return renderValue(changes, func() string {
+					columns, rows, _ := tableData.ResolveData(changes)
+					return renderTable(columns, rows)
+				})
+			}
+		}
+	},
+}
+
 func init() {
 	changesetCreateCmd.Flags().String("name", "", "Changeset name")
 	changesetCreateCmd.MarkFlagRequired("name")
 
+	changesetChangeListCmd.Flags().String("changeset", "", "Changeset name")
+	changesetChangeListCmd.MarkFlagRequired("changeset")
+	changesetChangeListCmd.Flags().Bool("wait-for-completion", false, "Wait until all plans in the changeset are completed")
+
+	changesetChangeCmd.AddCommand(changesetChangeListCmd)
+
 	changesetCmd.AddCommand(changesetCreateCmd)
 	changesetCmd.AddCommand(changesetListCmd)
+	changesetCmd.AddCommand(changesetChangeCmd)
 	changesetCmd.AddCommand(changesetMergeCmd)
 	changesetCmd.AddCommand(changesetRebaseCmd)
 	changesetCmd.AddCommand(changesetDeleteCmd)
+}
+
+func allPlansCompleted(changes []internal.ComponentChange) bool {
+	for _, change := range changes {
+		if change.Plan == nil {
+			return false
+		}
+		if !internal.IsTaskCompleted(change.Plan.State) {
+			return false
+		}
+	}
+	return true
 }

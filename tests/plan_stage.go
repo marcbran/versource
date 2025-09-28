@@ -3,7 +3,7 @@
 package tests
 
 import (
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func (s *Stage) a_plan_has_been_created() *Stage {
@@ -48,17 +48,18 @@ func (s *Stage) the_plan_has_failed() *Stage {
 }
 
 func (s *Stage) the_plan_has_completed(expectedState string) *Stage {
+	require.NotEqual(s.t, "", s.PlanID, "No plan id")
+	require.NotEqual(s.t, "", s.ChangesetName, "No changeset name")
 	s.a_client_command_is_executed("plan", "get", s.PlanID, "--changeset", s.ChangesetName, "--wait-for-completion")
-
-	assert.NotNil(s.t, s.LastOutputMap, "No command output to check")
+	require.NotNil(s.t, s.LastOutputMap, "No command output to check")
 
 	state, ok := s.LastOutputMap["state"]
-	assert.True(s.t, ok, "No state field in command output")
+	require.True(s.t, ok, "No state field in command output")
 
 	stateStr, ok := state.(string)
-	assert.True(s.t, ok, "Plan state is not a string")
+	require.True(s.t, ok, "Plan state is not a string")
 
-	assert.Equal(s.t, expectedState, stateStr, "Plan state mismatch")
+	require.Equal(s.t, expectedState, stateStr, "Plan state mismatch")
 
 	return s
 }

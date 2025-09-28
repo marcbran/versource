@@ -9,12 +9,12 @@ import (
 )
 
 type Component struct {
-	ID              uint          `gorm:"primarykey"`
-	Name            string        `gorm:"not null;default:'';uniqueIndex"`
-	ModuleVersion   ModuleVersion `gorm:"foreignKey:ModuleVersionID"`
-	ModuleVersionID uint
-	Variables       datatypes.JSON  `gorm:"type:jsonb"`
-	Status          ComponentStatus `gorm:"default:Ready"`
+	ID              uint            `gorm:"primarykey" json:"id"`
+	Name            string          `gorm:"not null;default:'';uniqueIndex" json:"name"`
+	ModuleVersion   ModuleVersion   `gorm:"foreignKey:ModuleVersionID" json:"moduleVersion"`
+	ModuleVersionID uint            `json:"moduleVersionId"`
+	Variables       datatypes.JSON  `gorm:"type:jsonb" json:"variables"`
+	Status          ComponentStatus `gorm:"default:Ready" json:"status"`
 }
 
 type ComponentStatus string
@@ -25,10 +25,12 @@ const (
 )
 
 type ComponentChange struct {
-	FromComponent *Component
-	ToComponent   *Component
-	ChangeType    ChangeType
-	Plan          *Plan
+	FromComponent *Component `json:"fromComponent,omitempty"`
+	ToComponent   *Component `json:"toComponent,omitempty"`
+	ChangeType    ChangeType `json:"changeType"`
+	Plan          *Plan      `json:"plan,omitempty"`
+	FromCommit    string     `json:"fromCommit,omitempty"`
+	ToCommit      string     `json:"toCommit,omitempty"`
 }
 
 type ChangeType string
@@ -51,8 +53,8 @@ type ComponentRepo interface {
 }
 
 type ComponentChangeRepo interface {
-	ListComponentChanges(ctx context.Context, changeset string) ([]ComponentChange, error)
-	GetComponentChange(ctx context.Context, componentID uint, changeset string) (*ComponentChange, error)
+	ListComponentChanges(ctx context.Context) ([]ComponentChange, error)
+	GetComponentChange(ctx context.Context, componentID uint) (*ComponentChange, error)
 	HasComponentConflicts(ctx context.Context, changesetName string) (bool, error)
 }
 
@@ -69,7 +71,7 @@ func NewGetComponent(componentRepo ComponentRepo, tx TransactionManager) *GetCom
 }
 
 type GetComponentRequest struct {
-	ComponentID uint    `json:"component_id"`
+	ComponentID uint    `json:"componentId"`
 	Changeset   *string `json:"changeset,omitempty"`
 }
 
@@ -112,8 +114,8 @@ func NewListComponents(componentRepo ComponentRepo, tx TransactionManager) *List
 }
 
 type ListComponentsRequest struct {
-	ModuleID        *uint   `json:"module_id,omitempty"`
-	ModuleVersionID *uint   `json:"module_version_id,omitempty"`
+	ModuleID        *uint   `json:"moduleId,omitempty"`
+	ModuleVersionID *uint   `json:"moduleVersionId,omitempty"`
 	Changeset       *string `json:"changeset,omitempty"`
 }
 
@@ -164,7 +166,7 @@ func NewGetComponentChange(componentChangeRepo ComponentChangeRepo, tx Transacti
 }
 
 type GetComponentChangeRequest struct {
-	ComponentID uint   `json:"component_id"`
+	ComponentID uint   `json:"componentId"`
 	Changeset   string `json:"changeset"`
 }
 
@@ -180,7 +182,7 @@ func (g *GetComponentChange) Exec(ctx context.Context, req GetComponentChangeReq
 	var change *ComponentChange
 	err := g.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
 		var err error
-		change, err = g.componentChangeRepo.GetComponentChange(ctx, req.ComponentID, req.Changeset)
+		change, err = g.componentChangeRepo.GetComponentChange(ctx, req.ComponentID)
 		return err
 	})
 	if err != nil {
@@ -220,7 +222,7 @@ func (l *ListComponentChanges) Exec(ctx context.Context, req ListComponentChange
 	var changes []ComponentChange
 	err := l.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
 		var err error
-		changes, err = l.componentChangeRepo.ListComponentChanges(ctx, req.Changeset)
+		changes, err = l.componentChangeRepo.ListComponentChanges(ctx)
 		return err
 	})
 	if err != nil {
@@ -254,7 +256,7 @@ func NewCreateComponent(componentRepo ComponentRepo, moduleRepo ModuleRepo, modu
 
 type CreateComponentRequest struct {
 	Changeset string         `json:"changeset" yaml:"changeset"`
-	ModuleID  uint           `json:"module_id" yaml:"moduleId"`
+	ModuleID  uint           `json:"moduleId" yaml:"moduleId"`
 	Name      string         `json:"name" yaml:"name"`
 	Variables map[string]any `json:"variables" yaml:"variables"`
 }
@@ -265,7 +267,7 @@ type CreateComponentResponse struct {
 	Source    string         `json:"source"`
 	Version   string         `json:"version"`
 	Variables map[string]any `json:"variables"`
-	PlanID    uint           `json:"plan_id"`
+	PlanID    uint           `json:"planId"`
 }
 
 func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) (*CreateComponentResponse, error) {
@@ -365,9 +367,9 @@ func NewUpdateComponent(componentRepo ComponentRepo, moduleVersionRepo ModuleVer
 }
 
 type UpdateComponentRequest struct {
-	ComponentID uint            `json:"component_id"`
+	ComponentID uint            `json:"componentId"`
 	Changeset   string          `json:"changeset"`
-	ModuleID    *uint           `json:"module_id,omitempty"`
+	ModuleID    *uint           `json:"moduleId,omitempty"`
 	Variables   *map[string]any `json:"variables,omitempty"`
 }
 
@@ -377,7 +379,7 @@ type UpdateComponentResponse struct {
 	Source    string         `json:"source"`
 	Version   string         `json:"version"`
 	Variables map[string]any `json:"variables"`
-	PlanID    uint           `json:"plan_id"`
+	PlanID    uint           `json:"planId"`
 }
 
 func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) (*UpdateComponentResponse, error) {
@@ -519,7 +521,7 @@ func NewDeleteComponent(componentRepo ComponentRepo, componentChangeRepo Compone
 }
 
 type DeleteComponentRequest struct {
-	ComponentID uint   `json:"component_id"`
+	ComponentID uint   `json:"componentId"`
 	Changeset   string `json:"changeset"`
 }
 
@@ -530,7 +532,7 @@ type DeleteComponentResponse struct {
 	Version   string          `json:"version"`
 	Variables map[string]any  `json:"variables"`
 	Status    ComponentStatus `json:"status"`
-	PlanID    uint            `json:"plan_id"`
+	PlanID    uint            `json:"planId"`
 }
 
 func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) (*DeleteComponentResponse, error) {
@@ -592,7 +594,7 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 			return UserErr("component is already deleted")
 		}
 
-		componentChange, err := d.componentChangeRepo.GetComponentChange(ctx, req.ComponentID, req.Changeset)
+		componentChange, err := d.componentChangeRepo.GetComponentChange(ctx, req.ComponentID)
 		if err != nil {
 			return InternalErrE("failed to get component change", err)
 		}
@@ -671,7 +673,7 @@ func NewRestoreComponent(componentRepo ComponentRepo, componentChangeRepo Compon
 }
 
 type RestoreComponentRequest struct {
-	ComponentID uint   `json:"component_id"`
+	ComponentID uint   `json:"componentId"`
 	Changeset   string `json:"changeset"`
 }
 
@@ -682,7 +684,7 @@ type RestoreComponentResponse struct {
 	Version   string          `json:"version"`
 	Variables map[string]any  `json:"variables"`
 	Status    ComponentStatus `json:"status"`
-	PlanID    uint            `json:"plan_id"`
+	PlanID    uint            `json:"planId"`
 }
 
 func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest) (*RestoreComponentResponse, error) {
@@ -744,7 +746,7 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 			return UserErr("component is not deleted")
 		}
 
-		componentChange, err := r.componentChangeRepo.GetComponentChange(ctx, req.ComponentID, req.Changeset)
+		componentChange, err := r.componentChangeRepo.GetComponentChange(ctx, req.ComponentID)
 		if err != nil {
 			return InternalErrE("failed to get component change", err)
 		}

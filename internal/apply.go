@@ -25,12 +25,12 @@ func IsTaskCompleted(task TaskState) bool {
 }
 
 type Apply struct {
-	ID          uint      `gorm:"primarykey"`
-	Plan        Plan      `gorm:"foreignKey:PlanID"`
-	PlanID      uint      `gorm:"uniqueIndex"`
-	Changeset   Changeset `gorm:"foreignKey:ChangesetID"`
-	ChangesetID uint
-	State       TaskState `gorm:"default:Queued"`
+	ID          uint      `gorm:"primarykey" json:"id"`
+	Plan        Plan      `gorm:"foreignKey:PlanID" json:"plan"`
+	PlanID      uint      `gorm:"uniqueIndex" json:"planId"`
+	Changeset   Changeset `gorm:"foreignKey:ChangesetID" json:"changeset"`
+	ChangesetID uint      `json:"changesetId"`
+	State       TaskState `gorm:"default:Queued" json:"state"`
 }
 
 type ApplyRepo interface {
@@ -54,7 +54,7 @@ func NewGetApplyLog(logStore LogStore) *GetApplyLog {
 }
 
 type GetApplyLogRequest struct {
-	ApplyID uint `json:"apply_id"`
+	ApplyID uint `json:"applyId"`
 }
 
 type GetApplyLogResponse struct {

@@ -9,12 +9,12 @@ import (
 )
 
 type Rebase struct {
-	ID          uint      `gorm:"primarykey"`
-	Changeset   Changeset `gorm:"foreignKey:ChangesetID"`
-	ChangesetID uint
-	MergeBase   string    `gorm:"column:merge_base"`
-	Head        string    `gorm:"column:head"`
-	State       TaskState `gorm:"default:Queued"`
+	ID          uint      `gorm:"primarykey" json:"id"`
+	Changeset   Changeset `gorm:"foreignKey:ChangesetID" json:"changeset"`
+	ChangesetID uint      `json:"changesetId"`
+	MergeBase   string    `gorm:"column:merge_base" json:"mergeBase"`
+	Head        string    `gorm:"column:head" json:"head"`
+	State       TaskState `gorm:"default:Queued" json:"state"`
 }
 
 type RebaseRepo interface {
@@ -39,14 +39,14 @@ func NewGetRebase(rebaseRepo RebaseRepo, tx TransactionManager) *GetRebase {
 }
 
 type GetRebaseRequest struct {
-	RebaseID      uint   `json:"rebase_id"`
-	ChangesetName string `json:"changeset_name"`
+	RebaseID      uint   `json:"rebaseId"`
+	ChangesetName string `json:"changesetName"`
 }
 
 type GetRebaseResponse struct {
 	ID          uint      `json:"id"`
-	ChangesetID uint      `json:"changeset_id"`
-	MergeBase   string    `json:"merge_base"`
+	ChangesetID uint      `json:"changesetId"`
+	MergeBase   string    `json:"mergeBase"`
 	Head        string    `json:"head"`
 	State       TaskState `json:"state"`
 }
@@ -92,7 +92,7 @@ func NewListRebases(rebaseRepo RebaseRepo, tx TransactionManager) *ListRebases {
 }
 
 type ListRebasesRequest struct {
-	ChangesetName string `json:"changeset_name"`
+	ChangesetName string `json:"changesetName"`
 }
 
 type ListRebasesResponse struct {
@@ -136,13 +136,13 @@ func NewCreateRebase(changesetRepo ChangesetRepo, rebaseRepo RebaseRepo, tx Tran
 }
 
 type CreateRebaseRequest struct {
-	ChangesetName string `json:"changeset_name"`
+	ChangesetName string `json:"changesetName"`
 }
 
 type CreateRebaseResponse struct {
 	ID          uint      `json:"id"`
-	ChangesetID uint      `json:"changeset_id"`
-	MergeBase   string    `json:"merge_base"`
+	ChangesetID uint      `json:"changesetId"`
+	MergeBase   string    `json:"mergeBase"`
 	Head        string    `json:"head"`
 	State       TaskState `json:"state"`
 }
@@ -285,18 +285,22 @@ func (rw *RebaseWorker) processQueuedRebases(ctx context.Context) {
 }
 
 type RunRebase struct {
-	config        *Config
-	rebaseRepo    RebaseRepo
-	changesetRepo ChangesetRepo
-	tx            TransactionManager
+	config               *Config
+	rebaseRepo           RebaseRepo
+	changesetRepo        ChangesetRepo
+	tx                   TransactionManager
+	listComponentChanges *ListComponentChanges
+	createPlan           *CreatePlan
 }
 
-func NewRunRebase(config *Config, rebaseRepo RebaseRepo, changesetRepo ChangesetRepo, tx TransactionManager) *RunRebase {
+func NewRunRebase(config *Config, rebaseRepo RebaseRepo, changesetRepo ChangesetRepo, tx TransactionManager, listComponentChanges *ListComponentChanges, createPlan *CreatePlan) *RunRebase {
 	return &RunRebase{
-		config:        config,
-		rebaseRepo:    rebaseRepo,
-		changesetRepo: changesetRepo,
-		tx:            tx,
+		config:               config,
+		rebaseRepo:           rebaseRepo,
+		changesetRepo:        changesetRepo,
+		tx:                   tx,
+		listComponentChanges: listComponentChanges,
+		createPlan:           createPlan,
 	}
 }
 
@@ -328,11 +332,20 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 
 	log.Info("Starting rebase operation")
 
+	var changesResp *ListComponentChangesResponse
 	err = r.tx.Checkout(ctx, rebase.Changeset.Name, func(ctx context.Context) error {
 		err = r.tx.RebaseBranch(ctx, MainBranch)
 		if err != nil {
 			return err
 		}
+
+		changesResp, err = r.listComponentChanges.Exec(ctx, ListComponentChangesRequest{
+			Changeset: rebase.Changeset.Name,
+		})
+		if err != nil {
+			log.WithError(err).Error("Failed to list component changes after rebase")
+		}
+
 		return nil
 	})
 
@@ -344,6 +357,24 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 			return fmt.Errorf("rebase failed: %w, and failed to update rebase state: %w", err, stateErr)
 		}
 		return fmt.Errorf("rebase failed: %w", err)
+	}
+
+	if changesResp != nil {
+		for _, change := range changesResp.Changes {
+			if change.ToComponent == nil {
+				continue
+			}
+
+			_, err := r.createPlan.Exec(ctx, CreatePlanRequest{
+				ComponentID: change.ToComponent.ID,
+				Changeset:   rebase.Changeset.Name,
+			})
+			if err != nil {
+				log.WithError(err).WithField("component_id", change.ToComponent.ID).Error("Failed to create plan for component after rebase")
+			} else {
+				log.WithField("component_id", change.ToComponent.ID).Info("Created plan for component after rebase")
+			}
+		}
 	}
 
 	err = r.tx.Do(ctx, AdminBranch, "complete rebase", func(ctx context.Context) error {

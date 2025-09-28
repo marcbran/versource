@@ -23,10 +23,10 @@ const (
 )
 
 type Changeset struct {
-	ID          uint                 `gorm:"primarykey"`
-	Name        string               `gorm:"index"`
-	State       ChangesetState       `gorm:"default:Open"`
-	ReviewState ChangesetReviewState `gorm:"default:Draft"`
+	ID          uint                 `gorm:"primarykey" json:"id"`
+	Name        string               `gorm:"index" json:"name"`
+	State       ChangesetState       `gorm:"default:Open" json:"state"`
+	ReviewState ChangesetReviewState `gorm:"default:Draft" json:"reviewState"`
 }
 
 type ChangesetRepo interface {
@@ -233,7 +233,7 @@ func NewDeleteChangeset(changesetRepo ChangesetRepo, planRepo PlanRepo, applyRep
 }
 
 type DeleteChangesetRequest struct {
-	ChangesetName string `json:"changeset_name"`
+	ChangesetName string `json:"changesetName"`
 }
 
 type DeleteChangesetResponse struct {

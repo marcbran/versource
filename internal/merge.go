@@ -9,12 +9,12 @@ import (
 )
 
 type Merge struct {
-	ID          uint      `gorm:"primarykey"`
-	Changeset   Changeset `gorm:"foreignKey:ChangesetID"`
-	ChangesetID uint
-	MergeBase   string    `gorm:"column:merge_base"`
-	Head        string    `gorm:"column:head"`
-	State       TaskState `gorm:"default:Queued"`
+	ID          uint      `gorm:"primarykey" json:"id"`
+	Changeset   Changeset `gorm:"foreignKey:ChangesetID" json:"changeset"`
+	ChangesetID uint      `json:"changesetId"`
+	MergeBase   string    `gorm:"column:merge_base" json:"mergeBase"`
+	Head        string    `gorm:"column:head" json:"head"`
+	State       TaskState `gorm:"default:Queued" json:"state"`
 }
 
 type MergeRepo interface {
@@ -39,14 +39,14 @@ func NewGetMerge(mergeRepo MergeRepo, tx TransactionManager) *GetMerge {
 }
 
 type GetMergeRequest struct {
-	MergeID       uint   `json:"merge_id"`
-	ChangesetName string `json:"changeset_name"`
+	MergeID       uint   `json:"mergeId"`
+	ChangesetName string `json:"changesetName"`
 }
 
 type GetMergeResponse struct {
 	ID          uint      `json:"id"`
-	ChangesetID uint      `json:"changeset_id"`
-	MergeBase   string    `json:"merge_base"`
+	ChangesetID uint      `json:"changesetId"`
+	MergeBase   string    `json:"mergeBase"`
 	Head        string    `json:"head"`
 	State       TaskState `json:"state"`
 }
@@ -92,7 +92,7 @@ func NewListMerges(mergeRepo MergeRepo, tx TransactionManager) *ListMerges {
 }
 
 type ListMergesRequest struct {
-	ChangesetName string `json:"changeset_name"`
+	ChangesetName string `json:"changesetName"`
 }
 
 type ListMergesResponse struct {
@@ -136,13 +136,13 @@ func NewCreateMerge(changesetRepo ChangesetRepo, mergeRepo MergeRepo, tx Transac
 }
 
 type CreateMergeRequest struct {
-	ChangesetName string `json:"changeset_name"`
+	ChangesetName string `json:"changesetName"`
 }
 
 type CreateMergeResponse struct {
 	ID          uint      `json:"id"`
-	ChangesetID uint      `json:"changeset_id"`
-	MergeBase   string    `json:"merge_base"`
+	ChangesetID uint      `json:"changesetId"`
+	MergeBase   string    `json:"mergeBase"`
 	Head        string    `json:"head"`
 	State       TaskState `json:"state"`
 }

@@ -184,7 +184,7 @@ func (tm *GormTransactionManager) RebaseBranch(ctx context.Context, onto string)
 	}
 
 	var count int64
-	err := tx.Raw("SELECT COUNT(*) FROM DOLT_LOG(?, '--not', ?)", branch, onto).Scan(&count).Error
+	err := tx.WithContext(ctx).Raw("SELECT COUNT(*) FROM DOLT_LOG(?, '--not', ?)", branch, onto).Scan(&count).Error
 	if err != nil {
 		return fmt.Errorf("failed to check commits to rebase: %w", err)
 	}
@@ -193,14 +193,27 @@ func (tm *GormTransactionManager) RebaseBranch(ctx context.Context, onto string)
 		return nil
 	}
 
-	err = tx.Exec("CALL DOLT_REBASE('-i', ?)", onto).Error
+	err = tx.WithContext(ctx).Exec("SET @@autocommit = 0").Error
 	if err != nil {
 		return fmt.Errorf("failed to start rebase of %s onto %s: %w", branch, onto, err)
 	}
 
-	err = tx.Exec("CALL DOLT_REBASE('--continue')").Error
+	err = tx.WithContext(ctx).Exec("CALL DOLT_REBASE('-i', ?)", onto).Error
 	if err != nil {
-		return fmt.Errorf("failed to continue rebase of %s onto %s: %w", branch, onto, err)
+		return fmt.Errorf("failed to start rebase of %s onto %s: %w", branch, onto, err)
+	}
+
+	err = tx.WithContext(ctx).Exec("CALL DOLT_REBASE('--continue')").Error
+
+	if err != nil {
+		err = resolveAllConflicts(ctx, tx)
+		if err != nil {
+			return fmt.Errorf("failed to resolve conflicts during rebase: %w", err)
+		}
+		err = tx.WithContext(ctx).Exec("CALL DOLT_REBASE('--continue')").Error
+		if err != nil {
+			return fmt.Errorf("failed to continue rebase of %s onto %s after resolving conflicts: %w", branch, onto, err)
+		}
 	}
 
 	return nil
@@ -267,4 +280,28 @@ func (tm *GormTransactionManager) HasCommitsAfter(ctx context.Context, branch, c
 	}
 
 	return count > 0, nil
+}
+
+func resolveAllConflicts(ctx context.Context, tx *gorm.DB) error {
+	var tables []string
+	err := tx.WithContext(ctx).Raw("SELECT `table` FROM dolt_conflicts").Scan(&tables).Error
+	if err != nil {
+		return fmt.Errorf("failed to query dolt_conflicts: %w", err)
+	}
+
+	for _, table := range tables {
+		err := tx.WithContext(ctx).Exec("CALL DOLT_CONFLICTS_RESOLVE('--theirs', ?)", table).Error
+		if err != nil {
+			return fmt.Errorf("failed to resolve conflicts for table %s: %w", table, err)
+		}
+	}
+
+	if len(tables) > 0 {
+		err := tx.WithContext(ctx).Exec("CALL DOLT_ADD('.')").Error
+		if err != nil {
+			return fmt.Errorf("failed to stage resolved changes: %w", err)
+		}
+	}
+
+	return nil
 }

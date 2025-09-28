@@ -10,10 +10,10 @@ import (
 )
 
 type State struct {
-	ID          uint           `gorm:"primarykey"`
-	Component   Component      `gorm:"foreignKey:ComponentID"`
-	ComponentID uint           `gorm:"uniqueIndex"`
-	Output      datatypes.JSON `gorm:"type:jsonb"`
+	ID          uint           `gorm:"primarykey" json:"id"`
+	Component   Component      `gorm:"foreignKey:ComponentID" json:"component"`
+	ComponentID uint           `gorm:"uniqueIndex" json:"componentId"`
+	Output      datatypes.JSON `gorm:"type:jsonb" json:"output"`
 }
 
 type StateRepo interface {
@@ -21,17 +21,17 @@ type StateRepo interface {
 }
 
 type StateResource struct {
-	ID           uint  `gorm:"primarykey"`
-	State        State `gorm:"foreignKey:StateID"`
-	StateID      uint
-	Resource     Resource `gorm:"foreignKey:ResourceID"`
-	ResourceID   string
-	Mode         ResourceMode
-	ProviderName string
-	Type         string
-	Address      string
-	Count        *int
-	ForEach      *string
+	ID           uint         `gorm:"primarykey" json:"id"`
+	State        State        `gorm:"foreignKey:StateID" json:"state"`
+	StateID      uint         `json:"stateId"`
+	Resource     Resource     `gorm:"foreignKey:ResourceID" json:"resource"`
+	ResourceID   string       `json:"resourceId"`
+	Mode         ResourceMode `json:"mode"`
+	ProviderName string       `json:"providerName"`
+	Type         string       `json:"type"`
+	Address      string       `json:"address"`
+	Count        *int         `json:"count"`
+	ForEach      *string      `json:"forEach"`
 }
 
 type ResourceMode string
@@ -46,13 +46,13 @@ type StateResourceRepo interface {
 }
 
 type Resource struct {
-	ID            string `gorm:"primarykey;type:varchar(36)"`
-	Provider      string
-	ProviderAlias *string
-	ResourceType  string
-	Namespace     *string
-	Name          string
-	Attributes    datatypes.JSON `gorm:"type:jsonb"`
+	ID            string         `gorm:"primarykey;type:varchar(36)" json:"id"`
+	Provider      string         `json:"provider"`
+	ProviderAlias *string        `json:"providerAlias"`
+	ResourceType  string         `json:"resourceType"`
+	Namespace     *string        `json:"namespace"`
+	Name          string         `json:"name"`
+	Attributes    datatypes.JSON `gorm:"type:jsonb" json:"attributes"`
 }
 
 func (r *Resource) GenerateID() {

@@ -28,9 +28,10 @@ type Stage struct {
 	MergeID       string
 	RebaseID      string
 
-	LastOutputMap map[string]any
-	LastError     string
-	LastExitCode  int
+	LastOutputArray []any
+	LastOutputMap   map[string]any
+	LastError       string
+	LastExitCode    int
 
 	LastQueryResult string
 }
@@ -110,6 +111,8 @@ type Dataset struct {
 var blank_instance = Dataset{Name: "blank-instance"}
 var module_and_changeset = Dataset{Name: "module-and-changeset"}
 var deleted_component = Dataset{Name: "deleted-component"}
+var changeset_and_new_component = Dataset{Name: "changeset-and-new-component"}
+var two_changesets_with_changes = Dataset{Name: "two-changesets-with-changes"}
 
 func (s *Stage) a_clean_slate() *Stage {
 	return s.an_empty_database().and().
@@ -238,6 +241,11 @@ func (s *Stage) a_command_is_executed(service string, args ...string) *Stage {
 			jsonErr := json.Unmarshal([]byte(output), &outputMap)
 			if jsonErr == nil {
 				s.LastOutputMap = outputMap
+			}
+			var outputArray []any
+			jsonErr = json.Unmarshal([]byte(output), &outputArray)
+			if jsonErr == nil {
+				s.LastOutputArray = outputArray
 			}
 		}
 	}

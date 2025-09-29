@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS plans (
     state VARCHAR(50) NOT NULL DEFAULT ('Queued'),
     `add` INT NULL,
     `change` INT NULL,
-    `destroy` INT NULL
+    `destroy` INT NULL,
+    FOREIGN KEY (changeset_id) REFERENCES changesets(id) ON DELETE CASCADE
 );
 -- +goose StatementEnd
 

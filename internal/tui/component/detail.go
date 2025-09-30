@@ -136,8 +136,8 @@ func (p *DetailData) KeyBindings(elem internal.GetComponentResponse) platform.Ke
 	return platform.KeyBindings{
 		{Key: "m", Help: "View module", Command: fmt.Sprintf("modules/%d", elem.Component.ModuleVersion.Module.ID)},
 		{Key: "v", Help: "View module versions", Command: fmt.Sprintf("modules/%d/moduleversions", elem.Component.ModuleVersion.Module.ID)},
-		{Key: "esc", Help: "View changes", Command: fmt.Sprintf("%s/%s/components", changesetPrefix, p.changesetName)},
-		{Key: "E", Help: "Edit component", Command: fmt.Sprintf("%s/%s/components/%d/edit", changesetPrefix, p.changesetName, elem.Component.ID)},
-		{Key: "D", Help: "Delete component", Command: fmt.Sprintf("%s/%s/components/%d/delete", changesetPrefix, p.changesetName, elem.Component.ID)},
+		{Key: "esc", Help: "View changes", Command: fmt.Sprintf("%s/components", changesetPrefix)},
+		{Key: "E", Help: "Edit component", Command: fmt.Sprintf("%s/components/%d/edit", changesetPrefix, elem.Component.ID)},
+		{Key: "D", Help: "Delete component", Command: fmt.Sprintf("%s/components/%d/delete", changesetPrefix, elem.Component.ID)},
 	}
 }

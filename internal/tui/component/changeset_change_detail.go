@@ -150,33 +150,23 @@ func (p *ChangesetChangeDetailData) componentToYAML(component *internal.Componen
 }
 
 func (p *ChangesetChangeDetailData) KeyBindings(elem internal.GetComponentChangeResponse) platform.KeyBindings {
+	if elem.Change.ToComponent == nil {
+		return platform.KeyBindings{}
+	}
+
 	keyBindings := platform.KeyBindings{
-		{Key: "esc", Help: "View changes", Command: fmt.Sprintf("changesets/%s/changes", p.changesetName)},
+		{Key: "esc", Help: "View change", Command: fmt.Sprintf("changesets/%s/changes", p.changesetName)},
+		{Key: "enter", Help: "View change detail", Command: fmt.Sprintf("changesets/%s/changes/%d", p.changesetName, elem.Change.ToComponent.ID)},
+		{Key: "E", Help: "Edit component", Command: fmt.Sprintf("changesets/%s/components/%d/edit", p.changesetName, elem.Change.ToComponent.ID)},
+		{Key: "D", Help: "Delete component", Command: fmt.Sprintf("changesets/%s/components/%d/delete", p.changesetName, elem.Change.ToComponent.ID)},
+		{Key: "R", Help: "Restore component", Command: fmt.Sprintf("changesets/%s/components/%d/delete", p.changesetName, elem.Change.ToComponent.ID)},
 	}
-
-	if elem.Change.ToComponent != nil {
-		keyBindings = append(keyBindings, platform.KeyBinding{
-			Key:     "c",
-			Help:    "View component detail",
-			Command: fmt.Sprintf("changesets/%s/components/%d", p.changesetName, elem.Change.ToComponent.ID),
-		})
-	}
-
-	if elem.Change.ToComponent != nil && elem.Change.ToComponent.ModuleVersion.Module.ID != 0 {
-		keyBindings = append(keyBindings, platform.KeyBinding{
-			Key:     "m",
-			Help:    "View module",
-			Command: fmt.Sprintf("modules/%d", elem.Change.ToComponent.ModuleVersion.Module.ID),
-		})
-	}
-
 	if elem.Change.Plan != nil {
-		keyBindings = append(keyBindings, platform.KeyBinding{
-			Key:     "p",
-			Help:    "View plan",
-			Command: fmt.Sprintf("changesets/%s/plans/%d", p.changesetName, elem.Change.Plan.ID),
-		})
+		keyBindings = append(keyBindings, []platform.KeyBinding{
+			{Key: "p", Help: "View change plan", Command: fmt.Sprintf("changesets/%s/plans/%d", p.changesetName, elem.Change.Plan.ID)},
+			{Key: "l", Help: "View change plan logs", Command: fmt.Sprintf("changesets/%s/plans/%d/logs", p.changesetName, elem.Change.Plan.ID)},
+			{Key: "P", Help: "Plan component", Command: fmt.Sprintf("changesets/%s/components/%d/plans/create", p.changesetName, elem.Change.ToComponent.ID)},
+		}...)
 	}
-
 	return keyBindings
 }

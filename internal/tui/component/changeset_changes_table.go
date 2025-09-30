@@ -110,7 +110,9 @@ func (p *ChangesetChangesTableData) ResolveData(data []internal.ComponentChange)
 }
 
 func (p *ChangesetChangesTableData) KeyBindings() platform.KeyBindings {
-	return platform.KeyBindings{}
+	return platform.KeyBindings{
+		{Key: "esc", Help: "View changesets", Command: "changesets"},
+	}
 }
 
 func (p *ChangesetChangesTableData) ElemKeyBindings(elem internal.ComponentChange) platform.KeyBindings {
@@ -118,14 +120,18 @@ func (p *ChangesetChangesTableData) ElemKeyBindings(elem internal.ComponentChang
 		return platform.KeyBindings{}
 	}
 
-	bindings := platform.KeyBindings{
+	keyBindings := platform.KeyBindings{
 		{Key: "enter", Help: "View change detail", Command: fmt.Sprintf("changesets/%s/changes/%d", p.changesetName, elem.ToComponent.ID)},
+		{Key: "E", Help: "Edit component", Command: fmt.Sprintf("changesets/%s/components/%d/edit", p.changesetName, elem.ToComponent.ID)},
+		{Key: "D", Help: "Delete component", Command: fmt.Sprintf("changesets/%s/components/%d/delete", p.changesetName, elem.ToComponent.ID)},
+		{Key: "R", Help: "Restore component", Command: fmt.Sprintf("changesets/%s/components/%d/delete", p.changesetName, elem.ToComponent.ID)},
 	}
 	if elem.Plan != nil {
-		bindings = append(bindings, []platform.KeyBinding{
+		keyBindings = append(keyBindings, []platform.KeyBinding{
 			{Key: "p", Help: "View change plan", Command: fmt.Sprintf("changesets/%s/plans/%d", p.changesetName, elem.Plan.ID)},
 			{Key: "l", Help: "View change plan logs", Command: fmt.Sprintf("changesets/%s/plans/%d/logs", p.changesetName, elem.Plan.ID)},
+			{Key: "P", Help: "Plan component", Command: fmt.Sprintf("changesets/%s/components/%d/plans/create", p.changesetName, elem.ToComponent.ID)},
 		}...)
 	}
-	return bindings
+	return keyBindings
 }

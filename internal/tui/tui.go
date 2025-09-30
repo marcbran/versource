@@ -34,9 +34,7 @@ func RunApp(facade internal.Facade) error {
 			changesetName := params["changesetName"]
 			return platform.KeyBindings{
 				{Key: "esc", Help: "View changesets", Command: "changesets"},
-				{Key: "m", Help: "View modules", Command: fmt.Sprintf("changesets/%s/modules", changesetName)},
-				{Key: "c", Help: "View components", Command: fmt.Sprintf("changesets/%s/components", changesetName)},
-				{Key: "n", Help: "View changes", Command: fmt.Sprintf("changesets/%s/changes", changesetName)},
+				{Key: "c", Help: "View changes", Command: fmt.Sprintf("changesets/%s/changes", changesetName)},
 				{Key: "p", Help: "View plans", Command: fmt.Sprintf("changesets/%s/plans", changesetName)},
 				{Key: "e", Help: "View merges", Command: fmt.Sprintf("changesets/%s/merges", changesetName)},
 				{Key: "s", Help: "View rebases", Command: fmt.Sprintf("changesets/%s/rebases", changesetName)},

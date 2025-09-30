@@ -150,7 +150,9 @@ func (p *ChangesetChangeDetailData) componentToYAML(component *internal.Componen
 }
 
 func (p *ChangesetChangeDetailData) KeyBindings(elem internal.GetComponentChangeResponse) platform.KeyBindings {
-	keyBindings := platform.KeyBindings{}
+	keyBindings := platform.KeyBindings{
+		{Key: "esc", Help: "View changes", Command: fmt.Sprintf("changesets/%s/changes", p.changesetName)},
+	}
 
 	if elem.Change.ToComponent != nil {
 		keyBindings = append(keyBindings, platform.KeyBinding{

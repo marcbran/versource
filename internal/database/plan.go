@@ -69,6 +69,20 @@ func (r *GormPlanRepo) ListPlansByChangeset(ctx context.Context, changesetID uin
 	return plans, nil
 }
 
+func (r *GormPlanRepo) ListPlansByChangesetName(ctx context.Context, changesetName string) ([]internal.Plan, error) {
+	db := getTxOrDb(ctx, r.db)
+	var plans []internal.Plan
+	err := db.WithContext(ctx).
+		Preload("Changeset").
+		Joins("JOIN changesets ON plans.changeset_id = changesets.id").
+		Where("changesets.name = ?", changesetName).
+		Find(&plans).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list plans by changeset name: %w", err)
+	}
+	return plans, nil
+}
+
 func (r *GormPlanRepo) CreatePlan(ctx context.Context, plan *internal.Plan) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(plan).Error

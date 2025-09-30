@@ -30,9 +30,8 @@ func NewTableData(facade internal.Facade, changesetName string) *TableData {
 
 func (p *TableData) LoadData() ([]internal.Plan, error) {
 	ctx := context.Background()
-	req := internal.ListPlansRequest{}
-	if p.changesetName != "" {
-		req.Changeset = &p.changesetName
+	req := internal.ListPlansRequest{
+		ChangesetName: p.changesetName,
 	}
 	resp, err := p.facade.ListPlans(ctx, req)
 	if err != nil {
@@ -88,16 +87,20 @@ func (p *TableData) KeyBindings() platform.KeyBindings {
 }
 
 func (p *TableData) ElemKeyBindings(elem internal.Plan) platform.KeyBindings {
-	detailCommand := fmt.Sprintf("plans/%d", elem.ID)
-	logsCommand := fmt.Sprintf("plans/%d/logs", elem.ID)
+	changesetPrefix := ""
+	if p.changesetName != "" {
+		changesetPrefix = fmt.Sprintf("changesets/%s", p.changesetName)
+	}
+	keyBindings := platform.KeyBindings{
+		{Key: "enter", Help: "View plan detail", Command: fmt.Sprintf("%s/plans/%d", changesetPrefix, elem.ID)},
+		{Key: "l", Help: "View logs", Command: fmt.Sprintf("%s/plans/%d/logs", changesetPrefix, elem.ID)},
+	}
 
 	if p.changesetName != "" {
-		detailCommand = fmt.Sprintf("changesets/%s/plans/%d", p.changesetName, elem.ID)
-		logsCommand = fmt.Sprintf("changesets/%s/plans/%d/logs", p.changesetName, elem.ID)
+		keyBindings = append(keyBindings, platform.KeyBinding{
+			Key: "esc", Help: "View changesets", Command: "changesets",
+		})
 	}
 
-	return platform.KeyBindings{
-		{Key: "enter", Help: "View plan detail", Command: detailCommand},
-		{Key: "l", Help: "View logs", Command: logsCommand},
-	}
+	return keyBindings
 }

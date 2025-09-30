@@ -123,16 +123,13 @@ func (p *DetailData) ResolveData(data internal.GetPlanResponse) string {
 }
 
 func (p *DetailData) KeyBindings(elem internal.GetPlanResponse) platform.KeyBindings {
-	logsCommand := fmt.Sprintf("plans/%d/logs", elem.ID)
-	componentCommand := fmt.Sprintf("components/%d", elem.ComponentID)
-
+	changesetPrefix := ""
 	if p.changesetName != "" {
-		logsCommand = fmt.Sprintf("changesets/%s/plans/%d/logs", p.changesetName, elem.ID)
-		componentCommand = fmt.Sprintf("changesets/%s/components/%d", p.changesetName, elem.ComponentID)
+		changesetPrefix = fmt.Sprintf("changesets/%s", p.changesetName)
 	}
-
 	return platform.KeyBindings{
-		{Key: "l", Help: "View logs", Command: logsCommand},
-		{Key: "c", Help: "View component", Command: componentCommand},
+		{Key: "esc", Help: "View plans", Command: fmt.Sprintf("%s/plans", changesetPrefix)},
+		{Key: "l", Help: "View logs", Command: fmt.Sprintf("%s/plans/%s/logs", changesetPrefix, p.planID)},
+		{Key: "c", Help: "View component", Command: fmt.Sprintf("%s/components/%d", changesetPrefix, elem.ComponentID)},
 	}
 }

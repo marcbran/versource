@@ -74,8 +74,8 @@ func (c *Client) GetPlanLog(ctx context.Context, req internal.GetPlanLogRequest)
 
 func (c *Client) ListPlans(ctx context.Context, req internal.ListPlansRequest) (*internal.ListPlansResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/plans", c.baseURL)
-	if req.Changeset != nil {
-		url = fmt.Sprintf("%s/api/v1/changesets/%s/plans", c.baseURL, *req.Changeset)
+	if req.ChangesetName != "" {
+		url = fmt.Sprintf("%s/api/v1/changesets/%s/plans", c.baseURL, req.ChangesetName)
 	}
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {

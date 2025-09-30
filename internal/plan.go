@@ -27,6 +27,7 @@ type PlanRepo interface {
 	GetQueuedPlans(ctx context.Context) ([]uint, error)
 	ListPlans(ctx context.Context) ([]Plan, error)
 	ListPlansByChangeset(ctx context.Context, changesetID uint) ([]Plan, error)
+	ListPlansByChangesetName(ctx context.Context, changesetName string) ([]Plan, error)
 	CreatePlan(ctx context.Context, plan *Plan) error
 	UpdatePlanState(ctx context.Context, planID uint, state TaskState) error
 	UpdatePlanResourceCounts(ctx context.Context, planID uint, counts PlanResourceCounts) error
@@ -171,7 +172,7 @@ func NewListPlans(planRepo PlanRepo, tx TransactionManager) *ListPlans {
 }
 
 type ListPlansRequest struct {
-	Changeset *string `json:"changeset"`
+	ChangesetName string `json:"changesetName"`
 }
 
 type ListPlansResponse struct {
@@ -183,7 +184,11 @@ func (l *ListPlans) Exec(ctx context.Context, req ListPlansRequest) (*ListPlansR
 
 	err := l.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
-		plans, err = l.planRepo.ListPlans(ctx)
+		if req.ChangesetName == "" {
+			plans, err = l.planRepo.ListPlans(ctx)
+		} else {
+			plans, err = l.planRepo.ListPlansByChangesetName(ctx, req.ChangesetName)
+		}
 		return err
 	})
 	if err != nil {

@@ -71,6 +71,6 @@ func (p *TableData) KeyBindings() platform.KeyBindings {
 
 func (p *TableData) ElemKeyBindings(elem internal.Rebase) platform.KeyBindings {
 	return platform.KeyBindings{
-		{Key: "enter", Help: "View rebase detail", Command: fmt.Sprintf("rebases/%d", elem.ID)},
+		{Key: "enter", Help: "View rebase detail", Command: fmt.Sprintf("changesets/%s/rebases/%d", p.changesetName, elem.ID)},
 	}
 }

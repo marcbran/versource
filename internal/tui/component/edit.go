@@ -35,7 +35,7 @@ func (e *EditComponentData) GetInitialValue() internal.UpdateComponentRequest {
 	}
 
 	ctx := context.Background()
-	componentResp, err := e.facade.GetComponent(ctx, internal.GetComponentRequest{ComponentID: componentID, Changeset: &e.changesetName})
+	componentResp, err := e.facade.GetComponent(ctx, internal.GetComponentRequest{ComponentID: componentID, ChangesetName: &e.changesetName})
 	if err != nil {
 		return internal.UpdateComponentRequest{
 			ComponentID: componentID,

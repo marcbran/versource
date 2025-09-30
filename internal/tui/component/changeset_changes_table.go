@@ -118,7 +118,14 @@ func (p *ChangesetChangesTableData) ElemKeyBindings(elem internal.ComponentChang
 		return platform.KeyBindings{}
 	}
 
-	return platform.KeyBindings{
+	bindings := platform.KeyBindings{
 		{Key: "enter", Help: "View change detail", Command: fmt.Sprintf("changesets/%s/changes/%d", p.changesetName, elem.ToComponent.ID)},
 	}
+	if elem.Plan != nil {
+		bindings = append(bindings, []platform.KeyBinding{
+			{Key: "p", Help: "View change plan", Command: fmt.Sprintf("changesets/%s/plans/%d", p.changesetName, elem.Plan.ID)},
+			{Key: "l", Help: "View change plan logs", Command: fmt.Sprintf("changesets/%s/plans/%d/logs", p.changesetName, elem.Plan.ID)},
+		}...)
+	}
+	return bindings
 }

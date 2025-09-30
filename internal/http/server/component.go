@@ -23,7 +23,7 @@ func (s *Server) handleGetComponent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if changesetName := chi.URLParam(r, "changesetName"); changesetName != "" {
-		req.Changeset = &changesetName
+		req.ChangesetName = &changesetName
 	}
 
 	resp, err := s.facade.GetComponent(r.Context(), req)
@@ -39,7 +39,7 @@ func (s *Server) handleListComponents(w http.ResponseWriter, r *http.Request) {
 	req := internal.ListComponentsRequest{}
 
 	if changesetName := chi.URLParam(r, "changesetName"); changesetName != "" {
-		req.Changeset = &changesetName
+		req.ChangesetName = &changesetName
 	}
 
 	if moduleIDStr := r.URL.Query().Get("module-id"); moduleIDStr != "" {

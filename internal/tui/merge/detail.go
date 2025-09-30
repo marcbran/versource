@@ -76,5 +76,7 @@ func (p *DetailData) ResolveData(data internal.GetMergeResponse) string {
 }
 
 func (p *DetailData) KeyBindings(elem internal.GetMergeResponse) platform.KeyBindings {
-	return platform.KeyBindings{}
+	return platform.KeyBindings{
+		{Key: "esc", Help: "View merges", Command: fmt.Sprintf("changesets/%s/merges", p.changesetName)},
+	}
 }

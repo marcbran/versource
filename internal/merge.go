@@ -22,6 +22,7 @@ type MergeRepo interface {
 	GetQueuedMerges(ctx context.Context) ([]uint, error)
 	GetQueuedMergesByChangeset(ctx context.Context, changesetID uint) ([]uint, error)
 	ListMerges(ctx context.Context) ([]Merge, error)
+	ListMergesByChangesetName(ctx context.Context, changesetName string) ([]Merge, error)
 	CreateMerge(ctx context.Context, merge *Merge) error
 	UpdateMergeState(ctx context.Context, mergeID uint, state TaskState) error
 }
@@ -100,14 +101,14 @@ type ListMergesResponse struct {
 }
 
 func (l *ListMerges) Exec(ctx context.Context, req ListMergesRequest) (*ListMergesResponse, error) {
-	if req.ChangesetName == "" {
-		return nil, UserErr("changeset name is required")
-	}
-
 	var merges []Merge
 	err := l.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
-		merges, err = l.mergeRepo.ListMerges(ctx)
+		if req.ChangesetName == "" {
+			merges, err = l.mergeRepo.ListMerges(ctx)
+		} else {
+			merges, err = l.mergeRepo.ListMergesByChangesetName(ctx, req.ChangesetName)
+		}
 		return err
 	})
 	if err != nil {

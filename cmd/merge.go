@@ -95,8 +95,7 @@ func init() {
 	mergeGetCmd.Flags().Bool("wait-for-completion", false, "Wait for the merge to reach a terminal state before returning")
 	mergeGetCmd.Flags().String("changeset", "", "Changeset name (required)")
 	mergeGetCmd.MarkFlagRequired("changeset")
-	mergeListCmd.Flags().String("changeset", "", "Changeset name (required)")
-	mergeListCmd.MarkFlagRequired("changeset")
+	mergeListCmd.Flags().String("changeset", "", "Changeset name (optional)")
 	mergeCmd.AddCommand(mergeGetCmd)
 	mergeCmd.AddCommand(mergeListCmd)
 }

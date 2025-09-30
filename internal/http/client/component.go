@@ -14,8 +14,8 @@ import (
 
 func (c *Client) GetComponent(ctx context.Context, req internal.GetComponentRequest) (*internal.GetComponentResponse, error) {
 	var url string
-	if req.Changeset != nil {
-		url = fmt.Sprintf("%s/api/v1/changesets/%s/components/%d", c.baseURL, *req.Changeset, req.ComponentID)
+	if req.ChangesetName != nil {
+		url = fmt.Sprintf("%s/api/v1/changesets/%s/components/%d", c.baseURL, *req.ChangesetName, req.ComponentID)
 	} else {
 		url = fmt.Sprintf("%s/api/v1/components/%d", c.baseURL, req.ComponentID)
 	}
@@ -49,8 +49,8 @@ func (c *Client) GetComponent(ctx context.Context, req internal.GetComponentRequ
 
 func (c *Client) ListComponents(ctx context.Context, req internal.ListComponentsRequest) (*internal.ListComponentsResponse, error) {
 	var url string
-	if req.Changeset != nil {
-		url = fmt.Sprintf("%s/api/v1/changesets/%s/components", c.baseURL, *req.Changeset)
+	if req.ChangesetName != nil {
+		url = fmt.Sprintf("%s/api/v1/changesets/%s/components", c.baseURL, *req.ChangesetName)
 	} else {
 		url = fmt.Sprintf("%s/api/v1/components", c.baseURL)
 	}

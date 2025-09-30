@@ -23,12 +23,17 @@ var componentGetCmd = &cobra.Command{
 	Long:  `Get details for a specific component by ID`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		changeset, err := cmd.Flags().GetString("changeset")
+		if err != nil {
+			return fmt.Errorf("failed to get changeset flag: %w", err)
+		}
+
 		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}
 		httpClient := client.NewClient(config)
-		detailData := component.NewDetailData(httpClient, args[0], "")
+		detailData := component.NewDetailData(httpClient, args[0], changeset)
 		return renderViewpointData(detailData)
 	},
 }
@@ -48,12 +53,17 @@ var componentListCmd = &cobra.Command{
 			return fmt.Errorf("failed to get module-version-id flag: %w", err)
 		}
 
+		changeset, err := cmd.Flags().GetString("changeset")
+		if err != nil {
+			return fmt.Errorf("failed to get changeset flag: %w", err)
+		}
+
 		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}
 		httpClient := client.NewClient(config)
-		tableData := component.NewTableData(httpClient, moduleIDStr, moduleVersionIDStr)
+		tableData := component.NewTableData(httpClient, moduleIDStr, moduleVersionIDStr, changeset)
 		return renderTableData(tableData)
 	},
 }
@@ -353,8 +363,11 @@ func parseVariables(variableMap map[string]string) (map[string]any, error) {
 }
 
 func init() {
+	componentGetCmd.Flags().String("changeset", "", "Filter component by changeset name")
+
 	componentListCmd.Flags().String("module-id", "", "Filter components by module ID")
 	componentListCmd.Flags().String("module-version-id", "", "Filter components by module version ID")
+	componentListCmd.Flags().String("changeset", "", "Filter components by changeset name")
 
 	componentCreateCmd.Flags().String("name", "", "Component name")
 	componentCreateCmd.Flags().String("module-id", "", "Module ID (will use latest version)")

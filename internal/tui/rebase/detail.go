@@ -76,5 +76,7 @@ func (p *DetailData) ResolveData(data internal.GetRebaseResponse) string {
 }
 
 func (p *DetailData) KeyBindings(elem internal.GetRebaseResponse) platform.KeyBindings {
-	return platform.KeyBindings{}
+	return platform.KeyBindings{
+		{Key: "esc", Help: "View rebases", Command: fmt.Sprintf("changesets/%s/rebases", p.changesetName)},
+	}
 }

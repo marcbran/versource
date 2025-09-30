@@ -23,6 +23,7 @@ func RunApp(facade internal.Facade) error {
 				{Key: "r", Help: "Refresh", Command: "refresh"},
 				{Key: "b", Help: "Go back", Command: "back"},
 				{Key: "m", Help: "View modules", Command: "modules"},
+				{Key: "v", Help: "View module versions", Command: "moduleversions"},
 				{Key: "g", Help: "View changesets", Command: "changesets"},
 				{Key: "c", Help: "View components", Command: "components"},
 				{Key: "p", Help: "View plans", Command: "plans"},
@@ -31,15 +32,14 @@ func RunApp(facade internal.Facade) error {
 		}).
 		KeyBinding("changesets/{changesetName}", func(params map[string]string, currentPath string) platform.KeyBindings {
 			changesetName := params["changesetName"]
-			pathWithoutChangeset := removeFirstTwoSegments(currentPath)
 			return platform.KeyBindings{
-				{Key: "esc", Help: "Back to changesets", Command: pathWithoutChangeset},
+				{Key: "esc", Help: "View changesets", Command: "changesets"},
 				{Key: "m", Help: "View modules", Command: fmt.Sprintf("changesets/%s/modules", changesetName)},
 				{Key: "c", Help: "View components", Command: fmt.Sprintf("changesets/%s/components", changesetName)},
 				{Key: "n", Help: "View changes", Command: fmt.Sprintf("changesets/%s/changes", changesetName)},
 				{Key: "p", Help: "View plans", Command: fmt.Sprintf("changesets/%s/plans", changesetName)},
-				{Key: "M", Help: "View merges", Command: fmt.Sprintf("changesets/%s/merges", changesetName)},
-				{Key: "R", Help: "View rebases", Command: fmt.Sprintf("changesets/%s/rebases", changesetName)},
+				{Key: "e", Help: "View merges", Command: fmt.Sprintf("changesets/%s/merges", changesetName)},
+				{Key: "s", Help: "View rebases", Command: fmt.Sprintf("changesets/%s/rebases", changesetName)},
 			}
 		}).
 		Route("modules", module.NewTable(facade)).
@@ -59,7 +59,7 @@ func RunApp(facade internal.Facade) error {
 		Route("plans/{planID}/logs", plan.NewLogs(facade)).
 		Route("applies", apply.NewTable(facade)).
 		Route("changesets", changeset.NewTable(facade)).
-		Route("changesets/{changesetName}/components", component.NewChangesetTable(facade)).
+		Route("changesets/{changesetName}/components", component.NewTable(facade)).
 		Route("changesets/{changesetName}/components/{componentID}", component.NewDetail(facade)).
 		Route("changesets/{changesetName}/changes", component.NewChangesetChangesTable(facade)).
 		Route("changesets/{changesetName}/changes/{componentID}", component.NewChangesetChangeDetail(facade)).

@@ -71,6 +71,6 @@ func (p *TableData) KeyBindings() platform.KeyBindings {
 
 func (p *TableData) ElemKeyBindings(elem internal.Merge) platform.KeyBindings {
 	return platform.KeyBindings{
-		{Key: "enter", Help: "View merge detail", Command: fmt.Sprintf("merges/%d", elem.ID)},
+		{Key: "enter", Help: "View merge detail", Command: fmt.Sprintf("changesets/%s/merges/%d", p.changesetName, elem.ID)},
 	}
 }

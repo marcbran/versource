@@ -58,7 +58,7 @@ func (p *DetailData) LoadData() (*internal.GetComponentResponse, error) {
 		return nil, err
 	}
 
-	componentResp, err := p.facade.GetComponent(ctx, internal.GetComponentRequest{ComponentID: uint(componentIDUint), Changeset: &p.changesetName})
+	componentResp, err := p.facade.GetComponent(ctx, internal.GetComponentRequest{ComponentID: uint(componentIDUint), ChangesetName: &p.changesetName})
 	if err != nil {
 		return nil, err
 	}
@@ -129,22 +129,15 @@ func (p *DetailData) ResolveData(data internal.GetComponentResponse) string {
 }
 
 func (p *DetailData) KeyBindings(elem internal.GetComponentResponse) platform.KeyBindings {
-	keyBindings := platform.KeyBindings{
+	changesetPrefix := ""
+	if p.changesetName != "" {
+		changesetPrefix = fmt.Sprintf("changesets/%s", p.changesetName)
+	}
+	return platform.KeyBindings{
 		{Key: "m", Help: "View module", Command: fmt.Sprintf("modules/%d", elem.Component.ModuleVersion.Module.ID)},
 		{Key: "v", Help: "View module versions", Command: fmt.Sprintf("modules/%d/moduleversions", elem.Component.ModuleVersion.Module.ID)},
+		{Key: "esc", Help: "View changes", Command: fmt.Sprintf("%s/%s/components", changesetPrefix, p.changesetName)},
+		{Key: "E", Help: "Edit component", Command: fmt.Sprintf("%s/%s/components/%d/edit", changesetPrefix, p.changesetName, elem.Component.ID)},
+		{Key: "D", Help: "Delete component", Command: fmt.Sprintf("%s/%s/components/%d/delete", changesetPrefix, p.changesetName, elem.Component.ID)},
 	}
-
-	if p.changesetName != "" {
-		keyBindings = append(keyBindings, []platform.KeyBinding{
-			{Key: "E", Help: "Edit component", Command: fmt.Sprintf("changesets/%s/components/%d/edit", p.changesetName, elem.Component.ID)},
-			{Key: "D", Help: "Delete component", Command: fmt.Sprintf("changesets/%s/components/%d/delete", p.changesetName, elem.Component.ID)},
-		}...)
-	} else {
-		keyBindings = append(keyBindings, []platform.KeyBinding{
-			{Key: "e", Help: "Edit component", Command: fmt.Sprintf("components/%d/edit", elem.Component.ID)},
-			{Key: "D", Help: "Delete component", Command: fmt.Sprintf("components/%d/delete", elem.Component.ID)},
-		}...)
-	}
-
-	return keyBindings
 }

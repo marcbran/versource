@@ -76,9 +76,8 @@ func (s *Server) handleGetPlanLog(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleListPlans(w http.ResponseWriter, r *http.Request) {
 	changesetName := chi.URLParam(r, "changesetName")
 
-	var req internal.ListPlansRequest
-	if changesetName != "" {
-		req.Changeset = &changesetName
+	req := internal.ListPlansRequest{
+		ChangesetName: changesetName,
 	}
 
 	resp, err := s.facade.ListPlans(r.Context(), req)

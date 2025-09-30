@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"strconv"
 
@@ -64,5 +65,11 @@ func (p *LogsData) ResolveData(data internal.GetPlanLogResponse) string {
 }
 
 func (p *LogsData) KeyBindings(elem internal.GetPlanLogResponse) platform.KeyBindings {
-	return platform.KeyBindings{}
+	changesetPrefix := ""
+	if p.changesetName != "" {
+		changesetPrefix = fmt.Sprintf("changesets/%s", p.changesetName)
+	}
+	return platform.KeyBindings{
+		{Key: "esc", Help: "View plan", Command: fmt.Sprintf("%s/plans/%s", changesetPrefix, p.planID)},
+	}
 }

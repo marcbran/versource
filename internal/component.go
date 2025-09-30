@@ -71,8 +71,8 @@ func NewGetComponent(componentRepo ComponentRepo, tx TransactionManager) *GetCom
 }
 
 type GetComponentRequest struct {
-	ComponentID uint    `json:"componentId"`
-	Changeset   *string `json:"changeset,omitempty"`
+	ComponentID   uint    `json:"componentId"`
+	ChangesetName *string `json:"changesetName,omitempty"`
 }
 
 type GetComponentResponse struct {
@@ -83,8 +83,8 @@ func (g *GetComponent) Exec(ctx context.Context, req GetComponentRequest) (*GetC
 	var component *Component
 	var err error
 
-	if req.Changeset != nil {
-		err = g.tx.Checkout(ctx, *req.Changeset, func(ctx context.Context) error {
+	if req.ChangesetName != nil {
+		err = g.tx.Checkout(ctx, *req.ChangesetName, func(ctx context.Context) error {
 			component, err = g.componentRepo.GetComponent(ctx, req.ComponentID)
 			return err
 		})
@@ -116,7 +116,7 @@ func NewListComponents(componentRepo ComponentRepo, tx TransactionManager) *List
 type ListComponentsRequest struct {
 	ModuleID        *uint   `json:"moduleId,omitempty"`
 	ModuleVersionID *uint   `json:"moduleVersionId,omitempty"`
-	Changeset       *string `json:"changeset,omitempty"`
+	ChangesetName   *string `json:"changesetName,omitempty"`
 }
 
 type ListComponentsResponse struct {
@@ -127,8 +127,8 @@ func (l *ListComponents) Exec(ctx context.Context, req ListComponentsRequest) (*
 	var components []Component
 
 	branch := MainBranch
-	if req.Changeset != nil {
-		branch = *req.Changeset
+	if req.ChangesetName != nil {
+		branch = *req.ChangesetName
 	}
 
 	err := l.tx.Checkout(ctx, branch, func(ctx context.Context) error {

@@ -72,6 +72,21 @@ func (r *GormMergeRepo) ListMerges(ctx context.Context) ([]internal.Merge, error
 	return merges, nil
 }
 
+func (r *GormMergeRepo) ListMergesByChangesetName(ctx context.Context, changesetName string) ([]internal.Merge, error) {
+	db := getTxOrDb(ctx, r.db)
+	var merges []internal.Merge
+	err := db.WithContext(ctx).
+		Preload("Changeset").
+		Joins("JOIN changesets ON merges.changeset_id = changesets.id").
+		Where("changesets.name = ?", changesetName).
+		Order("merges.id DESC").
+		Find(&merges).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list merges by changeset name: %w", err)
+	}
+	return merges, nil
+}
+
 func (r *GormMergeRepo) CreateMerge(ctx context.Context, merge *internal.Merge) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(merge).Error

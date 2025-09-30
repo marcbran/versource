@@ -72,6 +72,21 @@ func (r *GormRebaseRepo) ListRebases(ctx context.Context) ([]internal.Rebase, er
 	return rebases, nil
 }
 
+func (r *GormRebaseRepo) ListRebasesByChangesetName(ctx context.Context, changesetName string) ([]internal.Rebase, error) {
+	db := getTxOrDb(ctx, r.db)
+	var rebases []internal.Rebase
+	err := db.WithContext(ctx).
+		Preload("Changeset").
+		Joins("JOIN changesets ON rebases.changeset_id = changesets.id").
+		Where("changesets.name = ?", changesetName).
+		Order("rebases.id DESC").
+		Find(&rebases).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list rebases by changeset name: %w", err)
+	}
+	return rebases, nil
+}
+
 func (r *GormRebaseRepo) CreateRebase(ctx context.Context, rebase *internal.Rebase) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(rebase).Error

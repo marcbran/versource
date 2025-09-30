@@ -22,6 +22,7 @@ type RebaseRepo interface {
 	GetQueuedRebases(ctx context.Context) ([]uint, error)
 	GetQueuedRebasesByChangeset(ctx context.Context, changesetID uint) ([]uint, error)
 	ListRebases(ctx context.Context) ([]Rebase, error)
+	ListRebasesByChangesetName(ctx context.Context, changesetName string) ([]Rebase, error)
 	CreateRebase(ctx context.Context, rebase *Rebase) error
 	UpdateRebaseState(ctx context.Context, rebaseID uint, state TaskState) error
 }
@@ -100,14 +101,14 @@ type ListRebasesResponse struct {
 }
 
 func (l *ListRebases) Exec(ctx context.Context, req ListRebasesRequest) (*ListRebasesResponse, error) {
-	if req.ChangesetName == "" {
-		return nil, UserErr("changeset name is required")
-	}
-
 	var rebases []Rebase
 	err := l.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
-		rebases, err = l.rebaseRepo.ListRebases(ctx)
+		if req.ChangesetName == "" {
+			rebases, err = l.rebaseRepo.ListRebases(ctx)
+		} else {
+			rebases, err = l.rebaseRepo.ListRebasesByChangesetName(ctx, req.ChangesetName)
+		}
 		return err
 	})
 	if err != nil {

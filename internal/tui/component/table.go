@@ -14,6 +14,7 @@ type TableData struct {
 	facade          internal.Facade
 	moduleID        string
 	moduleVersionID string
+	changesetName   string
 }
 
 func NewTable(facade internal.Facade) func(params map[string]string) platform.Page {
@@ -26,15 +27,20 @@ func NewTable(facade internal.Facade) func(params map[string]string) platform.Pa
 		if moduleVersionIdParam, ok := params["module-version-id"]; ok {
 			moduleVersionId = moduleVersionIdParam
 		}
-		return platform.NewDataTable(NewTableData(facade, moduleId, moduleVersionId))
+		var changesetName string
+		if changesetNameParam, ok := params["changesetName"]; ok {
+			changesetName = changesetNameParam
+		}
+		return platform.NewDataTable(NewTableData(facade, moduleId, moduleVersionId, changesetName))
 	}
 }
 
-func NewTableData(facade internal.Facade, moduleID, moduleVersionID string) *TableData {
+func NewTableData(facade internal.Facade, moduleID, moduleVersionID, changesetName string) *TableData {
 	return &TableData{
 		facade:          facade,
 		moduleID:        moduleID,
 		moduleVersionID: moduleVersionID,
+		changesetName:   changesetName,
 	}
 }
 
@@ -55,6 +61,10 @@ func (p *TableData) LoadData() ([]internal.Component, error) {
 			moduleVersionIDUint := uint(moduleVersionID)
 			req.ModuleVersionID = &moduleVersionIDUint
 		}
+	}
+
+	if p.changesetName != "" {
+		req.ChangesetName = &p.changesetName
 	}
 
 	resp, err := p.facade.ListComponents(ctx, req)

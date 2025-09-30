@@ -21,9 +21,6 @@ func (r *GormApplyRepo) GetApply(ctx context.Context, applyID uint) (*internal.A
 	db := getTxOrDb(ctx, r.db)
 	var apply internal.Apply
 	err := db.WithContext(ctx).
-		Preload("Plan.Component.ModuleVersion.Module").
-		Preload("Plan.Component.ModuleVersion").
-		Preload("Plan.Component").
 		Preload("Plan.Changeset").
 		Preload("Changeset").
 		Where("id = ?", applyID).First(&apply).Error
@@ -67,8 +64,6 @@ func (r *GormApplyRepo) ListApplies(ctx context.Context) ([]internal.Apply, erro
 	db := getTxOrDb(ctx, r.db)
 	var applies []internal.Apply
 	err := db.WithContext(ctx).
-		Preload("Plan.Component.ModuleVersion.Module").
-		Preload("Plan.Component.ModuleVersion").
 		Preload("Plan.Changeset").
 		Preload("Changeset").
 		Find(&applies).Error
@@ -82,8 +77,6 @@ func (r *GormApplyRepo) ListAppliesByChangeset(ctx context.Context, changesetID 
 	db := getTxOrDb(ctx, r.db)
 	var applies []internal.Apply
 	err := db.WithContext(ctx).
-		Preload("Plan.Component.ModuleVersion.Module").
-		Preload("Plan.Component.ModuleVersion").
 		Preload("Plan.Changeset").
 		Preload("Changeset").
 		Where("changeset_id = ?", changesetID).

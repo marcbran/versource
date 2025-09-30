@@ -143,6 +143,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/applies", s.handleListApplies)
 		r.Get("/changesets", s.handleListChangesets)
 		r.Route("/applies/{applyID}", func(r chi.Router) {
+			r.Get("/", s.handleGetApply)
 			r.Get("/logs", s.handleGetApplyLog)
 		})
 		r.Post("/changesets", s.handleCreateChangeset)

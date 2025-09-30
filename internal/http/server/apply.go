@@ -11,6 +11,28 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func (s *Server) handleGetApply(w http.ResponseWriter, r *http.Request) {
+	applyIDStr := chi.URLParam(r, "applyID")
+
+	applyID, err := strconv.ParseUint(applyIDStr, 10, 32)
+	if err != nil {
+		returnBadRequest(w, fmt.Errorf("invalid apply ID: %s", applyIDStr))
+		return
+	}
+
+	req := internal.GetApplyRequest{
+		ApplyID: uint(applyID),
+	}
+
+	response, err := s.facade.GetApply(r.Context(), req)
+	if err != nil {
+		returnError(w, err)
+		return
+	}
+
+	returnSuccess(w, response)
+}
+
 func (s *Server) handleGetApplyLog(w http.ResponseWriter, r *http.Request) {
 	applyIDStr := chi.URLParam(r, "applyID")
 

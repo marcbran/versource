@@ -43,6 +43,7 @@ type Facade interface {
 	CreatePlan(ctx context.Context, req CreatePlanRequest) (*CreatePlanResponse, error)
 	RunPlan(ctx context.Context, planID uint) error
 
+	GetApply(ctx context.Context, req GetApplyRequest) (*GetApplyResponse, error)
 	GetApplyLog(ctx context.Context, req GetApplyLogRequest) (*GetApplyLogResponse, error)
 	ListApplies(ctx context.Context, req ListAppliesRequest) (*ListAppliesResponse, error)
 	RunApply(ctx context.Context, applyID uint) error
@@ -85,6 +86,7 @@ type facade struct {
 	createPlan *CreatePlan
 	runPlan    *RunPlan
 
+	getApply    *GetApply
 	getApplyLog *GetApplyLog
 	listApplies *ListApplies
 	runApply    *RunApply
@@ -132,6 +134,7 @@ func NewFacade(
 	createRebase := NewCreateRebase(changesetRepo, rebaseRepo, transactionManager, rebaseWorker)
 	getPlan := NewGetPlan(planRepo, componentRepo, transactionManager)
 	getPlanLog := NewGetPlanLog(logStore, transactionManager)
+	getApply := NewGetApply(applyRepo, componentRepo, transactionManager)
 	getApplyLog := NewGetApplyLog(logStore)
 	ensureChangeset := NewEnsureChangeset(changesetRepo, transactionManager)
 
@@ -166,6 +169,7 @@ func NewFacade(
 		listPlans:            NewListPlans(planRepo, transactionManager),
 		createPlan:           createPlan,
 		runPlan:              runPlan,
+		getApply:             getApply,
 		getApplyLog:          getApplyLog,
 		listApplies:          NewListApplies(applyRepo, transactionManager),
 		runApply:             runApply,
@@ -294,6 +298,10 @@ func (f *facade) CreatePlan(ctx context.Context, req CreatePlanRequest) (*Create
 
 func (f *facade) RunPlan(ctx context.Context, planID uint) error {
 	return f.runPlan.Exec(ctx, planID)
+}
+
+func (f *facade) GetApply(ctx context.Context, req GetApplyRequest) (*GetApplyResponse, error) {
+	return f.getApply.Exec(ctx, req)
 }
 
 func (f *facade) GetApplyLog(ctx context.Context, req GetApplyLogRequest) (*GetApplyLogResponse, error) {

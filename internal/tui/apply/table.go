@@ -2,6 +2,7 @@ package apply
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -60,5 +61,8 @@ func (p *TableData) KeyBindings() platform.KeyBindings {
 }
 
 func (p *TableData) ElemKeyBindings(elem internal.Apply) platform.KeyBindings {
-	return platform.KeyBindings{}
+	return platform.KeyBindings{
+		{Key: "enter", Help: "View apply details", Command: fmt.Sprintf("applies/%d", elem.ID)},
+		{Key: "l", Help: "View logs", Command: fmt.Sprintf("applies/%d/logs", elem.ID)},
+	}
 }

@@ -43,6 +43,144 @@ type ApplyRepo interface {
 	UpdateApplyState(ctx context.Context, applyID uint, state TaskState) error
 }
 
+type GetApply struct {
+	applyRepo     ApplyRepo
+	componentRepo ComponentRepo
+	tx            TransactionManager
+}
+
+func NewGetApply(applyRepo ApplyRepo, componentRepo ComponentRepo, tx TransactionManager) *GetApply {
+	return &GetApply{
+		applyRepo:     applyRepo,
+		componentRepo: componentRepo,
+		tx:            tx,
+	}
+}
+
+type GetApplyRequest struct {
+	ApplyID uint `json:"applyId"`
+}
+
+type GetApplyResponse struct {
+	ID          uint      `json:"id"`
+	PlanID      uint      `json:"planId"`
+	ChangesetID uint      `json:"changesetId"`
+	State       TaskState `json:"state"`
+	Plan        struct {
+		ID          uint      `json:"id"`
+		State       TaskState `json:"state"`
+		From        string    `json:"from"`
+		To          string    `json:"to"`
+		Add         *int      `json:"add,omitempty"`
+		Change      *int      `json:"change,omitempty"`
+		Destroy     *int      `json:"destroy,omitempty"`
+		ComponentID uint      `json:"componentId"`
+		Component   struct {
+			ID   uint   `json:"id"`
+			Name string `json:"name"`
+		} `json:"component"`
+		ChangesetID uint `json:"changesetId"`
+		Changeset   struct {
+			ID   uint   `json:"id"`
+			Name string `json:"name"`
+		} `json:"changeset"`
+	} `json:"plan"`
+	Changeset struct {
+		ID   uint   `json:"id"`
+		Name string `json:"name"`
+	} `json:"changeset"`
+}
+
+func (g *GetApply) Exec(ctx context.Context, req GetApplyRequest) (*GetApplyResponse, error) {
+	if req.ApplyID == 0 {
+		return nil, UserErr("apply ID is required")
+	}
+
+	var apply *Apply
+	err := g.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
+		var err error
+		apply, err = g.applyRepo.GetApply(ctx, req.ApplyID)
+		return err
+	})
+	if err != nil {
+		return nil, InternalErrE("failed to get apply", err)
+	}
+
+	var component *Component
+	branch := apply.Plan.Changeset.Name
+	if apply.Plan.Changeset.State == ChangesetStateMerged {
+		branch = MainBranch
+	}
+
+	err = g.tx.Checkout(ctx, branch, func(ctx context.Context) error {
+		var err error
+		component, err = g.componentRepo.GetComponentAtCommit(ctx, apply.Plan.ComponentID, apply.Plan.To)
+		return err
+	})
+	if err != nil {
+		return nil, InternalErrE("failed to get component at commit", err)
+	}
+
+	response := &GetApplyResponse{
+		ID:          apply.ID,
+		PlanID:      apply.PlanID,
+		ChangesetID: apply.ChangesetID,
+		State:       apply.State,
+		Plan: struct {
+			ID          uint      `json:"id"`
+			State       TaskState `json:"state"`
+			From        string    `json:"from"`
+			To          string    `json:"to"`
+			Add         *int      `json:"add,omitempty"`
+			Change      *int      `json:"change,omitempty"`
+			Destroy     *int      `json:"destroy,omitempty"`
+			ComponentID uint      `json:"componentId"`
+			Component   struct {
+				ID   uint   `json:"id"`
+				Name string `json:"name"`
+			} `json:"component"`
+			ChangesetID uint `json:"changesetId"`
+			Changeset   struct {
+				ID   uint   `json:"id"`
+				Name string `json:"name"`
+			} `json:"changeset"`
+		}{
+			ID:          apply.Plan.ID,
+			State:       apply.Plan.State,
+			From:        apply.Plan.From,
+			To:          apply.Plan.To,
+			Add:         apply.Plan.Add,
+			Change:      apply.Plan.Change,
+			Destroy:     apply.Plan.Destroy,
+			ComponentID: apply.Plan.ComponentID,
+			Component: struct {
+				ID   uint   `json:"id"`
+				Name string `json:"name"`
+			}{
+				ID:   component.ID,
+				Name: component.Name,
+			},
+			ChangesetID: apply.Plan.ChangesetID,
+			Changeset: struct {
+				ID   uint   `json:"id"`
+				Name string `json:"name"`
+			}{
+				ID:   apply.Plan.Changeset.ID,
+				Name: apply.Plan.Changeset.Name,
+			},
+		},
+		Changeset: struct {
+			ID   uint   `json:"id"`
+			Name string `json:"name"`
+		}{
+			ID:   apply.Changeset.ID,
+			Name: apply.Changeset.Name,
+		},
+	}
+
+	return response, nil
+}
+
 type GetApplyLog struct {
 	logStore LogStore
 }

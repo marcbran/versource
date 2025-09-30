@@ -243,15 +243,12 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 	var to string
 
 	err := c.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
-		change, err := c.componentChangeRepo.GetComponentChange(ctx, req.ComponentID)
+		commit, err := c.componentRepo.GetLastCommitOfComponent(ctx, req.ComponentID)
 		if err != nil {
-			return InternalErrE("failed to get component change from main", err)
+			return InternalErrE("failed to get last commit of component from main", err)
 		}
 
-		if change.ToComponent != nil {
-			from = change.ToCommit
-		}
-
+		from = commit
 		return nil
 	})
 

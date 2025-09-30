@@ -57,6 +57,26 @@ func (r *GormComponentRepo) GetComponentAtCommit(ctx context.Context, componentI
 	return &component, nil
 }
 
+func (r *GormComponentRepo) GetLastCommitOfComponent(ctx context.Context, componentID uint) (string, error) {
+	db := getTxOrDb(ctx, r.db)
+
+	query := `
+		SELECT to_commit
+		FROM dolt_diff_components
+		WHERE to_id = ?
+		ORDER BY to_commit_date DESC
+		LIMIT 1
+	`
+
+	var commit string
+	err := db.WithContext(ctx).Raw(query, componentID).Scan(&commit).Error
+	if err != nil {
+		return "", fmt.Errorf("failed to get last commit of component: %w", err)
+	}
+
+	return commit, nil
+}
+
 func (r *GormComponentRepo) HasComponent(ctx context.Context, componentID uint) (bool, error) {
 	db := getTxOrDb(ctx, r.db)
 	var count int64
@@ -166,9 +186,12 @@ func (r *GormComponentChangeRepo) ListComponentChanges(ctx context.Context) ([]i
 			FROM dolt_diff_components d
 			LEFT JOIN dolt_diff_components AS OF main m
 				ON d.to_id = m.to_id
-			LEFT JOIN plans AS OF "admin" p
+			LEFT JOIN plans AS OF admin p
 				ON d.to_id = p.component_id AND d.to_commit = p.to
 				AND (m.to_commit IS NULL OR m.to_commit = p.from)
+			WHERE (d.to_commit <> m.to_commit)
+                OR (d.to_commit IS NULL AND m.to_commit IS NOT NULL)
+                OR (d.to_commit IS NOT NULL AND m.to_commit IS NULL)
 		)
 		SELECT *
 		FROM ranked
@@ -220,10 +243,15 @@ func (r *GormComponentChangeRepo) GetComponentChange(ctx context.Context, compon
 		FROM dolt_diff_components d
 		LEFT JOIN dolt_diff_components AS OF main AS m
 			ON d.to_id = m.to_id
-		LEFT JOIN plans AS OF "admin" AS p
+		LEFT JOIN plans AS OF admin AS p
 			ON d.to_id = p.component_id AND d.to_commit = p.to
 			AND (m.to_commit IS NULL OR m.to_commit = p.from)
 		WHERE d.to_id = ?
+			AND (
+				(d.to_commit <> m.to_commit)
+                OR (d.to_commit IS NULL AND m.to_commit IS NOT NULL)
+                OR (d.to_commit IS NOT NULL AND m.to_commit IS NULL)
+			)
 		ORDER BY d.to_commit_date DESC, m.to_commit_date DESC
 		LIMIT 1;
 	`

@@ -44,6 +44,7 @@ const (
 type ComponentRepo interface {
 	GetComponent(ctx context.Context, componentID uint) (*Component, error)
 	GetComponentAtCommit(ctx context.Context, componentID uint, commit string) (*Component, error)
+	GetLastCommitOfComponent(ctx context.Context, componentID uint) (string, error)
 	HasComponent(ctx context.Context, componentID uint) (bool, error)
 	ListComponents(ctx context.Context) ([]Component, error)
 	ListComponentsByModule(ctx context.Context, moduleID uint) ([]Component, error)

@@ -268,6 +268,28 @@ func TestMergeChangesetWithComponentConflicts(t *testing.T) {
 		the_changeset_merge_has_failed()
 }
 
+func TestMergeTwoComponentChangesetSequentially(t *testing.T) {
+	given, when, then := scenario(t)
+
+	given.
+		the_dataset(blank_instance).and().
+		an_existing_module_has_been_created().and().
+		a_changeset_has_been_created("changeset1").and().
+		a_component_has_been_created_for_the_module_and_changeset("component1", `{"name": "value1"}`).and().
+		the_plan_has_succeeded().and().
+		a_changeset_has_been_merged("changeset1").
+		a_changeset_has_been_created("changeset2").and().
+		a_component_has_been_created_for_the_module_and_changeset("component2", `{"name": "value2"}`).and().
+		the_plan_has_succeeded().and()
+
+	when.
+		a_changeset_is_merged("changeset2")
+
+	then.
+		the_changeset_creation_has_succeeded().and().
+		the_changeset_merge_has_succeeded()
+}
+
 func TestMergeChangesetWithComponentUpdateConflicts(t *testing.T) {
 	given, when, then := scenario(t)
 

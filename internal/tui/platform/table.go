@@ -82,6 +82,10 @@ func (t *DataTable[T]) Blur() {
 	t.table.Blur()
 }
 
+func (t *DataTable[T]) ExcludeFromHistory() bool {
+	return false
+}
+
 type TableData[T any] interface {
 	LoadData() ([]T, error)
 	ResolveData(data []T) ([]table.Column, []table.Row, []T)

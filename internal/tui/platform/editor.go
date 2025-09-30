@@ -99,6 +99,10 @@ func (e *Editor[T]) KeyBindings() KeyBindings {
 	return KeyBindings{}
 }
 
+func (e *Editor[T]) ExcludeFromHistory() bool {
+	return false
+}
+
 func (e Editor[T]) initializeContent() tea.Cmd {
 	return func() tea.Msg {
 		if e.initialContent != "" {

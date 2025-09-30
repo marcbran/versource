@@ -81,6 +81,10 @@ func (v *DataViewport[T]) KeyBindings() KeyBindings {
 	return v.data.KeyBindings(v.elem)
 }
 
+func (v *DataViewport[T]) ExcludeFromHistory() bool {
+	return false
+}
+
 func (v *DataViewport[T]) Focus() {
 }
 

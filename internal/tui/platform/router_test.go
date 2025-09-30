@@ -410,6 +410,7 @@ func (t *testPage) Resize(size Size)                   {}
 func (t *testPage) Focus()                             {}
 func (t *testPage) Blur()                              {}
 func (t *testPage) KeyBindings() KeyBindings           { return KeyBindings{} }
+func (t *testPage) ExcludeFromHistory() bool           { return false }
 
 func keyBindingsEqual(a, b KeyBindings) bool {
 	if len(a) != len(b) {

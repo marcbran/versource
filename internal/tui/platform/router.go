@@ -56,7 +56,10 @@ func (r *Router) Blur() {
 func (r *Router) Update(msg tea.Msg) (*Router, tea.Cmd) {
 	switch m := msg.(type) {
 	case openPageStartedMsg:
-		if r.currentRoute != nil && r.currentRoute.path != m.path {
+		if r.currentRoute != nil &&
+			r.currentRoute.path != m.path &&
+			(len(r.routeHistory) == 0 || r.currentRoute.path != r.routeHistory[len(r.routeHistory)-1].path) &&
+			(r.currentRoute.page == nil || !r.currentRoute.page.ExcludeFromHistory()) {
 			r.routeHistory = append(r.routeHistory, *r.currentRoute)
 		}
 		route := NewRoute(m.path)
@@ -500,6 +503,7 @@ type Page interface {
 	Resizer
 	Focuser
 	KeyBindings() KeyBindings
+	ExcludeFromHistory() bool
 }
 
 type KeyBindings []KeyBinding

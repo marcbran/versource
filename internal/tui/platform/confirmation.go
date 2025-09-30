@@ -96,3 +96,7 @@ func (c *ConfirmationPage) Blur() {
 func (c *ConfirmationPage) KeyBindings() KeyBindings {
 	return KeyBindings{}
 }
+
+func (c *ConfirmationPage) ExcludeFromHistory() bool {
+	return true
+}

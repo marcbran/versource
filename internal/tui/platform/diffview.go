@@ -142,6 +142,10 @@ func (d *DiffView[T]) KeyBindings() KeyBindings {
 	return d.data.KeyBindings(d.elem)
 }
 
+func (d *DiffView[T]) ExcludeFromHistory() bool {
+	return false
+}
+
 func (d *DiffView[T]) Focus() {
 }
 

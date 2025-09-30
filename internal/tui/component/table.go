@@ -121,5 +121,7 @@ func (p *TableData) KeyBindings() platform.KeyBindings {
 func (p *TableData) ElemKeyBindings(elem internal.Component) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "enter", Help: "View component detail", Command: fmt.Sprintf("components/%d", elem.ID)},
+		{Key: "E", Help: "Edit component", Command: fmt.Sprintf("components/%d/edit", elem.ID)},
+		{Key: "D", Help: "Delete component", Command: fmt.Sprintf("components/%d/delete", elem.ID)},
 	}
 }

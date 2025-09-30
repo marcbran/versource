@@ -219,13 +219,15 @@ func (c *CreateMerge) Exec(ctx context.Context, req CreateMergeRequest) (*Create
 type MergeWorker struct {
 	runMerge  *RunMerge
 	mergeRepo MergeRepo
+	tx        TransactionManager
 	mergeChan chan uint
 }
 
-func NewMergeWorker(runMerge *RunMerge, mergeRepo MergeRepo) *MergeWorker {
+func NewMergeWorker(runMerge *RunMerge, mergeRepo MergeRepo, tx TransactionManager) *MergeWorker {
 	return &MergeWorker{
 		runMerge:  runMerge,
 		mergeRepo: mergeRepo,
+		tx:        tx,
 		mergeChan: make(chan uint, 100),
 	}
 }
@@ -274,7 +276,12 @@ func (mw *MergeWorker) runMergeInBackground(ctx context.Context, mergeID uint) {
 }
 
 func (mw *MergeWorker) processQueuedMerges(ctx context.Context) {
-	mergeIDs, err := mw.mergeRepo.GetQueuedMerges(ctx)
+	var mergeIDs []uint
+	err := mw.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
+		var err error
+		mergeIDs, err = mw.mergeRepo.GetQueuedMerges(ctx)
+		return err
+	})
 	if err != nil {
 		log.WithError(err).Error("Failed to get queued merges")
 		return

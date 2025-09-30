@@ -113,13 +113,15 @@ func (l *ListApplies) Exec(ctx context.Context, req ListAppliesRequest) (*ListAp
 type ApplyWorker struct {
 	runApply  *RunApply
 	applyRepo ApplyRepo
+	tx        TransactionManager
 	applyChan chan uint
 }
 
-func NewApplyWorker(runApply *RunApply, applyRepo ApplyRepo) *ApplyWorker {
+func NewApplyWorker(runApply *RunApply, applyRepo ApplyRepo, tx TransactionManager) *ApplyWorker {
 	return &ApplyWorker{
 		runApply:  runApply,
 		applyRepo: applyRepo,
+		tx:        tx,
 		applyChan: make(chan uint, 100),
 	}
 }
@@ -168,7 +170,12 @@ func (aw *ApplyWorker) runApplyInBackground(ctx context.Context, applyID uint) {
 }
 
 func (aw *ApplyWorker) processQueuedApplies(ctx context.Context) {
-	applyIDs, err := aw.applyRepo.GetQueuedApplies(ctx)
+	var applyIDs []uint
+	err := aw.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
+		var err error
+		applyIDs, err = aw.applyRepo.GetQueuedApplies(ctx)
+		return err
+	})
 	if err != nil {
 		log.WithError(err).Error("Failed to get queued applies")
 		return

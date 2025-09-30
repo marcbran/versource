@@ -219,13 +219,15 @@ func (c *CreateRebase) Exec(ctx context.Context, req CreateRebaseRequest) (*Crea
 type RebaseWorker struct {
 	runRebase  *RunRebase
 	rebaseRepo RebaseRepo
+	tx         TransactionManager
 	rebaseChan chan uint
 }
 
-func NewRebaseWorker(runRebase *RunRebase, rebaseRepo RebaseRepo) *RebaseWorker {
+func NewRebaseWorker(runRebase *RunRebase, rebaseRepo RebaseRepo, tx TransactionManager) *RebaseWorker {
 	return &RebaseWorker{
 		runRebase:  runRebase,
 		rebaseRepo: rebaseRepo,
+		tx:         tx,
 		rebaseChan: make(chan uint, 100),
 	}
 }
@@ -274,7 +276,12 @@ func (rw *RebaseWorker) runRebaseInBackground(ctx context.Context, rebaseID uint
 }
 
 func (rw *RebaseWorker) processQueuedRebases(ctx context.Context) {
-	rebaseIDs, err := rw.rebaseRepo.GetQueuedRebases(ctx)
+	var rebaseIDs []uint
+	err := rw.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
+		var err error
+		rebaseIDs, err = rw.rebaseRepo.GetQueuedRebases(ctx)
+		return err
+	})
 	if err != nil {
 		log.WithError(err).Error("Failed to get queued rebases")
 		return

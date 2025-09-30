@@ -319,13 +319,15 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 type PlanWorker struct {
 	runPlan  *RunPlan
 	planRepo PlanRepo
+	tx       TransactionManager
 	planChan chan uint
 }
 
-func NewPlanWorker(runPlan *RunPlan, planRepo PlanRepo) *PlanWorker {
+func NewPlanWorker(runPlan *RunPlan, planRepo PlanRepo, tx TransactionManager) *PlanWorker {
 	return &PlanWorker{
 		runPlan:  runPlan,
 		planRepo: planRepo,
+		tx:       tx,
 		planChan: make(chan uint, 100),
 	}
 }
@@ -374,7 +376,12 @@ func (pw *PlanWorker) runPlanInBackground(ctx context.Context, planID uint) {
 }
 
 func (pw *PlanWorker) processQueuedPlans(ctx context.Context) {
-	planIDs, err := pw.planRepo.GetQueuedPlans(ctx)
+	var planIDs []uint
+	err := pw.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
+		var err error
+		planIDs, err = pw.planRepo.GetQueuedPlans(ctx)
+		return err
+	})
 	if err != nil {
 		log.WithError(err).Error("Failed to get queued plans")
 		return

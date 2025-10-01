@@ -42,7 +42,7 @@ var rebaseGetCmd = &cobra.Command{
 			return err
 		}
 		if !waitForCompletion || internal.IsTaskCompleted(rebaseResp.State) {
-			return renderValue(rebaseResp, func() string {
+			return renderViewModel(*rebaseResp, func() rebase.DetailViewModel {
 				return detailData.ResolveData(*rebaseResp)
 			})
 		}
@@ -63,7 +63,7 @@ var rebaseGetCmd = &cobra.Command{
 					continue
 				}
 
-				return renderValue(rebaseResp, func() string {
+				return renderViewModel(*rebaseResp, func() rebase.DetailViewModel {
 					return detailData.ResolveData(*rebaseResp)
 				})
 			}

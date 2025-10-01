@@ -7,7 +7,6 @@ import (
 
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
-	"gopkg.in/yaml.v3"
 )
 
 type VersionDetailData struct {
@@ -28,7 +27,7 @@ type VersionDetailViewModel struct {
 
 func NewVersionDetail(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataViewport(NewVersionDetailData(facade, params["moduleVersionID"]))
+		return platform.NewViewDataViewport(NewVersionDetailData(facade, params["moduleVersionID"]))
 	}
 }
 
@@ -52,8 +51,8 @@ func (p *VersionDetailData) LoadData() (*internal.GetModuleVersionResponse, erro
 	return moduleVersionResp, nil
 }
 
-func (p *VersionDetailData) ResolveData(data internal.GetModuleVersionResponse) string {
-	viewModel := VersionDetailViewModel{
+func (p *VersionDetailData) ResolveData(data internal.GetModuleVersionResponse) VersionDetailViewModel {
+	return VersionDetailViewModel{
 		ID:      data.ModuleVersion.ID,
 		Version: data.ModuleVersion.Version,
 		Module: struct {
@@ -68,13 +67,6 @@ func (p *VersionDetailData) ResolveData(data internal.GetModuleVersionResponse) 
 			ExecutorType: data.ModuleVersion.Module.ExecutorType,
 		},
 	}
-
-	yamlData, err := yaml.Marshal(viewModel)
-	if err != nil {
-		return fmt.Sprintf("Error marshaling to YAML: %v", err)
-	}
-
-	return string(yamlData)
 }
 
 func (p *VersionDetailData) KeyBindings(elem internal.GetModuleVersionResponse) platform.KeyBindings {

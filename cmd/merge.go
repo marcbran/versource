@@ -42,7 +42,7 @@ var mergeGetCmd = &cobra.Command{
 			return err
 		}
 		if !waitForCompletion || internal.IsTaskCompleted(mergeResp.State) {
-			return renderValue(mergeResp, func() string {
+			return renderViewModel(*mergeResp, func() merge.DetailViewModel {
 				return detailData.ResolveData(*mergeResp)
 			})
 		}
@@ -63,7 +63,7 @@ var mergeGetCmd = &cobra.Command{
 					continue
 				}
 
-				return renderValue(mergeResp, func() string {
+				return renderViewModel(*mergeResp, func() merge.DetailViewModel {
 					return detailData.ResolveData(*mergeResp)
 				})
 			}

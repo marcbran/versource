@@ -8,7 +8,6 @@ import (
 
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
-	"gopkg.in/yaml.v3"
 )
 
 type DetailData struct {
@@ -34,7 +33,7 @@ type DetailViewModel struct {
 
 func NewDetail(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataViewport(NewDetailData(
+		return platform.NewViewDataViewport(NewDetailData(
 			facade,
 			params["componentID"],
 			params["changesetName"],
@@ -66,7 +65,7 @@ func (p *DetailData) LoadData() (*internal.GetComponentResponse, error) {
 	return componentResp, nil
 }
 
-func (p *DetailData) ResolveData(data internal.GetComponentResponse) string {
+func (p *DetailData) ResolveData(data internal.GetComponentResponse) DetailViewModel {
 	var module *struct {
 		ID      uint   `yaml:"id"`
 		Source  string `yaml:"source"`
@@ -112,20 +111,13 @@ func (p *DetailData) ResolveData(data internal.GetComponentResponse) string {
 		}
 	}
 
-	viewModel := DetailViewModel{
+	return DetailViewModel{
 		ID:        data.Component.ID,
 		Name:      data.Component.Name,
 		Status:    string(data.Component.Status),
 		Module:    module,
 		Variables: variables,
 	}
-
-	yamlData, err := yaml.Marshal(viewModel)
-	if err != nil {
-		return fmt.Sprintf("Error marshaling to YAML: %v", err)
-	}
-
-	return string(yamlData)
 }
 
 func (p *DetailData) KeyBindings(elem internal.GetComponentResponse) platform.KeyBindings {

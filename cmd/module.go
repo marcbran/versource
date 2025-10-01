@@ -28,7 +28,7 @@ var moduleGetCmd = &cobra.Command{
 		}
 		httpClient := client.NewClient(config)
 		detailData := module.NewDetailData(httpClient, args[0])
-		return renderViewpointData(detailData)
+		return renderViewportViewData(detailData)
 	},
 }
 
@@ -194,7 +194,7 @@ var moduleVersionGetCmd = &cobra.Command{
 		}
 		httpClient := client.NewClient(config)
 		detailData := module.NewVersionDetailData(httpClient, args[0])
-		return renderViewpointData(detailData)
+		return renderViewportViewData(detailData)
 	},
 }
 

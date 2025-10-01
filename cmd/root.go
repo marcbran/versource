@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal/tui/platform"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var outputFormat string
@@ -59,6 +60,16 @@ func renderViewpointData[T any](detailData platform.ViewportData[T]) error {
 	})
 }
 
+func renderViewportViewData[T any, V any](detailData platform.ViewportViewData[T, V]) error {
+	resp, err := detailData.LoadData()
+	if err != nil {
+		return err
+	}
+	return renderViewModel[T, V](*resp, func() V {
+		return detailData.ResolveData(*resp)
+	})
+}
+
 func renderTableData[T any](tableData platform.TableData[T]) error {
 	resp, err := tableData.LoadData()
 	if err != nil {
@@ -67,6 +78,17 @@ func renderTableData[T any](tableData platform.TableData[T]) error {
 	return renderValue(resp, func() string {
 		columns, rows, _ := tableData.ResolveData(resp)
 		return renderTable(columns, rows)
+	})
+}
+
+func renderViewModel[T any, V any](data T, viewModelFunc func() V) error {
+	return renderValue(data, func() string {
+		viewModel := viewModelFunc()
+		yamlData, err := yaml.Marshal(viewModel)
+		if err != nil {
+			return fmt.Sprintf("Error marshaling to YAML: %v", err)
+		}
+		return string(yamlData)
 	})
 }
 

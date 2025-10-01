@@ -42,7 +42,7 @@ var planGetCmd = &cobra.Command{
 			return err
 		}
 		if !waitForCompletion || internal.IsTaskCompleted(planResp.State) {
-			return renderValue(planResp, func() string {
+			return renderViewModel(*planResp, func() plan.DetailViewModel {
 				return detailData.ResolveData(*planResp)
 			})
 		}
@@ -63,7 +63,7 @@ var planGetCmd = &cobra.Command{
 					continue
 				}
 
-				return renderValue(planResp, func() string {
+				return renderViewModel(*planResp, func() plan.DetailViewModel {
 					return detailData.ResolveData(*planResp)
 				})
 			}

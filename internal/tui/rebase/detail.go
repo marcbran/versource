@@ -7,7 +7,6 @@ import (
 
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
-	"gopkg.in/yaml.v3"
 )
 
 type DetailData struct {
@@ -26,7 +25,7 @@ type DetailViewModel struct {
 
 func NewDetail(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
-		return platform.NewDataViewport(NewDetailData(facade, params["changesetName"], params["rebaseID"]))
+		return platform.NewViewDataViewport(NewDetailData(facade, params["changesetName"], params["rebaseID"]))
 	}
 }
 
@@ -58,21 +57,14 @@ func (p *DetailData) LoadData() (*internal.GetRebaseResponse, error) {
 	return resp, nil
 }
 
-func (p *DetailData) ResolveData(data internal.GetRebaseResponse) string {
-	viewModel := DetailViewModel{
+func (p *DetailData) ResolveData(data internal.GetRebaseResponse) DetailViewModel {
+	return DetailViewModel{
 		ID:          data.ID,
 		ChangesetID: data.ChangesetID,
 		State:       string(data.State),
 		MergeBase:   data.MergeBase,
 		Head:        data.Head,
 	}
-
-	yamlData, err := yaml.Marshal(viewModel)
-	if err != nil {
-		return fmt.Sprintf("Error marshaling data: %v", err)
-	}
-
-	return string(yamlData)
 }
 
 func (p *DetailData) KeyBindings(elem internal.GetRebaseResponse) platform.KeyBindings {

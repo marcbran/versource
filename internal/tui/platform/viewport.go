@@ -1,8 +1,11 @@
 package platform
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/marcbran/versource/internal/tui/platform/util/yaml"
 )
 
 type DataViewport[T any] struct {
@@ -20,6 +23,15 @@ func NewDataViewport[T any](data ViewportData[T]) *DataViewport[T] {
 	return &DataViewport[T]{
 		viewport: vp,
 		data:     data,
+	}
+}
+
+func NewViewDataViewport[T any, V any](data ViewportViewData[T, V]) *DataViewport[T] {
+	vp := viewport.New(0, 0)
+
+	return &DataViewport[T]{
+		viewport: vp,
+		data:     YamlViewportData[T, V]{data: data},
 	}
 }
 
@@ -95,4 +107,33 @@ type ViewportData[T any] interface {
 	LoadData() (*T, error)
 	ResolveData(data T) string
 	KeyBindings(elem T) KeyBindings
+}
+
+type ViewportViewData[T any, V any] interface {
+	LoadData() (*T, error)
+	ResolveData(data T) V
+	KeyBindings(elem T) KeyBindings
+}
+
+type YamlViewportData[T any, V any] struct {
+	data ViewportViewData[T, V]
+}
+
+func (y YamlViewportData[T, V]) LoadData() (*T, error) {
+	return y.data.LoadData()
+}
+
+func (y YamlViewportData[T, V]) ResolveData(data T) string {
+	viewModel := y.data.ResolveData(data)
+
+	yamlData, err := yaml.Marshal(viewModel)
+	if err != nil {
+		return fmt.Sprintf("Error marshaling to YAML: %v", err)
+	}
+
+	return string(yamlData)
+}
+
+func (y YamlViewportData[T, V]) KeyBindings(elem T) KeyBindings {
+	return y.data.KeyBindings(elem)
 }

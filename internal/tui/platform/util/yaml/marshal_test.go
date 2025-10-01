@@ -104,7 +104,7 @@ func TestMarshal(t *testing.T) {
 				},
 				EmptyField: "",
 			},
-			expected: "person:\n    name: John\n    email: john@example.com\n    emptyStr:\nemptyField:\n",
+			expected: "person:\n  name: John\n  email: john@example.com\n  emptyStr:\nemptyField:\n",
 		},
 		{
 			name: "struct with custom yaml tags",

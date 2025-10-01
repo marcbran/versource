@@ -1,6 +1,7 @@
 package yaml
 
 import (
+	"bytes"
 	"reflect"
 	"strconv"
 
@@ -12,7 +13,16 @@ func Marshal(v interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return yaml.Marshal(node)
+
+	var buf bytes.Buffer
+	encoder := yaml.NewEncoder(&buf)
+	encoder.SetIndent(2)
+	err = encoder.Encode(node)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 func marshalToNode(v interface{}) (*yaml.Node, error) {

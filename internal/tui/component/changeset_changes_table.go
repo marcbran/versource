@@ -113,6 +113,9 @@ func (p *ChangesetChangesTableData) KeyBindings() platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "esc", Help: "View changesets", Command: "changesets"},
 		{Key: "C", Help: "Create component", Command: fmt.Sprintf("changesets/%s/components/create", p.changesetName)},
+		{Key: "M", Help: "Merge changeset", Command: fmt.Sprintf("changesets/%s/merge", p.changesetName)},
+		{Key: "R", Help: "Rebase changeset", Command: fmt.Sprintf("changesets/%s/rebase", p.changesetName)},
+		{Key: "D", Help: "Delete changeset", Command: fmt.Sprintf("changesets/%s/delete", p.changesetName)},
 	}
 }
 

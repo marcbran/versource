@@ -10,16 +10,16 @@ import (
 )
 
 type Plan struct {
-	ID          uint      `gorm:"primarykey" json:"id"`
-	Changeset   Changeset `gorm:"foreignKey:ChangesetID" json:"changeset"`
-	ChangesetID uint      `json:"changesetId"`
-	ComponentID uint      `json:"componentId"`
-	From        string    `gorm:"column:from" json:"from"`
-	To          string    `gorm:"column:to" json:"to"`
-	State       TaskState `gorm:"default:Queued" json:"state"`
-	Add         *int      `gorm:"column:add" json:"add"`
-	Change      *int      `gorm:"column:change" json:"change"`
-	Destroy     *int      `gorm:"column:destroy" json:"destroy"`
+	ID          uint      `gorm:"primarykey" json:"id" yaml:"id"`
+	Changeset   Changeset `gorm:"foreignKey:ChangesetID" json:"changeset" yaml:"changeset"`
+	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
+	ComponentID uint      `json:"componentId" yaml:"componentId"`
+	From        string    `gorm:"column:from" json:"from" yaml:"from"`
+	To          string    `gorm:"column:to" json:"to" yaml:"to"`
+	State       TaskState `gorm:"default:Queued" json:"state" yaml:"state"`
+	Add         *int      `gorm:"column:add" json:"add" yaml:"add"`
+	Change      *int      `gorm:"column:change" json:"change" yaml:"change"`
+	Destroy     *int      `gorm:"column:destroy" json:"destroy" yaml:"destroy"`
 }
 
 type PlanRepo interface {
@@ -55,22 +55,22 @@ func NewGetPlan(planRepo PlanRepo, componentRepo ComponentRepo, tx TransactionMa
 }
 
 type GetPlanRequest struct {
-	ChangesetName *string `json:"changesetName"`
-	PlanID        uint    `json:"planId"`
+	ChangesetName *string `json:"changesetName" yaml:"changesetName"`
+	PlanID        uint    `json:"planId" yaml:"planId"`
 }
 
 type GetPlanResponse struct {
-	ID          uint      `json:"id"`
-	ComponentID uint      `json:"componentId"`
-	ChangesetID uint      `json:"changesetId"`
-	From        string    `json:"from"`
-	To          string    `json:"to"`
-	State       TaskState `json:"state"`
-	Add         *int      `json:"add"`
-	Change      *int      `json:"change"`
-	Destroy     *int      `json:"destroy"`
-	Component   Component `json:"component"`
-	Changeset   Changeset `json:"changeset"`
+	ID          uint      `json:"id" yaml:"id"`
+	ComponentID uint      `json:"componentId" yaml:"componentId"`
+	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
+	From        string    `json:"from" yaml:"from"`
+	To          string    `json:"to" yaml:"to"`
+	State       TaskState `json:"state" yaml:"state"`
+	Add         *int      `json:"add" yaml:"add"`
+	Change      *int      `json:"change" yaml:"change"`
+	Destroy     *int      `json:"destroy" yaml:"destroy"`
+	Component   Component `json:"component" yaml:"component"`
+	Changeset   Changeset `json:"changeset" yaml:"changeset"`
 }
 
 func (g *GetPlan) Exec(ctx context.Context, req GetPlanRequest) (*GetPlanResponse, error) {
@@ -131,12 +131,12 @@ func NewGetPlanLog(logStore LogStore, tx TransactionManager) *GetPlanLog {
 }
 
 type GetPlanLogRequest struct {
-	ChangesetName *string `json:"changesetName"`
-	PlanID        uint    `json:"planId"`
+	ChangesetName *string `json:"changesetName" yaml:"changesetName"`
+	PlanID        uint    `json:"planId" yaml:"planId"`
 }
 
 type GetPlanLogResponse struct {
-	Content io.ReadCloser
+	Content io.ReadCloser `json:"content" yaml:"content"`
 }
 
 func (g *GetPlanLog) Exec(ctx context.Context, req GetPlanLogRequest) (*GetPlanLogResponse, error) {
@@ -172,11 +172,11 @@ func NewListPlans(planRepo PlanRepo, tx TransactionManager) *ListPlans {
 }
 
 type ListPlansRequest struct {
-	ChangesetName string `json:"changesetName"`
+	ChangesetName string `json:"changesetName" yaml:"changesetName"`
 }
 
 type ListPlansResponse struct {
-	Plans []Plan `json:"plans"`
+	Plans []Plan `json:"plans" yaml:"plans"`
 }
 
 func (l *ListPlans) Exec(ctx context.Context, req ListPlansRequest) (*ListPlansResponse, error) {
@@ -221,17 +221,17 @@ func NewCreatePlan(componentRepo ComponentRepo, componentChangeRepo ComponentCha
 }
 
 type CreatePlanRequest struct {
-	ComponentID uint   `json:"componentId"`
-	Changeset   string `json:"changeset"`
+	ComponentID uint   `json:"componentId" yaml:"componentId"`
+	Changeset   string `json:"changeset" yaml:"changeset"`
 }
 
 type CreatePlanResponse struct {
-	ID          uint      `json:"id"`
-	ComponentID uint      `json:"componentId"`
-	ChangesetID uint      `json:"changesetId"`
-	From        string    `json:"from"`
-	To          string    `json:"to"`
-	State       TaskState `json:"state"`
+	ID          uint      `json:"id" yaml:"id"`
+	ComponentID uint      `json:"componentId" yaml:"componentId"`
+	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
+	From        string    `json:"from" yaml:"from"`
+	To          string    `json:"to" yaml:"to"`
+	State       TaskState `json:"state" yaml:"state"`
 }
 
 func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePlanResponse, error) {

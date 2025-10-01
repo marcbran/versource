@@ -23,10 +23,10 @@ const (
 )
 
 type Changeset struct {
-	ID          uint                 `gorm:"primarykey" json:"id"`
-	Name        string               `gorm:"index" json:"name"`
-	State       ChangesetState       `gorm:"default:Open" json:"state"`
-	ReviewState ChangesetReviewState `gorm:"default:Draft" json:"reviewState"`
+	ID          uint                 `gorm:"primarykey" json:"id" yaml:"id"`
+	Name        string               `gorm:"index" json:"name" yaml:"name"`
+	State       ChangesetState       `gorm:"default:Open" json:"state" yaml:"state"`
+	ReviewState ChangesetReviewState `gorm:"default:Draft" json:"reviewState" yaml:"reviewState"`
 }
 
 type ChangesetRepo interface {
@@ -57,7 +57,7 @@ func NewListChangesets(changesetRepo ChangesetRepo, tx TransactionManager) *List
 type ListChangesetsRequest struct{}
 
 type ListChangesetsResponse struct {
-	Changesets []Changeset `json:"changesets"`
+	Changesets []Changeset `json:"changesets" yaml:"changesets"`
 }
 
 func (l *ListChangesets) Exec(ctx context.Context, req ListChangesetsRequest) (*ListChangesetsResponse, error) {
@@ -89,13 +89,13 @@ func NewCreateChangeset(changesetRepo ChangesetRepo, tx TransactionManager) *Cre
 }
 
 type CreateChangesetRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" yaml:"name"`
 }
 
 type CreateChangesetResponse struct {
-	ID    uint           `json:"id"`
-	Name  string         `json:"name"`
-	State ChangesetState `json:"state"`
+	ID    uint           `json:"id" yaml:"id"`
+	Name  string         `json:"name" yaml:"name"`
+	State ChangesetState `json:"state" yaml:"state"`
 }
 
 func (c *CreateChangeset) Exec(ctx context.Context, req CreateChangesetRequest) (*CreateChangesetResponse, error) {
@@ -166,13 +166,13 @@ func NewEnsureChangeset(changesetRepo ChangesetRepo, tx TransactionManager) *Ens
 }
 
 type EnsureChangesetRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" yaml:"name"`
 }
 
 type EnsureChangesetResponse struct {
-	ID    uint           `json:"id"`
-	Name  string         `json:"name"`
-	State ChangesetState `json:"state"`
+	ID    uint           `json:"id" yaml:"id"`
+	Name  string         `json:"name" yaml:"name"`
+	State ChangesetState `json:"state" yaml:"state"`
 }
 
 func (e *EnsureChangeset) Exec(ctx context.Context, req EnsureChangesetRequest) (*EnsureChangesetResponse, error) {
@@ -233,11 +233,11 @@ func NewDeleteChangeset(changesetRepo ChangesetRepo, planRepo PlanRepo, applyRep
 }
 
 type DeleteChangesetRequest struct {
-	ChangesetName string `json:"changesetName"`
+	ChangesetName string `json:"changesetName" yaml:"changesetName"`
 }
 
 type DeleteChangesetResponse struct {
-	ID uint `json:"id"`
+	ID uint `json:"id" yaml:"id"`
 }
 
 func (d *DeleteChangeset) Exec(ctx context.Context, req DeleteChangesetRequest) (*DeleteChangesetResponse, error) {

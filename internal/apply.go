@@ -25,12 +25,12 @@ func IsTaskCompleted(task TaskState) bool {
 }
 
 type Apply struct {
-	ID          uint      `gorm:"primarykey" json:"id"`
-	Plan        Plan      `gorm:"foreignKey:PlanID" json:"plan"`
-	PlanID      uint      `gorm:"uniqueIndex" json:"planId"`
-	Changeset   Changeset `gorm:"foreignKey:ChangesetID" json:"changeset"`
-	ChangesetID uint      `json:"changesetId"`
-	State       TaskState `gorm:"default:Queued" json:"state"`
+	ID          uint      `gorm:"primarykey" json:"id" yaml:"id"`
+	Plan        Plan      `gorm:"foreignKey:PlanID" json:"plan" yaml:"plan"`
+	PlanID      uint      `gorm:"uniqueIndex" json:"planId" yaml:"planId"`
+	Changeset   Changeset `gorm:"foreignKey:ChangesetID" json:"changeset" yaml:"changeset"`
+	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
+	State       TaskState `gorm:"default:Queued" json:"state" yaml:"state"`
 }
 
 type ApplyRepo interface {
@@ -58,37 +58,37 @@ func NewGetApply(applyRepo ApplyRepo, componentRepo ComponentRepo, tx Transactio
 }
 
 type GetApplyRequest struct {
-	ApplyID uint `json:"applyId"`
+	ApplyID uint `json:"applyId" yaml:"applyId"`
 }
 
 type GetApplyResponse struct {
-	ID          uint      `json:"id"`
-	PlanID      uint      `json:"planId"`
-	ChangesetID uint      `json:"changesetId"`
-	State       TaskState `json:"state"`
+	ID          uint      `json:"id" yaml:"id"`
+	PlanID      uint      `json:"planId" yaml:"planId"`
+	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
+	State       TaskState `json:"state" yaml:"state"`
 	Plan        struct {
-		ID          uint      `json:"id"`
-		State       TaskState `json:"state"`
-		From        string    `json:"from"`
-		To          string    `json:"to"`
-		Add         *int      `json:"add,omitempty"`
-		Change      *int      `json:"change,omitempty"`
-		Destroy     *int      `json:"destroy,omitempty"`
-		ComponentID uint      `json:"componentId"`
+		ID          uint      `json:"id" yaml:"id"`
+		State       TaskState `json:"state" yaml:"state"`
+		From        string    `json:"from" yaml:"from"`
+		To          string    `json:"to" yaml:"to"`
+		Add         *int      `json:"add,omitempty" yaml:"add,omitempty"`
+		Change      *int      `json:"change,omitempty" yaml:"change,omitempty"`
+		Destroy     *int      `json:"destroy,omitempty" yaml:"destroy,omitempty"`
+		ComponentID uint      `json:"componentId" yaml:"componentId"`
 		Component   struct {
-			ID   uint   `json:"id"`
-			Name string `json:"name"`
-		} `json:"component"`
-		ChangesetID uint `json:"changesetId"`
+			ID   uint   `json:"id" yaml:"id"`
+			Name string `json:"name" yaml:"name"`
+		} `json:"component" yaml:"component"`
+		ChangesetID uint `json:"changesetId" yaml:"changesetId"`
 		Changeset   struct {
-			ID   uint   `json:"id"`
-			Name string `json:"name"`
-		} `json:"changeset"`
-	} `json:"plan"`
+			ID   uint   `json:"id" yaml:"id"`
+			Name string `json:"name" yaml:"name"`
+		} `json:"changeset" yaml:"changeset"`
+	} `json:"plan" yaml:"plan"`
 	Changeset struct {
-		ID   uint   `json:"id"`
-		Name string `json:"name"`
-	} `json:"changeset"`
+		ID   uint   `json:"id" yaml:"id"`
+		Name string `json:"name" yaml:"name"`
+	} `json:"changeset" yaml:"changeset"`
 }
 
 func (g *GetApply) Exec(ctx context.Context, req GetApplyRequest) (*GetApplyResponse, error) {
@@ -127,23 +127,23 @@ func (g *GetApply) Exec(ctx context.Context, req GetApplyRequest) (*GetApplyResp
 		ChangesetID: apply.ChangesetID,
 		State:       apply.State,
 		Plan: struct {
-			ID          uint      `json:"id"`
-			State       TaskState `json:"state"`
-			From        string    `json:"from"`
-			To          string    `json:"to"`
-			Add         *int      `json:"add,omitempty"`
-			Change      *int      `json:"change,omitempty"`
-			Destroy     *int      `json:"destroy,omitempty"`
-			ComponentID uint      `json:"componentId"`
+			ID          uint      `json:"id" yaml:"id"`
+			State       TaskState `json:"state" yaml:"state"`
+			From        string    `json:"from" yaml:"from"`
+			To          string    `json:"to" yaml:"to"`
+			Add         *int      `json:"add,omitempty" yaml:"add,omitempty"`
+			Change      *int      `json:"change,omitempty" yaml:"change,omitempty"`
+			Destroy     *int      `json:"destroy,omitempty" yaml:"destroy,omitempty"`
+			ComponentID uint      `json:"componentId" yaml:"componentId"`
 			Component   struct {
-				ID   uint   `json:"id"`
-				Name string `json:"name"`
-			} `json:"component"`
-			ChangesetID uint `json:"changesetId"`
+				ID   uint   `json:"id" yaml:"id"`
+				Name string `json:"name" yaml:"name"`
+			} `json:"component" yaml:"component"`
+			ChangesetID uint `json:"changesetId" yaml:"changesetId"`
 			Changeset   struct {
-				ID   uint   `json:"id"`
-				Name string `json:"name"`
-			} `json:"changeset"`
+				ID   uint   `json:"id" yaml:"id"`
+				Name string `json:"name" yaml:"name"`
+			} `json:"changeset" yaml:"changeset"`
 		}{
 			ID:          apply.Plan.ID,
 			State:       apply.Plan.State,
@@ -154,24 +154,24 @@ func (g *GetApply) Exec(ctx context.Context, req GetApplyRequest) (*GetApplyResp
 			Destroy:     apply.Plan.Destroy,
 			ComponentID: apply.Plan.ComponentID,
 			Component: struct {
-				ID   uint   `json:"id"`
-				Name string `json:"name"`
+				ID   uint   `json:"id" yaml:"id"`
+				Name string `json:"name" yaml:"name"`
 			}{
 				ID:   component.ID,
 				Name: component.Name,
 			},
 			ChangesetID: apply.Plan.ChangesetID,
 			Changeset: struct {
-				ID   uint   `json:"id"`
-				Name string `json:"name"`
+				ID   uint   `json:"id" yaml:"id"`
+				Name string `json:"name" yaml:"name"`
 			}{
 				ID:   apply.Plan.Changeset.ID,
 				Name: apply.Plan.Changeset.Name,
 			},
 		},
 		Changeset: struct {
-			ID   uint   `json:"id"`
-			Name string `json:"name"`
+			ID   uint   `json:"id" yaml:"id"`
+			Name string `json:"name" yaml:"name"`
 		}{
 			ID:   apply.Changeset.ID,
 			Name: apply.Changeset.Name,
@@ -192,11 +192,11 @@ func NewGetApplyLog(logStore LogStore) *GetApplyLog {
 }
 
 type GetApplyLogRequest struct {
-	ApplyID uint `json:"applyId"`
+	ApplyID uint `json:"applyId" yaml:"applyId"`
 }
 
 type GetApplyLogResponse struct {
-	Content io.ReadCloser `json:"content"`
+	Content io.ReadCloser `json:"content" yaml:"content"`
 }
 
 func (g *GetApplyLog) Exec(ctx context.Context, req GetApplyLogRequest) (*GetApplyLogResponse, error) {
@@ -229,7 +229,7 @@ func NewListApplies(applyRepo ApplyRepo, tx TransactionManager) *ListApplies {
 type ListAppliesRequest struct{}
 
 type ListAppliesResponse struct {
-	Applies []Apply `json:"applies"`
+	Applies []Apply `json:"applies" yaml:"applies"`
 }
 
 func (l *ListApplies) Exec(ctx context.Context, req ListAppliesRequest) (*ListAppliesResponse, error) {

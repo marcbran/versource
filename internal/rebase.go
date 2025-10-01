@@ -9,12 +9,12 @@ import (
 )
 
 type Rebase struct {
-	ID          uint      `gorm:"primarykey" json:"id"`
-	Changeset   Changeset `gorm:"foreignKey:ChangesetID" json:"changeset"`
-	ChangesetID uint      `json:"changesetId"`
-	MergeBase   string    `gorm:"column:merge_base" json:"mergeBase"`
-	Head        string    `gorm:"column:head" json:"head"`
-	State       TaskState `gorm:"default:Queued" json:"state"`
+	ID          uint      `gorm:"primarykey" json:"id" yaml:"id"`
+	Changeset   Changeset `gorm:"foreignKey:ChangesetID" json:"changeset" yaml:"changeset"`
+	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
+	MergeBase   string    `gorm:"column:merge_base" json:"mergeBase" yaml:"mergeBase"`
+	Head        string    `gorm:"column:head" json:"head" yaml:"head"`
+	State       TaskState `gorm:"default:Queued" json:"state" yaml:"state"`
 }
 
 type RebaseRepo interface {
@@ -40,16 +40,16 @@ func NewGetRebase(rebaseRepo RebaseRepo, tx TransactionManager) *GetRebase {
 }
 
 type GetRebaseRequest struct {
-	RebaseID      uint   `json:"rebaseId"`
-	ChangesetName string `json:"changesetName"`
+	RebaseID      uint   `json:"rebaseId" yaml:"rebaseId"`
+	ChangesetName string `json:"changesetName" yaml:"changesetName"`
 }
 
 type GetRebaseResponse struct {
-	ID          uint      `json:"id"`
-	ChangesetID uint      `json:"changesetId"`
-	MergeBase   string    `json:"mergeBase"`
-	Head        string    `json:"head"`
-	State       TaskState `json:"state"`
+	ID          uint      `json:"id" yaml:"id"`
+	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
+	MergeBase   string    `json:"mergeBase" yaml:"mergeBase"`
+	Head        string    `json:"head" yaml:"head"`
+	State       TaskState `json:"state" yaml:"state"`
 }
 
 func (g *GetRebase) Exec(ctx context.Context, req GetRebaseRequest) (*GetRebaseResponse, error) {
@@ -93,11 +93,11 @@ func NewListRebases(rebaseRepo RebaseRepo, tx TransactionManager) *ListRebases {
 }
 
 type ListRebasesRequest struct {
-	ChangesetName string `json:"changesetName"`
+	ChangesetName string `json:"changesetName" yaml:"changesetName"`
 }
 
 type ListRebasesResponse struct {
-	Rebases []Rebase `json:"rebases"`
+	Rebases []Rebase `json:"rebases" yaml:"rebases"`
 }
 
 func (l *ListRebases) Exec(ctx context.Context, req ListRebasesRequest) (*ListRebasesResponse, error) {
@@ -137,15 +137,15 @@ func NewCreateRebase(changesetRepo ChangesetRepo, rebaseRepo RebaseRepo, tx Tran
 }
 
 type CreateRebaseRequest struct {
-	ChangesetName string `json:"changesetName"`
+	ChangesetName string `json:"changesetName" yaml:"changesetName"`
 }
 
 type CreateRebaseResponse struct {
-	ID          uint      `json:"id"`
-	ChangesetID uint      `json:"changesetId"`
-	MergeBase   string    `json:"mergeBase"`
-	Head        string    `json:"head"`
-	State       TaskState `json:"state"`
+	ID          uint      `json:"id" yaml:"id"`
+	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
+	MergeBase   string    `json:"mergeBase" yaml:"mergeBase"`
+	Head        string    `json:"head" yaml:"head"`
+	State       TaskState `json:"state" yaml:"state"`
 }
 
 func (c *CreateRebase) Exec(ctx context.Context, req CreateRebaseRequest) (*CreateRebaseResponse, error) {

@@ -7,19 +7,19 @@ import (
 )
 
 type Module struct {
-	ID           uint   `gorm:"primarykey" json:"id"`
-	Name         string `gorm:"uniqueIndex;not null" json:"name"`
-	Source       string `json:"source"`
-	ExecutorType string `gorm:"not null;default:'terraform-module'" json:"executorType"`
+	ID           uint   `gorm:"primarykey" json:"id" yaml:"id"`
+	Name         string `gorm:"uniqueIndex;not null" json:"name" yaml:"name"`
+	Source       string `json:"source" yaml:"source"`
+	ExecutorType string `gorm:"not null;default:'terraform-module'" json:"executorType" yaml:"executorType"`
 }
 
 type ModuleVersion struct {
-	ID        uint           `gorm:"primarykey" json:"id"`
-	Module    Module         `gorm:"foreignKey:ModuleID" json:"module"`
-	ModuleID  uint           `json:"moduleId"`
-	Version   string         `json:"version"`
-	Variables datatypes.JSON `gorm:"type:jsonb" json:"variables"`
-	Outputs   datatypes.JSON `gorm:"type:jsonb" json:"outputs"`
+	ID        uint           `gorm:"primarykey" json:"id" yaml:"id"`
+	Module    Module         `gorm:"foreignKey:ModuleID" json:"module" yaml:"module"`
+	ModuleID  uint           `json:"moduleId" yaml:"moduleId"`
+	Version   string         `json:"version" yaml:"version"`
+	Variables datatypes.JSON `gorm:"type:jsonb" json:"variables" yaml:"variables"`
+	Outputs   datatypes.JSON `gorm:"type:jsonb" json:"outputs" yaml:"outputs"`
 }
 
 type ModuleRepo interface {
@@ -54,12 +54,12 @@ func NewGetModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo, tx
 }
 
 type GetModuleRequest struct {
-	ModuleID uint `json:"moduleId"`
+	ModuleID uint `json:"moduleId" yaml:"moduleId"`
 }
 
 type GetModuleResponse struct {
-	Module        Module         `json:"module"`
-	LatestVersion *ModuleVersion `json:"latestVersion,omitempty"`
+	Module        Module         `json:"module" yaml:"module"`
+	LatestVersion *ModuleVersion `json:"latestVersion,omitempty" yaml:"latestVersion,omitempty"`
 }
 
 func (g *GetModule) Exec(ctx context.Context, req GetModuleRequest) (*GetModuleResponse, error) {
@@ -104,7 +104,7 @@ func NewListModules(moduleRepo ModuleRepo, tx TransactionManager) *ListModules {
 type ListModulesRequest struct{}
 
 type ListModulesResponse struct {
-	Modules []Module `json:"modules"`
+	Modules []Module `json:"modules" yaml:"modules"`
 }
 
 func (l *ListModules) Exec(ctx context.Context, req ListModulesRequest) (*ListModulesResponse, error) {
@@ -145,11 +145,11 @@ type CreateModuleRequest struct {
 }
 
 type CreateModuleResponse struct {
-	ID        uint   `json:"id"`
-	Name      string `json:"name"`
-	Source    string `json:"source"`
-	VersionID uint   `json:"versionId"`
-	Version   string `json:"version"`
+	ID        uint   `json:"id" yaml:"id"`
+	Name      string `json:"name" yaml:"name"`
+	Source    string `json:"source" yaml:"source"`
+	VersionID uint   `json:"versionId" yaml:"versionId"`
+	Version   string `json:"version" yaml:"version"`
 }
 
 func (c *CreateModule) Exec(ctx context.Context, req CreateModuleRequest) (*CreateModuleResponse, error) {
@@ -221,14 +221,14 @@ func NewUpdateModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo,
 }
 
 type UpdateModuleRequest struct {
-	ModuleID uint   `json:"moduleId"`
-	Version  string `json:"version"`
+	ModuleID uint   `json:"moduleId" yaml:"moduleId"`
+	Version  string `json:"version" yaml:"version"`
 }
 
 type UpdateModuleResponse struct {
-	ModuleID  uint   `json:"moduleId"`
-	VersionID uint   `json:"versionId"`
-	Version   string `json:"version"`
+	ModuleID  uint   `json:"moduleId" yaml:"moduleId"`
+	VersionID uint   `json:"versionId" yaml:"versionId"`
+	Version   string `json:"version" yaml:"version"`
 }
 
 func (u *UpdateModule) Exec(ctx context.Context, req UpdateModuleRequest) (*UpdateModuleResponse, error) {
@@ -298,11 +298,11 @@ func NewDeleteModule(moduleRepo ModuleRepo, componentRepo ComponentRepo, tx Tran
 }
 
 type DeleteModuleRequest struct {
-	ModuleID uint `json:"moduleId"`
+	ModuleID uint `json:"moduleId" yaml:"moduleId"`
 }
 
 type DeleteModuleResponse struct {
-	ModuleID uint `json:"moduleId"`
+	ModuleID uint `json:"moduleId" yaml:"moduleId"`
 }
 
 func (d *DeleteModule) Exec(ctx context.Context, req DeleteModuleRequest) (*DeleteModuleResponse, error) {
@@ -360,11 +360,11 @@ func NewGetModuleVersion(moduleVersionRepo ModuleVersionRepo, tx TransactionMana
 }
 
 type GetModuleVersionRequest struct {
-	ModuleVersionID uint `json:"moduleVersionId"`
+	ModuleVersionID uint `json:"moduleVersionId" yaml:"moduleVersionId"`
 }
 
 type GetModuleVersionResponse struct {
-	ModuleVersion ModuleVersion `json:"moduleVersion"`
+	ModuleVersion ModuleVersion `json:"moduleVersion" yaml:"moduleVersion"`
 }
 
 func (g *GetModuleVersion) Exec(ctx context.Context, req GetModuleVersionRequest) (*GetModuleVersionResponse, error) {
@@ -400,11 +400,11 @@ func NewListModuleVersions(moduleVersionRepo ModuleVersionRepo, tx TransactionMa
 }
 
 type ListModuleVersionsRequest struct {
-	ModuleID *uint `json:"moduleId,omitempty"`
+	ModuleID *uint `json:"moduleId,omitempty" yaml:"moduleId,omitempty"`
 }
 
 type ListModuleVersionsResponse struct {
-	ModuleVersions []ModuleVersion `json:"moduleVersions"`
+	ModuleVersions []ModuleVersion `json:"moduleVersions" yaml:"moduleVersions"`
 }
 
 func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error) {

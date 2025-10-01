@@ -10,10 +10,10 @@ import (
 )
 
 type State struct {
-	ID          uint           `gorm:"primarykey" json:"id"`
-	Component   Component      `gorm:"foreignKey:ComponentID" json:"component"`
-	ComponentID uint           `gorm:"uniqueIndex" json:"componentId"`
-	Output      datatypes.JSON `gorm:"type:jsonb" json:"output"`
+	ID          uint           `gorm:"primarykey" json:"id" yaml:"id"`
+	Component   Component      `gorm:"foreignKey:ComponentID" json:"component" yaml:"component"`
+	ComponentID uint           `gorm:"uniqueIndex" json:"componentId" yaml:"componentId"`
+	Output      datatypes.JSON `gorm:"type:jsonb" json:"output" yaml:"output"`
 }
 
 type StateRepo interface {
@@ -21,17 +21,17 @@ type StateRepo interface {
 }
 
 type StateResource struct {
-	ID           uint         `gorm:"primarykey" json:"id"`
-	State        State        `gorm:"foreignKey:StateID" json:"state"`
-	StateID      uint         `json:"stateId"`
-	Resource     Resource     `gorm:"foreignKey:ResourceID" json:"resource"`
-	ResourceID   string       `json:"resourceId"`
-	Mode         ResourceMode `json:"mode"`
-	ProviderName string       `json:"providerName"`
-	Type         string       `json:"type"`
-	Address      string       `json:"address"`
-	Count        *int         `json:"count"`
-	ForEach      *string      `json:"forEach"`
+	ID           uint         `gorm:"primarykey" json:"id" yaml:"id"`
+	State        State        `gorm:"foreignKey:StateID" json:"state" yaml:"state"`
+	StateID      uint         `json:"stateId" yaml:"stateId"`
+	Resource     Resource     `gorm:"foreignKey:ResourceID" json:"resource" yaml:"resource"`
+	ResourceID   string       `json:"resourceId" yaml:"resourceId"`
+	Mode         ResourceMode `json:"mode" yaml:"mode"`
+	ProviderName string       `json:"providerName" yaml:"providerName"`
+	Type         string       `json:"type" yaml:"type"`
+	Address      string       `json:"address" yaml:"address"`
+	Count        *int         `json:"count" yaml:"count"`
+	ForEach      *string      `json:"forEach" yaml:"forEach"`
 }
 
 type ResourceMode string
@@ -46,13 +46,13 @@ type StateResourceRepo interface {
 }
 
 type Resource struct {
-	ID            string         `gorm:"primarykey;type:varchar(36)" json:"id"`
-	Provider      string         `json:"provider"`
-	ProviderAlias *string        `json:"providerAlias"`
-	ResourceType  string         `json:"resourceType"`
-	Namespace     *string        `json:"namespace"`
-	Name          string         `json:"name"`
-	Attributes    datatypes.JSON `gorm:"type:jsonb" json:"attributes"`
+	ID            string         `gorm:"primarykey;type:varchar(36)" json:"id" yaml:"id"`
+	Provider      string         `json:"provider" yaml:"provider"`
+	ProviderAlias *string        `json:"providerAlias" yaml:"providerAlias"`
+	ResourceType  string         `json:"resourceType" yaml:"resourceType"`
+	Namespace     *string        `json:"namespace" yaml:"namespace"`
+	Name          string         `json:"name" yaml:"name"`
+	Attributes    datatypes.JSON `gorm:"type:jsonb" json:"attributes" yaml:"attributes"`
 }
 
 func (r *Resource) GenerateID() {

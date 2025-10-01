@@ -9,12 +9,12 @@ import (
 )
 
 type Component struct {
-	ID              uint            `gorm:"primarykey" json:"id"`
-	Name            string          `gorm:"not null;default:'';uniqueIndex" json:"name"`
-	ModuleVersion   ModuleVersion   `gorm:"foreignKey:ModuleVersionID" json:"moduleVersion"`
-	ModuleVersionID uint            `json:"moduleVersionId"`
-	Variables       datatypes.JSON  `gorm:"type:jsonb" json:"variables"`
-	Status          ComponentStatus `gorm:"default:Ready" json:"status"`
+	ID              uint            `gorm:"primarykey" json:"id" yaml:"id"`
+	Name            string          `gorm:"not null;default:'';uniqueIndex" json:"name" yaml:"name"`
+	ModuleVersion   ModuleVersion   `gorm:"foreignKey:ModuleVersionID" json:"moduleVersion" yaml:"moduleVersion"`
+	ModuleVersionID uint            `json:"moduleVersionId" yaml:"moduleVersionId"`
+	Variables       datatypes.JSON  `gorm:"type:jsonb" json:"variables" yaml:"variables"`
+	Status          ComponentStatus `gorm:"default:Ready" json:"status" yaml:"status"`
 }
 
 type ComponentStatus string
@@ -25,12 +25,12 @@ const (
 )
 
 type ComponentChange struct {
-	FromComponent *Component `json:"fromComponent,omitempty"`
-	ToComponent   *Component `json:"toComponent,omitempty"`
-	ChangeType    ChangeType `json:"changeType"`
-	Plan          *Plan      `json:"plan,omitempty"`
-	FromCommit    string     `json:"fromCommit,omitempty"`
-	ToCommit      string     `json:"toCommit,omitempty"`
+	FromComponent *Component `json:"fromComponent,omitempty" yaml:"fromComponent,omitempty"`
+	ToComponent   *Component `json:"toComponent,omitempty" yaml:"toComponent,omitempty"`
+	ChangeType    ChangeType `json:"changeType" yaml:"changeType"`
+	Plan          *Plan      `json:"plan,omitempty" yaml:"plan,omitempty"`
+	FromCommit    string     `json:"fromCommit,omitempty" yaml:"fromCommit,omitempty"`
+	ToCommit      string     `json:"toCommit,omitempty" yaml:"toCommit,omitempty"`
 }
 
 type ChangeType string
@@ -72,12 +72,12 @@ func NewGetComponent(componentRepo ComponentRepo, tx TransactionManager) *GetCom
 }
 
 type GetComponentRequest struct {
-	ComponentID   uint    `json:"componentId"`
-	ChangesetName *string `json:"changesetName,omitempty"`
+	ComponentID   uint    `json:"componentId" yaml:"componentId"`
+	ChangesetName *string `json:"changesetName,omitempty" yaml:"changesetName,omitempty"`
 }
 
 type GetComponentResponse struct {
-	Component Component `json:"component"`
+	Component Component `json:"component" yaml:"component"`
 }
 
 func (g *GetComponent) Exec(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error) {
@@ -115,13 +115,13 @@ func NewListComponents(componentRepo ComponentRepo, tx TransactionManager) *List
 }
 
 type ListComponentsRequest struct {
-	ModuleID        *uint   `json:"moduleId,omitempty"`
-	ModuleVersionID *uint   `json:"moduleVersionId,omitempty"`
-	ChangesetName   *string `json:"changesetName,omitempty"`
+	ModuleID        *uint   `json:"moduleId,omitempty" yaml:"moduleId,omitempty"`
+	ModuleVersionID *uint   `json:"moduleVersionId,omitempty" yaml:"moduleVersionId,omitempty"`
+	ChangesetName   *string `json:"changesetName,omitempty" yaml:"changesetName,omitempty"`
 }
 
 type ListComponentsResponse struct {
-	Components []Component `json:"components"`
+	Components []Component `json:"components" yaml:"components"`
 }
 
 func (l *ListComponents) Exec(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error) {
@@ -167,12 +167,12 @@ func NewGetComponentChange(componentChangeRepo ComponentChangeRepo, tx Transacti
 }
 
 type GetComponentChangeRequest struct {
-	ComponentID uint   `json:"componentId"`
-	Changeset   string `json:"changeset"`
+	ComponentID uint   `json:"componentId" yaml:"componentId"`
+	Changeset   string `json:"changeset" yaml:"changeset"`
 }
 
 type GetComponentChangeResponse struct {
-	Change ComponentChange `json:"change"`
+	Change ComponentChange `json:"change" yaml:"change"`
 }
 
 func (g *GetComponentChange) Exec(ctx context.Context, req GetComponentChangeRequest) (*GetComponentChangeResponse, error) {
@@ -208,11 +208,11 @@ func NewListComponentChanges(componentChangeRepo ComponentChangeRepo, tx Transac
 }
 
 type ListComponentChangesRequest struct {
-	Changeset string `json:"changeset"`
+	Changeset string `json:"changeset" yaml:"changeset"`
 }
 
 type ListComponentChangesResponse struct {
-	Changes []ComponentChange `json:"changes"`
+	Changes []ComponentChange `json:"changes" yaml:"changes"`
 }
 
 func (l *ListComponentChanges) Exec(ctx context.Context, req ListComponentChangesRequest) (*ListComponentChangesResponse, error) {
@@ -263,12 +263,12 @@ type CreateComponentRequest struct {
 }
 
 type CreateComponentResponse struct {
-	ID        uint           `json:"id"`
-	Name      string         `json:"name"`
-	Source    string         `json:"source"`
-	Version   string         `json:"version"`
-	Variables map[string]any `json:"variables"`
-	PlanID    uint           `json:"planId"`
+	ID        uint           `json:"id" yaml:"id"`
+	Name      string         `json:"name" yaml:"name"`
+	Source    string         `json:"source" yaml:"source"`
+	Version   string         `json:"version" yaml:"version"`
+	Variables map[string]any `json:"variables" yaml:"variables"`
+	PlanID    uint           `json:"planId" yaml:"planId"`
 }
 
 func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) (*CreateComponentResponse, error) {
@@ -368,19 +368,19 @@ func NewUpdateComponent(componentRepo ComponentRepo, moduleVersionRepo ModuleVer
 }
 
 type UpdateComponentRequest struct {
-	ComponentID uint            `json:"componentId"`
-	Changeset   string          `json:"changeset"`
-	ModuleID    *uint           `json:"moduleId,omitempty"`
-	Variables   *map[string]any `json:"variables,omitempty"`
+	ComponentID uint            `json:"componentId" yaml:"componentId"`
+	Changeset   string          `json:"changeset" yaml:"changeset"`
+	ModuleID    *uint           `json:"moduleId,omitempty" yaml:"moduleId,omitempty"`
+	Variables   *map[string]any `json:"variables,omitempty" yaml:"variables,omitempty"`
 }
 
 type UpdateComponentResponse struct {
-	ID        uint           `json:"id"`
-	Name      string         `json:"name"`
-	Source    string         `json:"source"`
-	Version   string         `json:"version"`
-	Variables map[string]any `json:"variables"`
-	PlanID    uint           `json:"planId"`
+	ID        uint           `json:"id" yaml:"id"`
+	Name      string         `json:"name" yaml:"name"`
+	Source    string         `json:"source" yaml:"source"`
+	Version   string         `json:"version" yaml:"version"`
+	Variables map[string]any `json:"variables" yaml:"variables"`
+	PlanID    uint           `json:"planId" yaml:"planId"`
 }
 
 func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) (*UpdateComponentResponse, error) {
@@ -522,18 +522,18 @@ func NewDeleteComponent(componentRepo ComponentRepo, componentChangeRepo Compone
 }
 
 type DeleteComponentRequest struct {
-	ComponentID uint   `json:"componentId"`
-	Changeset   string `json:"changeset"`
+	ComponentID uint   `json:"componentId" yaml:"componentId"`
+	Changeset   string `json:"changeset" yaml:"changeset"`
 }
 
 type DeleteComponentResponse struct {
-	ID        uint            `json:"id"`
-	Name      string          `json:"name"`
-	Source    string          `json:"source"`
-	Version   string          `json:"version"`
-	Variables map[string]any  `json:"variables"`
-	Status    ComponentStatus `json:"status"`
-	PlanID    uint            `json:"planId"`
+	ID        uint            `json:"id" yaml:"id"`
+	Name      string          `json:"name" yaml:"name"`
+	Source    string          `json:"source" yaml:"source"`
+	Version   string          `json:"version" yaml:"version"`
+	Variables map[string]any  `json:"variables" yaml:"variables"`
+	Status    ComponentStatus `json:"status" yaml:"status"`
+	PlanID    uint            `json:"planId" yaml:"planId"`
 }
 
 func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) (*DeleteComponentResponse, error) {
@@ -674,18 +674,18 @@ func NewRestoreComponent(componentRepo ComponentRepo, componentChangeRepo Compon
 }
 
 type RestoreComponentRequest struct {
-	ComponentID uint   `json:"componentId"`
-	Changeset   string `json:"changeset"`
+	ComponentID uint   `json:"componentId" yaml:"componentId"`
+	Changeset   string `json:"changeset" yaml:"changeset"`
 }
 
 type RestoreComponentResponse struct {
-	ID        uint            `json:"id"`
-	Name      string          `json:"name"`
-	Source    string          `json:"source"`
-	Version   string          `json:"version"`
-	Variables map[string]any  `json:"variables"`
-	Status    ComponentStatus `json:"status"`
-	PlanID    uint            `json:"planId"`
+	ID        uint            `json:"id" yaml:"id"`
+	Name      string          `json:"name" yaml:"name"`
+	Source    string          `json:"source" yaml:"source"`
+	Version   string          `json:"version" yaml:"version"`
+	Variables map[string]any  `json:"variables" yaml:"variables"`
+	Status    ComponentStatus `json:"status" yaml:"status"`
+	PlanID    uint            `json:"planId" yaml:"planId"`
 }
 
 func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest) (*RestoreComponentResponse, error) {

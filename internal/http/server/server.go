@@ -190,7 +190,7 @@ func (s *Server) setupRoutes() {
 }
 
 type ErrorResponse struct {
-	Message string `json:"message"`
+	Message string `json:"message" yaml:"message"`
 }
 
 func returnSuccess(w http.ResponseWriter, data any) {

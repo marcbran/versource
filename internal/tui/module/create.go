@@ -18,13 +18,13 @@ func NewCreateModule(facade internal.Facade) func(params map[string]string) plat
 	}
 }
 
-func (c *CreateModuleData) GetInitialValue() internal.CreateModuleRequest {
+func (c *CreateModuleData) GetInitialValue() (internal.CreateModuleRequest, error) {
 	return internal.CreateModuleRequest{
 		Name:         "",
 		Source:       "",
 		Version:      "",
 		ExecutorType: "terraform-jsonnet",
-	}
+	}, nil
 }
 
 func (c *CreateModuleData) SaveData(ctx context.Context, data internal.CreateModuleRequest) (string, error) {

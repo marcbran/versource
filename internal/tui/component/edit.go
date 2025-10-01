@@ -26,23 +26,20 @@ func NewEdit(facade internal.Facade) func(params map[string]string) platform.Pag
 	}
 }
 
-func (e *EditComponentData) GetInitialValue() internal.UpdateComponentRequest {
+func (e *EditComponentData) GetInitialValue() (internal.UpdateComponentRequest, error) {
 	componentID := uint(0)
 	if e.componentID != "" {
-		if id, err := strconv.ParseUint(e.componentID, 10, 32); err == nil {
-			componentID = uint(id)
+		id, err := strconv.ParseUint(e.componentID, 10, 32)
+		if err != nil {
+			return internal.UpdateComponentRequest{}, err
 		}
+		componentID = uint(id)
 	}
 
 	ctx := context.Background()
 	componentResp, err := e.facade.GetComponent(ctx, internal.GetComponentRequest{ComponentID: componentID, ChangesetName: &e.changesetName})
 	if err != nil {
-		return internal.UpdateComponentRequest{
-			ComponentID:   componentID,
-			ChangesetName: e.changesetName,
-			ModuleID:      nil,
-			Variables:     nil,
-		}
+		return internal.UpdateComponentRequest{}, err
 	}
 
 	var variables map[string]any
@@ -50,12 +47,17 @@ func (e *EditComponentData) GetInitialValue() internal.UpdateComponentRequest {
 		json.Unmarshal(componentResp.Component.Variables, &variables)
 	}
 
+	changesetName := e.changesetName
+	if changesetName == "" {
+		changesetName = generateDefaultChangesetName(fmt.Sprintf("%s-update", componentResp.Component.Name))
+	}
+
 	return internal.UpdateComponentRequest{
 		ComponentID:   componentID,
-		ChangesetName: e.changesetName,
+		ChangesetName: changesetName,
 		ModuleID:      &componentResp.Component.ModuleVersion.Module.ID,
 		Variables:     &variables,
-	}
+	}, nil
 }
 
 func (e *EditComponentData) SaveData(ctx context.Context, data internal.UpdateComponentRequest) (string, error) {

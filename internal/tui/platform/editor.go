@@ -13,7 +13,7 @@ import (
 )
 
 type EditorData[T any] interface {
-	GetInitialValue() T
+	GetInitialValue() (T, error)
 	SaveData(ctx context.Context, data T) (string, error)
 }
 
@@ -108,7 +108,10 @@ func (e Editor[T]) initializeContent() tea.Cmd {
 		if e.initialContent != "" {
 			return contentInitializedMsg{content: e.initialContent}
 		}
-		initialValue := e.data.GetInitialValue()
+		initialValue, err := e.data.GetInitialValue()
+		if err != nil {
+			return errorMsg{err: err}
+		}
 		initialContent, err := yaml.Marshal(initialValue)
 		if err != nil {
 			return errorMsg{err: err}

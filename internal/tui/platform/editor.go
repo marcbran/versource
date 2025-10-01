@@ -9,7 +9,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"gopkg.in/yaml.v3"
+	yaml "github.com/marcbran/versource/internal/tui/platform/util/yaml"
 )
 
 type EditorData[T any] interface {

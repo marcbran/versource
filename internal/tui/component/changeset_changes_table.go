@@ -31,7 +31,7 @@ func NewChangesetChangesTableData(facade internal.Facade, changesetName string) 
 func (p *ChangesetChangesTableData) LoadData() ([]internal.ComponentChange, error) {
 	ctx := context.Background()
 	req := internal.ListComponentChangesRequest{
-		Changeset: p.changesetName,
+		ChangesetName: p.changesetName,
 	}
 	resp, err := p.facade.ListComponentChanges(ctx, req)
 	if err != nil {
@@ -112,6 +112,7 @@ func (p *ChangesetChangesTableData) ResolveData(data []internal.ComponentChange)
 func (p *ChangesetChangesTableData) KeyBindings() platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "esc", Help: "View changesets", Command: "changesets"},
+		{Key: "C", Help: "Create component", Command: fmt.Sprintf("changesets/%s/components/create", p.changesetName)},
 	}
 }
 

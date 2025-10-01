@@ -105,7 +105,7 @@ func (c *Client) ListPlans(ctx context.Context, req internal.ListPlansRequest) (
 }
 
 func (c *Client) CreatePlan(ctx context.Context, req internal.CreatePlanRequest) (*internal.CreatePlanResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d/plans", c.baseURL, req.Changeset, req.ComponentID)
+	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d/plans", c.baseURL, req.ChangesetName, req.ComponentID)
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)

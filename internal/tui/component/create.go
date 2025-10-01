@@ -10,15 +10,17 @@ import (
 )
 
 type CreateComponentData struct {
-	facade   internal.Facade
-	moduleID string
+	facade        internal.Facade
+	moduleID      string
+	changesetName string
 }
 
 func NewCreateComponent(facade internal.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewEditor(&CreateComponentData{
-			facade:   facade,
-			moduleID: params["module-id"],
+			facade:        facade,
+			moduleID:      params["module-id"],
+			changesetName: params["changesetName"],
 		})
 	}
 }
@@ -33,15 +35,15 @@ func (c *CreateComponentData) GetInitialValue() internal.CreateComponentRequest 
 	}
 
 	return internal.CreateComponentRequest{
-		Changeset: "",
-		ModuleID:  moduleID,
-		Name:      "",
-		Variables: make(map[string]any),
+		ChangesetName: c.changesetName,
+		ModuleID:      moduleID,
+		Name:          "",
+		Variables:     make(map[string]any),
 	}
 }
 
 func (c *CreateComponentData) SaveData(ctx context.Context, data internal.CreateComponentRequest) (string, error) {
-	if data.Changeset == "" {
+	if data.ChangesetName == "" {
 		return "", fmt.Errorf("changeset is required")
 	}
 
@@ -58,5 +60,5 @@ func (c *CreateComponentData) SaveData(ctx context.Context, data internal.Create
 		return "", err
 	}
 
-	return fmt.Sprintf("changesets/%s/changes", data.Changeset), nil
+	return fmt.Sprintf("changesets/%s/changes", data.ChangesetName), nil
 }

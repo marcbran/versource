@@ -86,8 +86,8 @@ func (s *Server) handleGetComponentChange(w http.ResponseWriter, r *http.Request
 	}
 
 	req := internal.GetComponentChangeRequest{
-		ComponentID: uint(componentID),
-		Changeset:   changesetName,
+		ComponentID:   uint(componentID),
+		ChangesetName: changesetName,
 	}
 
 	resp, err := s.facade.GetComponentChange(r.Context(), req)
@@ -107,7 +107,7 @@ func (s *Server) handleListComponentChanges(w http.ResponseWriter, r *http.Reque
 	}
 
 	req := internal.ListComponentChangesRequest{
-		Changeset: changeset,
+		ChangesetName: changeset,
 	}
 
 	resp, err := s.facade.ListComponentChanges(r.Context(), req)
@@ -133,7 +133,7 @@ func (s *Server) handleCreateComponent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Changeset = changesetName
+	req.ChangesetName = changesetName
 
 	resp, err := s.facade.CreateComponent(r.Context(), req)
 	if err != nil {
@@ -165,7 +165,7 @@ func (s *Server) handleUpdateComponent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Changeset = changesetName
+	req.ChangesetName = changesetName
 	req.ComponentID = uint(componentID)
 
 	resp, err := s.facade.UpdateComponent(r.Context(), req)
@@ -192,8 +192,8 @@ func (s *Server) handleDeleteComponent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := internal.DeleteComponentRequest{
-		ComponentID: uint(componentID),
-		Changeset:   changesetName,
+		ComponentID:   uint(componentID),
+		ChangesetName: changesetName,
 	}
 
 	resp, err := s.facade.DeleteComponent(r.Context(), req)
@@ -220,8 +220,8 @@ func (s *Server) handleRestoreComponent(w http.ResponseWriter, r *http.Request) 
 	}
 
 	req := internal.RestoreComponentRequest{
-		ComponentID: uint(componentID),
-		Changeset:   changesetName,
+		ComponentID:   uint(componentID),
+		ChangesetName: changesetName,
 	}
 
 	resp, err := s.facade.RestoreComponent(r.Context(), req)

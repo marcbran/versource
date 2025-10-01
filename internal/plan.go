@@ -221,8 +221,8 @@ func NewCreatePlan(componentRepo ComponentRepo, componentChangeRepo ComponentCha
 }
 
 type CreatePlanRequest struct {
-	ComponentID uint   `json:"componentId" yaml:"componentId"`
-	Changeset   string `json:"changeset" yaml:"changeset"`
+	ComponentID   uint   `json:"componentId" yaml:"componentId"`
+	ChangesetName string `json:"changesetName" yaml:"changesetName"`
 }
 
 type CreatePlanResponse struct {
@@ -235,7 +235,7 @@ type CreatePlanResponse struct {
 }
 
 func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePlanResponse, error) {
-	if req.Changeset == "" {
+	if req.ChangesetName == "" {
 		return nil, UserErr("changeset is required")
 	}
 
@@ -256,7 +256,7 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 		return nil, err
 	}
 
-	err = c.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
+	err = c.tx.Checkout(ctx, req.ChangesetName, func(ctx context.Context) error {
 		change, err := c.componentChangeRepo.GetComponentChange(ctx, req.ComponentID)
 		if err != nil {
 			return InternalErrE("failed to get component change from changeset", err)
@@ -276,7 +276,7 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 
 	var response *CreatePlanResponse
 	err = c.tx.Do(ctx, AdminBranch, "create plan", func(ctx context.Context) error {
-		changeset, err := c.changesetRepo.GetChangesetByName(ctx, req.Changeset)
+		changeset, err := c.changesetRepo.GetChangesetByName(ctx, req.ChangesetName)
 		if err != nil {
 			return UserErrE("changeset not found", err)
 		}

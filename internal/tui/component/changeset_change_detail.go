@@ -44,8 +44,8 @@ func (p *ChangesetChangeDetailData) LoadData() (*internal.GetComponentChangeResp
 	}
 
 	changeResp, err := p.facade.GetComponentChange(ctx, internal.GetComponentChangeRequest{
-		ComponentID: uint(componentIDUint),
-		Changeset:   p.changesetName,
+		ComponentID:   uint(componentIDUint),
+		ChangesetName: p.changesetName,
 	})
 	if err != nil {
 		return nil, err

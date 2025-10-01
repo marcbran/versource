@@ -167,8 +167,8 @@ func NewGetComponentChange(componentChangeRepo ComponentChangeRepo, tx Transacti
 }
 
 type GetComponentChangeRequest struct {
-	ComponentID uint   `json:"componentId" yaml:"componentId"`
-	Changeset   string `json:"changeset" yaml:"changeset"`
+	ComponentID   uint   `json:"componentId" yaml:"componentId"`
+	ChangesetName string `json:"changesetName" yaml:"changesetName"`
 }
 
 type GetComponentChangeResponse struct {
@@ -176,12 +176,12 @@ type GetComponentChangeResponse struct {
 }
 
 func (g *GetComponentChange) Exec(ctx context.Context, req GetComponentChangeRequest) (*GetComponentChangeResponse, error) {
-	if req.Changeset == "" {
+	if req.ChangesetName == "" {
 		return nil, UserErr("changeset is required")
 	}
 
 	var change *ComponentChange
-	err := g.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
+	err := g.tx.Checkout(ctx, req.ChangesetName, func(ctx context.Context) error {
 		var err error
 		change, err = g.componentChangeRepo.GetComponentChange(ctx, req.ComponentID)
 		return err
@@ -208,7 +208,7 @@ func NewListComponentChanges(componentChangeRepo ComponentChangeRepo, tx Transac
 }
 
 type ListComponentChangesRequest struct {
-	Changeset string `json:"changeset" yaml:"changeset"`
+	ChangesetName string `json:"changesetName" yaml:"changesetName"`
 }
 
 type ListComponentChangesResponse struct {
@@ -216,12 +216,12 @@ type ListComponentChangesResponse struct {
 }
 
 func (l *ListComponentChanges) Exec(ctx context.Context, req ListComponentChangesRequest) (*ListComponentChangesResponse, error) {
-	if req.Changeset == "" {
+	if req.ChangesetName == "" {
 		return nil, UserErr("changeset is required")
 	}
 
 	var changes []ComponentChange
-	err := l.tx.Checkout(ctx, req.Changeset, func(ctx context.Context) error {
+	err := l.tx.Checkout(ctx, req.ChangesetName, func(ctx context.Context) error {
 		var err error
 		changes, err = l.componentChangeRepo.ListComponentChanges(ctx)
 		return err
@@ -256,10 +256,10 @@ func NewCreateComponent(componentRepo ComponentRepo, moduleRepo ModuleRepo, modu
 }
 
 type CreateComponentRequest struct {
-	Changeset string         `json:"changeset" yaml:"changeset"`
-	ModuleID  uint           `json:"moduleId" yaml:"moduleId"`
-	Name      string         `json:"name" yaml:"name"`
-	Variables map[string]any `json:"variables" yaml:"variables"`
+	ChangesetName string         `json:"changesetName" yaml:"changesetName"`
+	ModuleID      uint           `json:"moduleId" yaml:"moduleId"`
+	Name          string         `json:"name" yaml:"name"`
+	Variables     map[string]any `json:"variables" yaml:"variables"`
 }
 
 type CreateComponentResponse struct {
@@ -272,12 +272,12 @@ type CreateComponentResponse struct {
 }
 
 func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) (*CreateComponentResponse, error) {
-	if req.Changeset == "" {
+	if req.ChangesetName == "" {
 		return nil, UserErr("changeset is required")
 	}
 
 	ensureChangesetReq := EnsureChangesetRequest{
-		Name: req.Changeset,
+		Name: req.ChangesetName,
 	}
 
 	_, err := c.ensureChangeset.Exec(ctx, ensureChangesetReq)
@@ -286,7 +286,7 @@ func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) 
 	}
 
 	var response *CreateComponentResponse
-	err = c.tx.Do(ctx, req.Changeset, "create component", func(ctx context.Context) error {
+	err = c.tx.Do(ctx, req.ChangesetName, "create component", func(ctx context.Context) error {
 		latestVersion, err := c.moduleVersionRepo.GetLatestModuleVersion(ctx, req.ModuleID)
 		if err != nil {
 			return InternalErrE("failed to get latest module version", err)
@@ -333,8 +333,8 @@ func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) 
 	}
 
 	planReq := CreatePlanRequest{
-		ComponentID: response.ID,
-		Changeset:   req.Changeset,
+		ComponentID:   response.ID,
+		ChangesetName: req.ChangesetName,
 	}
 
 	planResp, err := c.createPlan.Exec(ctx, planReq)
@@ -368,10 +368,10 @@ func NewUpdateComponent(componentRepo ComponentRepo, moduleVersionRepo ModuleVer
 }
 
 type UpdateComponentRequest struct {
-	ComponentID uint            `json:"componentId" yaml:"componentId"`
-	Changeset   string          `json:"changeset" yaml:"changeset"`
-	ModuleID    *uint           `json:"moduleId,omitempty" yaml:"moduleId,omitempty"`
-	Variables   *map[string]any `json:"variables,omitempty" yaml:"variables,omitempty"`
+	ComponentID   uint            `json:"componentId" yaml:"componentId"`
+	ChangesetName string          `json:"changesetName" yaml:"changesetName"`
+	ModuleID      *uint           `json:"moduleId,omitempty" yaml:"moduleId,omitempty"`
+	Variables     *map[string]any `json:"variables,omitempty" yaml:"variables,omitempty"`
 }
 
 type UpdateComponentResponse struct {
@@ -384,14 +384,14 @@ type UpdateComponentResponse struct {
 }
 
 func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) (*UpdateComponentResponse, error) {
-	if req.Changeset == "" {
+	if req.ChangesetName == "" {
 		return nil, UserErr("changeset is required")
 	}
 
 	var hasChangeset bool
 	err := u.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
-		hasChangeset, err = u.changesetRepo.HasChangesetWithName(ctx, req.Changeset)
+		hasChangeset, err = u.changesetRepo.HasChangesetWithName(ctx, req.ChangesetName)
 		if err != nil {
 			return InternalErrE("failed to check changeset existence", err)
 		}
@@ -403,7 +403,7 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 
 	var branch string
 	if hasChangeset {
-		branch = req.Changeset
+		branch = req.ChangesetName
 	} else {
 		branch = MainBranch
 	}
@@ -423,7 +423,7 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 	}
 
 	ensureChangesetReq := EnsureChangesetRequest{
-		Name: req.Changeset,
+		Name: req.ChangesetName,
 	}
 
 	_, err = u.ensureChangeset.Exec(ctx, ensureChangesetReq)
@@ -432,7 +432,7 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 	}
 
 	var response *UpdateComponentResponse
-	err = u.tx.Do(ctx, req.Changeset, "update component", func(ctx context.Context) error {
+	err = u.tx.Do(ctx, req.ChangesetName, "update component", func(ctx context.Context) error {
 		component, err := u.componentRepo.GetComponent(ctx, req.ComponentID)
 		if err != nil {
 			return UserErrE("component not found", err)
@@ -487,8 +487,8 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 	}
 
 	planReq := CreatePlanRequest{
-		ComponentID: response.ID,
-		Changeset:   req.Changeset,
+		ComponentID:   response.ID,
+		ChangesetName: req.ChangesetName,
 	}
 
 	planResp, err := u.createPlan.Exec(ctx, planReq)
@@ -522,8 +522,8 @@ func NewDeleteComponent(componentRepo ComponentRepo, componentChangeRepo Compone
 }
 
 type DeleteComponentRequest struct {
-	ComponentID uint   `json:"componentId" yaml:"componentId"`
-	Changeset   string `json:"changeset" yaml:"changeset"`
+	ComponentID   uint   `json:"componentId" yaml:"componentId"`
+	ChangesetName string `json:"changesetName" yaml:"changesetName"`
 }
 
 type DeleteComponentResponse struct {
@@ -537,14 +537,14 @@ type DeleteComponentResponse struct {
 }
 
 func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) (*DeleteComponentResponse, error) {
-	if req.Changeset == "" {
+	if req.ChangesetName == "" {
 		return nil, UserErr("changeset is required")
 	}
 
 	var hasChangeset bool
 	err := d.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
-		hasChangeset, err = d.changesetRepo.HasChangesetWithName(ctx, req.Changeset)
+		hasChangeset, err = d.changesetRepo.HasChangesetWithName(ctx, req.ChangesetName)
 		if err != nil {
 			return InternalErrE("failed to check changeset existence", err)
 		}
@@ -556,7 +556,7 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 
 	var branch string
 	if hasChangeset {
-		branch = req.Changeset
+		branch = req.ChangesetName
 	} else {
 		branch = MainBranch
 	}
@@ -576,7 +576,7 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 	}
 
 	ensureChangesetReq := EnsureChangesetRequest{
-		Name: req.Changeset,
+		Name: req.ChangesetName,
 	}
 
 	_, err = d.ensureChangeset.Exec(ctx, ensureChangesetReq)
@@ -585,7 +585,7 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 	}
 
 	var response *DeleteComponentResponse
-	err = d.tx.Do(ctx, req.Changeset, "delete component", func(ctx context.Context) error {
+	err = d.tx.Do(ctx, req.ChangesetName, "delete component", func(ctx context.Context) error {
 		component, err := d.componentRepo.GetComponent(ctx, req.ComponentID)
 		if err != nil {
 			return UserErrE("component not found", err)
@@ -639,8 +639,8 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 	}
 
 	planReq := CreatePlanRequest{
-		ComponentID: response.ID,
-		Changeset:   req.Changeset,
+		ComponentID:   response.ID,
+		ChangesetName: req.ChangesetName,
 	}
 
 	planResp, err := d.createPlan.Exec(ctx, planReq)
@@ -674,8 +674,8 @@ func NewRestoreComponent(componentRepo ComponentRepo, componentChangeRepo Compon
 }
 
 type RestoreComponentRequest struct {
-	ComponentID uint   `json:"componentId" yaml:"componentId"`
-	Changeset   string `json:"changeset" yaml:"changeset"`
+	ComponentID   uint   `json:"componentId" yaml:"componentId"`
+	ChangesetName string `json:"changesetName" yaml:"changesetName"`
 }
 
 type RestoreComponentResponse struct {
@@ -689,14 +689,14 @@ type RestoreComponentResponse struct {
 }
 
 func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest) (*RestoreComponentResponse, error) {
-	if req.Changeset == "" {
+	if req.ChangesetName == "" {
 		return nil, UserErr("changeset is required")
 	}
 
 	var hasChangeset bool
 	err := r.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
-		hasChangeset, err = r.changesetRepo.HasChangesetWithName(ctx, req.Changeset)
+		hasChangeset, err = r.changesetRepo.HasChangesetWithName(ctx, req.ChangesetName)
 		if err != nil {
 			return InternalErrE("failed to check changeset existence", err)
 		}
@@ -708,7 +708,7 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 
 	var branch string
 	if hasChangeset {
-		branch = req.Changeset
+		branch = req.ChangesetName
 	} else {
 		branch = MainBranch
 	}
@@ -728,7 +728,7 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 	}
 
 	ensureChangesetReq := EnsureChangesetRequest{
-		Name: req.Changeset,
+		Name: req.ChangesetName,
 	}
 
 	_, err = r.ensureChangeset.Exec(ctx, ensureChangesetReq)
@@ -737,7 +737,7 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 	}
 
 	var response *RestoreComponentResponse
-	err = r.tx.Do(ctx, req.Changeset, "restore component", func(ctx context.Context) error {
+	err = r.tx.Do(ctx, req.ChangesetName, "restore component", func(ctx context.Context) error {
 		component, err := r.componentRepo.GetComponent(ctx, req.ComponentID)
 		if err != nil {
 			return UserErrE("component not found", err)
@@ -791,8 +791,8 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 	}
 
 	planReq := CreatePlanRequest{
-		ComponentID: response.ID,
-		Changeset:   req.Changeset,
+		ComponentID:   response.ID,
+		ChangesetName: req.ChangesetName,
 	}
 
 	planResp, err := r.createPlan.Exec(ctx, planReq)

@@ -38,10 +38,10 @@ func (e *EditComponentData) GetInitialValue() internal.UpdateComponentRequest {
 	componentResp, err := e.facade.GetComponent(ctx, internal.GetComponentRequest{ComponentID: componentID, ChangesetName: &e.changesetName})
 	if err != nil {
 		return internal.UpdateComponentRequest{
-			ComponentID: componentID,
-			Changeset:   e.changesetName,
-			ModuleID:    nil,
-			Variables:   nil,
+			ComponentID:   componentID,
+			ChangesetName: e.changesetName,
+			ModuleID:      nil,
+			Variables:     nil,
 		}
 	}
 
@@ -51,10 +51,10 @@ func (e *EditComponentData) GetInitialValue() internal.UpdateComponentRequest {
 	}
 
 	return internal.UpdateComponentRequest{
-		ComponentID: componentID,
-		Changeset:   e.changesetName,
-		ModuleID:    &componentResp.Component.ModuleVersion.Module.ID,
-		Variables:   &variables,
+		ComponentID:   componentID,
+		ChangesetName: e.changesetName,
+		ModuleID:      &componentResp.Component.ModuleVersion.Module.ID,
+		Variables:     &variables,
 	}
 }
 
@@ -63,7 +63,7 @@ func (e *EditComponentData) SaveData(ctx context.Context, data internal.UpdateCo
 		return "", fmt.Errorf("component ID is required")
 	}
 
-	if data.Changeset == "" {
+	if data.ChangesetName == "" {
 		return "", fmt.Errorf("changeset is required")
 	}
 
@@ -72,5 +72,5 @@ func (e *EditComponentData) SaveData(ctx context.Context, data internal.UpdateCo
 		return "", err
 	}
 
-	return fmt.Sprintf("changesets/%s/components", data.Changeset), nil
+	return fmt.Sprintf("changesets/%s/components", data.ChangesetName), nil
 }

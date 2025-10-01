@@ -356,7 +356,7 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 
 	err = r.tx.Do(ctx, changesetName, "prepare merge", func(ctx context.Context) error {
 		changesResp, err := r.listComponentChanges.Exec(ctx, ListComponentChangesRequest{
-			Changeset: changesetName,
+			ChangesetName: changesetName,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to list component changes: %w", err)

@@ -41,8 +41,8 @@ func (c *CreatePlanData) OnConfirm(ctx context.Context) (string, error) {
 	}
 
 	req := internal.CreatePlanRequest{
-		ComponentID: uint(componentIDUint),
-		Changeset:   c.changesetName,
+		ComponentID:   uint(componentIDUint),
+		ChangesetName: c.changesetName,
 	}
 
 	_, err = c.facade.CreatePlan(ctx, req)

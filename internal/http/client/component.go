@@ -95,7 +95,7 @@ func (c *Client) ListComponents(ctx context.Context, req internal.ListComponents
 }
 
 func (c *Client) GetComponentChange(ctx context.Context, req internal.GetComponentChangeRequest) (*internal.GetComponentChangeResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d/change", c.baseURL, req.Changeset, req.ComponentID)
+	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d/change", c.baseURL, req.ChangesetName, req.ComponentID)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -125,7 +125,7 @@ func (c *Client) GetComponentChange(ctx context.Context, req internal.GetCompone
 }
 
 func (c *Client) ListComponentChanges(ctx context.Context, req internal.ListComponentChangesRequest) (*internal.ListComponentChangesResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/changes", c.baseURL, req.Changeset)
+	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/changes", c.baseURL, req.ChangesetName)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -160,7 +160,7 @@ func (c *Client) CreateComponent(ctx context.Context, req internal.CreateCompone
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/api/v1/changesets/%s/components", c.baseURL, req.Changeset)
+	url := fmt.Sprintf("%s/api/v1/changesets/%s/components", c.baseURL, req.ChangesetName)
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -196,7 +196,7 @@ func (c *Client) UpdateComponent(ctx context.Context, req internal.UpdateCompone
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d", c.baseURL, req.Changeset, req.ComponentID)
+	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d", c.baseURL, req.ChangesetName, req.ComponentID)
 	httpReq, err := http.NewRequestWithContext(ctx, "PATCH", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -227,7 +227,7 @@ func (c *Client) UpdateComponent(ctx context.Context, req internal.UpdateCompone
 }
 
 func (c *Client) DeleteComponent(ctx context.Context, req internal.DeleteComponentRequest) (*internal.DeleteComponentResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d", c.baseURL, req.Changeset, req.ComponentID)
+	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d", c.baseURL, req.ChangesetName, req.ComponentID)
 	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -256,7 +256,7 @@ func (c *Client) DeleteComponent(ctx context.Context, req internal.DeleteCompone
 }
 
 func (c *Client) RestoreComponent(ctx context.Context, req internal.RestoreComponentRequest) (*internal.RestoreComponentResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d/restore", c.baseURL, req.Changeset, req.ComponentID)
+	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d/restore", c.baseURL, req.ChangesetName, req.ComponentID)
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)

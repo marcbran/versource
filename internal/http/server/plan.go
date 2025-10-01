@@ -104,8 +104,8 @@ func (s *Server) handleCreatePlan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := internal.CreatePlanRequest{
-		ComponentID: uint(componentID),
-		Changeset:   changesetName,
+		ComponentID:   uint(componentID),
+		ChangesetName: changesetName,
 	}
 
 	resp, err := s.facade.CreatePlan(r.Context(), req)

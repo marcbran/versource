@@ -45,8 +45,8 @@ func (d *DeleteData) OnConfirm(ctx context.Context) (string, error) {
 	}
 
 	req := internal.DeleteComponentRequest{
-		ComponentID: uint(componentID),
-		Changeset:   d.changesetName,
+		ComponentID:   uint(componentID),
+		ChangesetName: d.changesetName,
 	}
 
 	_, err = d.facade.DeleteComponent(ctx, req)

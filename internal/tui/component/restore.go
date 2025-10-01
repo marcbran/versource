@@ -49,8 +49,8 @@ func (r *RestoreData) OnConfirm(ctx context.Context) (string, error) {
 	}
 
 	req := internal.RestoreComponentRequest{
-		ComponentID: uint(componentID),
-		Changeset:   r.changesetName,
+		ComponentID:   uint(componentID),
+		ChangesetName: r.changesetName,
 	}
 
 	_, err = r.facade.RestoreComponent(ctx, req)

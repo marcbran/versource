@@ -60,13 +60,14 @@ func RunApp(facade internal.Facade) error {
 		Route("applies/{applyID}/logs", apply.NewLogs(facade)).
 		Route("changesets", changeset.NewTable(facade)).
 		Route("changesets/{changesetName}/components", component.NewTable(facade)).
+		Route("changesets/{changesetName}/components/create", component.NewCreateComponent(facade)).
 		Route("changesets/{changesetName}/components/{componentID}", component.NewDetail(facade)).
-		Route("changesets/{changesetName}/changes", component.NewChangesetChangesTable(facade)).
-		Route("changesets/{changesetName}/changes/{componentID}", component.NewChangesetChangeDetail(facade)).
 		Route("changesets/{changesetName}/components/{componentID}/plans/create", component.NewCreatePlan(facade)).
 		Route("changesets/{changesetName}/components/{componentID}/edit", component.NewEdit(facade)).
 		Route("changesets/{changesetName}/components/{componentID}/delete", component.NewDelete(facade)).
 		Route("changesets/{changesetName}/components/{componentID}/restore", component.NewRestore(facade)).
+		Route("changesets/{changesetName}/changes", component.NewChangesetChangesTable(facade)).
+		Route("changesets/{changesetName}/changes/{componentID}", component.NewChangesetChangeDetail(facade)).
 		Route("changesets/{changesetName}/plans", plan.NewTable(facade)).
 		Route("changesets/{changesetName}/plans/{planID}", plan.NewDetail(facade)).
 		Route("changesets/{changesetName}/plans/{planID}/logs", plan.NewLogs(facade)).

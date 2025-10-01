@@ -348,7 +348,7 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 		}
 
 		changesResp, err = r.listComponentChanges.Exec(ctx, ListComponentChangesRequest{
-			Changeset: rebase.Changeset.Name,
+			ChangesetName: rebase.Changeset.Name,
 		})
 		if err != nil {
 			log.WithError(err).Error("Failed to list component changes after rebase")
@@ -374,8 +374,8 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 			}
 
 			_, err := r.createPlan.Exec(ctx, CreatePlanRequest{
-				ComponentID: change.ToComponent.ID,
-				Changeset:   rebase.Changeset.Name,
+				ComponentID:   change.ToComponent.ID,
+				ChangesetName: rebase.Changeset.Name,
 			})
 			if err != nil {
 				log.WithError(err).WithField("component_id", change.ToComponent.ID).Error("Failed to create plan for component after rebase")

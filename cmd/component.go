@@ -120,10 +120,10 @@ var componentCreateCmd = &cobra.Command{
 		client := client.NewClient(config)
 
 		req := internal.CreateComponentRequest{
-			ModuleID:  uint(moduleID),
-			Changeset: changeset,
-			Name:      name,
-			Variables: variables,
+			ModuleID:      uint(moduleID),
+			ChangesetName: changeset,
+			Name:          name,
+			Variables:     variables,
 		}
 
 		component, err := client.CreateComponent(cmd.Context(), req)
@@ -177,8 +177,8 @@ var componentUpdateCmd = &cobra.Command{
 		client := client.NewClient(config)
 
 		req := internal.UpdateComponentRequest{
-			ComponentID: uint(componentID),
-			Changeset:   changeset,
+			ComponentID:   uint(componentID),
+			ChangesetName: changeset,
 		}
 
 		if moduleIDStr != "" {
@@ -235,8 +235,8 @@ var componentDeleteCmd = &cobra.Command{
 		client := client.NewClient(config)
 
 		req := internal.DeleteComponentRequest{
-			ComponentID: uint(componentID),
-			Changeset:   changeset,
+			ComponentID:   uint(componentID),
+			ChangesetName: changeset,
 		}
 
 		component, err := client.DeleteComponent(cmd.Context(), req)
@@ -277,8 +277,8 @@ var componentPlanCmd = &cobra.Command{
 		client := client.NewClient(config)
 
 		req := internal.CreatePlanRequest{
-			ComponentID: uint(componentID),
-			Changeset:   changeset,
+			ComponentID:   uint(componentID),
+			ChangesetName: changeset,
 		}
 
 		plan, err := client.CreatePlan(cmd.Context(), req)
@@ -319,8 +319,8 @@ var componentRestoreCmd = &cobra.Command{
 		client := client.NewClient(config)
 
 		req := internal.RestoreComponentRequest{
-			ComponentID: uint(componentID),
-			Changeset:   changeset,
+			ComponentID:   uint(componentID),
+			ChangesetName: changeset,
 		}
 
 		component, err := client.RestoreComponent(cmd.Context(), req)

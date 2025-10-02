@@ -10,7 +10,7 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/terraform-exec v0.23.1
-	github.com/hashicorp/terraform-json v0.26.0
+	github.com/hashicorp/terraform-json v0.27.2
 	github.com/jsonnet-bundler/jsonnet-bundler v0.6.0
 	github.com/marcbran/jpoet v0.14.5
 	github.com/pressly/goose/v3 v3.25.0

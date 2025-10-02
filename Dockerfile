@@ -1,40 +1,24 @@
-FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS builder
+FROM alpine:latest AS builder
 
-ARG BUILDPLATFORM
 ARG TARGETPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 
-WORKDIR /app
-
-RUN apk add --no-cache git ca-certificates
-
-COPY go.mod go.sum ./
-
-RUN go mod download
-
-COPY . .
-
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -a -installsuffix cgo -o versource .
-
-FROM alpine:latest
-
-ARG BUILDPLATFORM
-ARG TARGETPLATFORM
-ARG TARGETOS
-ARG TARGETARCH
-
-RUN apk --no-cache add ca-certificates curl unzip git openssh-client
-
-WORKDIR /root/
+RUN apk add --no-cache ca-certificates curl unzip
 
 RUN curl -LO https://releases.hashicorp.com/terraform/1.7.0/terraform_1.7.0_${TARGETOS}_${TARGETARCH}.zip && \
     unzip terraform_1.7.0_${TARGETOS}_${TARGETARCH}.zip && \
     rm terraform_1.7.0_${TARGETOS}_${TARGETARCH}.zip && \
-    mv terraform /usr/local/bin/
+    mv terraform /usr/bin/
 
-COPY --from=builder /app/versource .
+FROM alpine:latest
 
-RUN chmod +x versource
+ARG TARGETPLATFORM
 
-ENTRYPOINT ["./versource"]
+RUN apk --no-cache add ca-certificates git openssh-client
+
+COPY --from=builder /usr/bin/terraform /usr/bin/terraform
+
+COPY $TARGETPLATFORM/versource /usr/bin
+
+ENTRYPOINT ["/usr/bin/versource"]

@@ -4,4 +4,4 @@ gen
 data/db
 versource
 data/tf/*
-!data/tf/modules
+dist

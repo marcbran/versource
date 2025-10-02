@@ -128,7 +128,7 @@ func (s *Stage) an_empty_database() *Stage {
 }
 
 func (s *Stage) the_migrations_are_run() *Stage {
-	return s.a_command_is_executed("migrate", "./versource", "migrate").and().
+	return s.a_command_is_executed("migrate", "versource", "migrate").and().
 		the_command_has_to_succeeded()
 }
 
@@ -207,7 +207,7 @@ func (s *Stage) the_command_has_to_failed() *Stage {
 
 func (s *Stage) a_client_command_is_executed(args ...string) *Stage {
 	args = append(args, "--output", "json")
-	args = append([]string{"./versource"}, args...)
+	args = append([]string{"versource"}, args...)
 	return s.a_command_is_executed("client", args...)
 }
 
@@ -292,11 +292,7 @@ func (s *Stage) a_dolt_client_command_is_executed(query string, args ...string) 
 }
 
 func (s *Stage) a_docker_compose_command_is_executed(args ...string) *Stage {
-	imageTag, err := getImageTag()
-	require.NoError(s.t, err)
-
 	cmd := exec.Command("docker", append([]string{"compose"}, args...)...)
-	cmd.Env = append(os.Environ(), "IMAGE_TAG="+imageTag)
 
 	var stderr bytes.Buffer
 	if os.Getenv("VS_LOG") == "TRACE" {
@@ -310,7 +306,7 @@ func (s *Stage) a_docker_compose_command_is_executed(args ...string) *Stage {
 		fmt.Printf("docker compose %s\n\n", strings.Join(args, " "))
 	}
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		fmt.Println(stderr.String())
 	}
@@ -318,16 +314,6 @@ func (s *Stage) a_docker_compose_command_is_executed(args ...string) *Stage {
 	require.NoError(s.t, err)
 
 	return s
-}
-
-func getImageTag() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--short", "HEAD")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-	commitHash := string(bytes.TrimSpace(output))
-	return commitHash + "-wip", nil
 }
 
 func mainStage() *Stage {

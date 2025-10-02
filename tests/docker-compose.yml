@@ -41,7 +41,7 @@ services:
       retries: 3
 
   server:
-    image: versource-e2e:${IMAGE_TAG:-latest}
+    image: ghcr.io/marcbran/versource:${IMAGE_TAG:-SNAPSHOT-arm64}
     command: serve
     container_name: versource-e2e-server
     environment:
@@ -61,7 +61,7 @@ services:
       start_period: 30s
 
   migrate:
-    image: versource-e2e:${IMAGE_TAG:-latest}
+    image: ghcr.io/marcbran/versource:${IMAGE_TAG:-SNAPSHOT-arm64}
     entrypoint: []
     command: tail -f /dev/null
     container_name: versource-e2e-migrate
@@ -81,7 +81,7 @@ services:
       retries: 3
 
   client:
-    image: versource-e2e:${IMAGE_TAG:-latest}
+    image: ghcr.io/marcbran/versource:${IMAGE_TAG:-SNAPSHOT-arm64}
     entrypoint: []
     command: tail -f /dev/null
     container_name: versource-e2e-client

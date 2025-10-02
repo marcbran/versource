@@ -70,7 +70,6 @@ services:
       VS_DATABASE_USER: versource
       VS_DATABASE_PASSWORD: versource
       VS_DATABASE_NAME: versource
-      VS_HTTP_HOSTNAME: 0.0.0.0
     depends_on:
       dolt:
         condition: service_healthy

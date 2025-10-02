@@ -31,7 +31,7 @@ snapshot-ci:
 release:
   #!/usr/bin/env bash
   set -euo pipefail
-  goreleaser release --config .goreleaser.yaml --clean --verbose
+  goreleaser release --config .goreleaser.yaml --clean
 
 test-e2e: test-prune
   go test -v -tags "e2e all" -count=1 ./tests/...

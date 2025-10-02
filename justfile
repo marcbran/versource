@@ -68,3 +68,60 @@ ui: install
 
 ui-debug: install
   VS_CONFIG=local dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient -- ui
+
+check-git-state:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  
+  if [[ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]]; then
+    echo "Error: Must be on main branch"
+    exit 1
+  fi
+  if [[ -n "$(git status --porcelain)" ]]; then
+    echo "Error: Working directory is not clean"
+    exit 1
+  fi
+  git fetch origin
+  if [[ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]]; then
+    echo "Error: Local main is not in sync with origin/main"
+    exit 1
+  fi
+
+bump-major: check-git-state
+  #!/usr/bin/env bash
+  set -euo pipefail
+  
+  LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+  VERSION=${LATEST_TAG#v}
+  IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+  
+  NEW_VERSION="v$((MAJOR + 1)).0.0"
+  
+  git tag -a "$NEW_VERSION" -m "Bump version to $NEW_VERSION"
+  git push origin "$NEW_VERSION"
+
+bump-minor: check-git-state
+  #!/usr/bin/env bash
+  set -euo pipefail
+  
+  LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+  VERSION=${LATEST_TAG#v}
+  IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+  
+  NEW_VERSION="v${MAJOR}.$((MINOR + 1)).0"
+  
+  git tag -a "$NEW_VERSION" -m "Bump version to $NEW_VERSION"
+  git push origin "$NEW_VERSION"
+
+bump-patch: check-git-state
+  #!/usr/bin/env bash
+  set -euo pipefail
+  
+  LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+  VERSION=${LATEST_TAG#v}
+  IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+  
+  NEW_VERSION="v${MAJOR}.${MINOR}.$((PATCH + 1))"
+  
+  git tag -a "$NEW_VERSION" -m "Bump version to $NEW_VERSION"
+  git push origin "$NEW_VERSION"

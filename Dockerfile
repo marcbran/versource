@@ -1,4 +1,4 @@
-FROM alpine:latest AS builder
+FROM --platform=$BUILDPLATFORM alpine:latest AS builder
 
 ARG TARGETPLATFORM
 ARG TARGETOS
@@ -11,7 +11,7 @@ RUN curl -LO https://releases.hashicorp.com/terraform/1.7.0/terraform_1.7.0_${TA
     rm terraform_1.7.0_${TARGETOS}_${TARGETARCH}.zip && \
     mv terraform /usr/bin/
 
-FROM alpine:latest
+FROM --platform=$BUILDPLATFORM alpine:latest
 
 ARG TARGETPLATFORM
 

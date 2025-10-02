@@ -21,16 +21,26 @@ test-coverage:
 snapshot:
   #!/usr/bin/env bash
   set -euo pipefail
-
   goreleaser release --config .goreleaser.dev.yaml --snapshot --clean --skip archive
+
+snapshot-ci:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  goreleaser release --config .goreleaser.ci.yaml --snapshot --clean --skip archive
 
 release:
   #!/usr/bin/env bash
   set -euo pipefail
-
   goreleaser release --config .goreleaser.yaml --clean
 
 test-e2e: test-prune
+  go test -v -tags "e2e all" -count=1 ./tests/...
+
+test-e2e-ci:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  export IMAGE_TAG="SNAPSHOT-amd64"
+  export VS_LOG=DEBUG
   go test -v -tags "e2e all" -count=1 ./tests/...
 
 test-e2e-type type: test-prune
@@ -58,12 +68,3 @@ ui: install
 
 ui-debug: install
   VS_CONFIG=local dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient -- ui
-
-
-export:
-  TEST="asdf"
-  export TEST1="qwer"
-
-echo: export
-  echo ${TEST:-""}
-  echo ${TEST1:-""}

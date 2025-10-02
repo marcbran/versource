@@ -1,0 +1,28 @@
+version: 2
+
+project_name: versource
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: linux
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+
+dockers_v2:
+  - images:
+      - "ghcr.io/marcbran/{{ .ProjectName }}"
+    tags:
+      - "{{ if .IsSnapshot }}SNAPSHOT{{ else }}{{ end }}"
+      - "{{ .Tag }}{{ if .IsSnapshot }}-SNAPSHOT{{ else }}{{ end }}"
+      - "v{{ .Major }}{{ if .IsSnapshot }}-SNAPSHOT{{ else }}{{ end }}"
+      - "v{{ .Major }}.{{ .Minor }}{{ if .IsSnapshot }}-SNAPSHOT{{ else }}{{ end }}"
+    platforms:
+      - linux/amd64

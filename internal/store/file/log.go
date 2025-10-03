@@ -20,7 +20,7 @@ func NewLogStore(workDir string) *LogStore {
 
 func (s *LogStore) NewLogWriter(operationType string, operationID uint) (io.WriteCloser, error) {
 	logsDir := filepath.Join(s.workDir, "logs")
-	err := os.MkdirAll(logsDir, 0755)
+	err := os.MkdirAll(logsDir, 0o755)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logs directory: %w", err)
 	}
@@ -38,7 +38,7 @@ func (s *LogStore) NewLogWriter(operationType string, operationID uint) (io.Writ
 
 func (s *LogStore) StoreLog(ctx context.Context, operationType string, operationID uint, r io.Reader) error {
 	logsDir := filepath.Join(s.workDir, "logs")
-	err := os.MkdirAll(logsDir, 0755)
+	err := os.MkdirAll(logsDir, 0o755)
 	if err != nil {
 		return fmt.Errorf("failed to create logs directory: %w", err)
 	}

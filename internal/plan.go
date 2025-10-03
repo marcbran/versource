@@ -251,7 +251,6 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 		from = commit
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +268,6 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 		to = change.ToCommit
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +302,6 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -435,7 +432,6 @@ func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
 
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}

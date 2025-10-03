@@ -327,7 +327,6 @@ func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) 
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create component: %w", err)
 	}
@@ -481,7 +480,6 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to update component: %w", err)
 	}
@@ -633,7 +631,6 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete component: %w", err)
 	}
@@ -785,7 +782,6 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to restore component: %w", err)
 	}

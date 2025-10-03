@@ -222,20 +222,27 @@ func (e Editor[T]) renderReady() string {
 type contentInitializedMsg struct {
 	content string
 }
+
 type filePreparedMsg struct {
 	tempFile string
 }
+
 type editorClosedMsg struct{}
+
 type fileReadMsg struct {
 	content string
 }
+
 type fileCancelledMsg struct{}
+
 type fileProcessedMsg[T any] struct {
 	data T
 }
+
 type dataSavedMsg struct {
 	redirectURL string
 }
+
 type editorErrorMsg struct {
 	err string
 }

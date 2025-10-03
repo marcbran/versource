@@ -170,7 +170,6 @@ func (c *CreateRebase) Exec(ctx context.Context, req CreateRebaseRequest) (*Crea
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +203,6 @@ func (c *CreateRebase) Exec(ctx context.Context, req CreateRebaseRequest) (*Crea
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +331,6 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}
@@ -356,7 +353,6 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 
 		return nil
 	})
-
 	if err != nil {
 		stateErr := r.tx.Do(ctx, AdminBranch, "fail rebase", func(ctx context.Context) error {
 			return r.rebaseRepo.UpdateRebaseState(ctx, rebaseID, TaskStateFailed)

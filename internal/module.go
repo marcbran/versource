@@ -198,7 +198,6 @@ func (c *CreateModule) Exec(ctx context.Context, req CreateModuleRequest) (*Crea
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +274,6 @@ func (u *UpdateModule) Exec(ctx context.Context, req UpdateModuleRequest) (*Upda
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +337,6 @@ func (d *DeleteModule) Exec(ctx context.Context, req DeleteModuleRequest) (*Dele
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}

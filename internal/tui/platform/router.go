@@ -8,8 +8,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type PageFunc func(map[string]string) Page
-type KeyBindingsFunc func(map[string]string, string) KeyBindings
+type (
+	PageFunc        func(map[string]string) Page
+	KeyBindingsFunc func(map[string]string, string) KeyBindings
+)
 
 type Router struct {
 	routes      map[string]PageFunc

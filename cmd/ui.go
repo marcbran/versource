@@ -26,13 +26,14 @@ var uiCmd = &cobra.Command{
 		}
 
 		logDir := filepath.Join(configDir, "versource")
-		err := os.MkdirAll(logDir, 0755)
+
+		err := os.MkdirAll(logDir, 0o755)
 		if err != nil {
 			return fmt.Errorf("failed to create log directory: %w", err)
 		}
 
 		logFile := filepath.Join(logDir, "tui.log")
-		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
 		if err != nil {
 			return fmt.Errorf("failed to open log file: %w", err)
 		}

@@ -33,7 +33,7 @@ func NewExecutor(component *internal.Component, workdir string, logs io.Writer) 
 		return nil, fmt.Errorf("failed to create temp directory: %w", err)
 	}
 	terraformDir := filepath.Join(tempDir, ".terraform-jsonnet")
-	err = os.MkdirAll(terraformDir, 0755)
+	err = os.MkdirAll(terraformDir, 0o755)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create terraform jsonnet directory: %w", err)
 	}
@@ -51,12 +51,12 @@ func NewExecutor(component *internal.Component, workdir string, logs io.Writer) 
 
 func (e Executor) Init(ctx context.Context) error {
 	vendorDir := filepath.Join(e.tempDir, "vendor")
-	err := os.MkdirAll(vendorDir, 0755)
+	err := os.MkdirAll(vendorDir, 0o755)
 	if err != nil {
 		return fmt.Errorf("failed to create vendor directory: %w", err)
 	}
 	tmpDir := filepath.Join(vendorDir, ".tmp")
-	err = os.MkdirAll(tmpDir, 0755)
+	err = os.MkdirAll(tmpDir, 0o755)
 	if err != nil {
 		return fmt.Errorf("failed to create tmp directory: %w", err)
 	}

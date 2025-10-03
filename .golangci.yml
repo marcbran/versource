@@ -7,6 +7,7 @@ linters:
     - errcheck
     - forcetypeassert
     - godot
+    - govet
     - ineffassign
     - makezero
     - misspell
@@ -33,7 +34,7 @@ issues:
   max-same-issues: 0
 formatters:
   enable:
-    - gofmt
+    - gofumpt
   exclusions:
     generated: lax
     paths:

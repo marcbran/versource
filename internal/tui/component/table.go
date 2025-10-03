@@ -81,18 +81,18 @@ func (p *TableData) ResolveData(data []internal.Component) ([]table.Column, []ta
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Name", Width: 3},
-		{Title: "Module", Width: 6},
-		{Title: "Version", Width: 2},
+		{Title: "Module", Width: 3},
+		{Title: "Version", Width: 3},
 		{Title: "Status", Width: 1},
 	}
 
 	var rows []table.Row
 	var elems []internal.Component
 	for _, component := range data {
-		source := ""
+		module := ""
 		version := ""
-		if component.ModuleVersion.Module.Source != "" {
-			source = component.ModuleVersion.Module.Source
+		if component.ModuleVersion.Module.Name != "" {
+			module = component.ModuleVersion.Module.Name
 		}
 		if component.ModuleVersion.Version != "" {
 			version = component.ModuleVersion.Version
@@ -100,7 +100,7 @@ func (p *TableData) ResolveData(data []internal.Component) ([]table.Column, []ta
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(component.ID), 10),
 			component.Name,
-			source,
+			module,
 			version,
 			string(component.Status),
 		})

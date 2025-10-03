@@ -77,5 +77,5 @@ func (e *EditComponentData) SaveData(ctx context.Context, data internal.UpdateCo
 		return "", err
 	}
 
-	return fmt.Sprintf("changesets/%s/components", data.ChangesetName), nil
+	return fmt.Sprintf("changesets/%s/changes", data.ChangesetName), nil
 }

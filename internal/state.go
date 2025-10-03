@@ -46,7 +46,7 @@ type StateResourceRepo interface {
 }
 
 type Resource struct {
-	ID            string         `gorm:"primarykey;type:varchar(36)" json:"id" yaml:"id"`
+	UUID          string         `gorm:"primarykey;type:varchar(36)" json:"uuid" yaml:"uuid"`
 	Provider      string         `json:"provider" yaml:"provider"`
 	ProviderAlias *string        `json:"providerAlias" yaml:"providerAlias"`
 	ResourceType  string         `json:"resourceType" yaml:"resourceType"`
@@ -55,7 +55,7 @@ type Resource struct {
 	Attributes    datatypes.JSON `gorm:"type:jsonb" json:"attributes" yaml:"attributes"`
 }
 
-func (r *Resource) GenerateID() {
+func (r Resource) GenerateUUID() string {
 	providerAlias := ""
 	if r.ProviderAlias != nil {
 		providerAlias = *r.ProviderAlias
@@ -71,7 +71,7 @@ func (r *Resource) GenerateID() {
 	namespaceUUID := uuid.MustParse("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 	resourceUUID := uuid.NewSHA1(namespaceUUID, hash[:])
 
-	r.ID = resourceUUID.String()
+	return resourceUUID.String()
 }
 
 type ResourceRepo interface {

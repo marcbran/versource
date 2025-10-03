@@ -21,7 +21,7 @@ func NewPlanStore(workDir string) *PlanStore {
 
 func (s *PlanStore) StorePlan(ctx context.Context, planID uint, planPath internal.PlanPath) error {
 	plansDir := filepath.Join(s.workDir, "plans")
-	err := os.MkdirAll(plansDir, 0755)
+	err := os.MkdirAll(plansDir, 0o755)
 	if err != nil {
 		return fmt.Errorf("failed to create plans directory: %w", err)
 	}

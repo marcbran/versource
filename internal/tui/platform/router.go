@@ -8,8 +8,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type PageFunc func(map[string]string) Page
-type KeyBindingsFunc func(map[string]string, string) KeyBindings
+type (
+	PageFunc        func(map[string]string) Page
+	KeyBindingsFunc func(map[string]string, string) KeyBindings
+)
 
 type Router struct {
 	routes      map[string]PageFunc
@@ -517,8 +519,8 @@ func (k KeyBindings) With(key, help, command string) KeyBindings {
 }
 
 func (k KeyBindings) Overlay(overlay KeyBindings) KeyBindings {
-	result := make(KeyBindings, len(k))
-	copy(result, k)
+	result := make(KeyBindings, 0, len(k))
+	result = append(result, k...)
 
 	for _, overlayBinding := range overlay {
 		found := false

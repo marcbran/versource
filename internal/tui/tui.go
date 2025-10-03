@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marcbran/versource/internal"
@@ -88,12 +87,4 @@ func RunApp(facade internal.Facade) error {
 	}
 
 	return nil
-}
-
-func removeFirstTwoSegments(path string) string {
-	parts := strings.Split(path, "/")
-	if len(parts) <= 2 {
-		return ""
-	}
-	return strings.Join(parts[2:], "/")
 }

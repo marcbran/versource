@@ -26,14 +26,16 @@ func (c *Client) GetModule(ctx context.Context, req internal.GetModuleRequest) (
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var moduleResp internal.GetModuleResponse
-	if err := json.NewDecoder(resp.Body).Decode(&moduleResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&moduleResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -55,14 +57,16 @@ func (c *Client) ListModules(ctx context.Context, req internal.ListModulesReques
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var modulesResp internal.ListModulesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&modulesResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&modulesResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -91,14 +95,16 @@ func (c *Client) CreateModule(ctx context.Context, req internal.CreateModuleRequ
 
 	if resp.StatusCode != http.StatusCreated {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var moduleResp internal.CreateModuleResponse
-	if err := json.NewDecoder(resp.Body).Decode(&moduleResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&moduleResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -127,14 +133,16 @@ func (c *Client) UpdateModule(ctx context.Context, req internal.UpdateModuleRequ
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var moduleResp internal.UpdateModuleResponse
-	if err := json.NewDecoder(resp.Body).Decode(&moduleResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&moduleResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -156,14 +164,16 @@ func (c *Client) DeleteModule(ctx context.Context, req internal.DeleteModuleRequ
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var moduleResp internal.DeleteModuleResponse
-	if err := json.NewDecoder(resp.Body).Decode(&moduleResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&moduleResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -185,14 +195,16 @@ func (c *Client) GetModuleVersion(ctx context.Context, req internal.GetModuleVer
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var moduleVersionResp internal.GetModuleVersionResponse
-	if err := json.NewDecoder(resp.Body).Decode(&moduleVersionResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&moduleVersionResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -219,14 +231,16 @@ func (c *Client) ListModuleVersions(ctx context.Context, req internal.ListModule
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var moduleVersionsResp internal.ListModuleVersionsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&moduleVersionsResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&moduleVersionsResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 

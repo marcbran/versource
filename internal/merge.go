@@ -170,7 +170,6 @@ func (c *CreateMerge) Exec(ctx context.Context, req CreateMergeRequest) (*Create
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +203,6 @@ func (c *CreateMerge) Exec(ctx context.Context, req CreateMergeRequest) (*Create
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -343,7 +341,6 @@ func (r *RunMerge) Exec(ctx context.Context, mergeID uint) error {
 
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}

@@ -373,7 +373,6 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}

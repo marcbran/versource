@@ -29,7 +29,8 @@ func (tm TerraformModule) MarshalJSON() ([]byte, error) {
 
 func (tm *TerraformModule) UnmarshalJSON(data []byte) error {
 	var raw map[string]any
-	if err := json.Unmarshal(data, &raw); err != nil {
+	err := json.Unmarshal(data, &raw)
+	if err != nil {
 		return err
 	}
 

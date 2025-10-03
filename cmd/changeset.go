@@ -227,10 +227,10 @@ var changesetChangeListCmd = &cobra.Command{
 
 func init() {
 	changesetCreateCmd.Flags().String("name", "", "Changeset name")
-	changesetCreateCmd.MarkFlagRequired("name")
+	_ = changesetCreateCmd.MarkFlagRequired("name")
 
 	changesetChangeListCmd.Flags().String("changeset", "", "Changeset name")
-	changesetChangeListCmd.MarkFlagRequired("changeset")
+	_ = changesetChangeListCmd.MarkFlagRequired("changeset")
 	changesetChangeListCmd.Flags().Bool("wait-for-completion", false, "Wait until all plans in the changeset are completed")
 
 	changesetChangeCmd.AddCommand(changesetChangeListCmd)

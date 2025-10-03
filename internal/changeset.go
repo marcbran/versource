@@ -131,7 +131,6 @@ func (c *CreateChangeset) Exec(ctx context.Context, req CreateChangesetRequest) 
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create changeset: %w", err)
 	}
@@ -143,7 +142,6 @@ func (c *CreateChangeset) Exec(ctx context.Context, req CreateChangesetRequest) 
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, InternalErrE("failed to create changeset branch", err)
 	}

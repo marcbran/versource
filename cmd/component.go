@@ -350,10 +350,13 @@ func parseVariables(variableMap map[string]string) (map[string]any, error) {
 			value = false
 		} else if valueStr == "null" {
 			value = nil
-		} else if num, err := strconv.ParseFloat(valueStr, 64); err == nil {
-			value = num
 		} else {
-			value = valueStr
+			num, err := strconv.ParseFloat(valueStr, 64)
+			if err == nil {
+				value = num
+			} else {
+				value = valueStr
+			}
 		}
 
 		variables[key] = value
@@ -373,23 +376,23 @@ func init() {
 	componentCreateCmd.Flags().String("module-id", "", "Module ID (will use latest version)")
 	componentCreateCmd.Flags().String("changeset", "", "Component changeset")
 	componentCreateCmd.Flags().StringToString("variable", nil, "Component variable in key=value format (can be used multiple times)")
-	componentCreateCmd.MarkFlagRequired("name")
-	componentCreateCmd.MarkFlagRequired("module-id")
-	componentCreateCmd.MarkFlagRequired("changeset")
+	_ = componentCreateCmd.MarkFlagRequired("name")
+	_ = componentCreateCmd.MarkFlagRequired("module-id")
+	_ = componentCreateCmd.MarkFlagRequired("changeset")
 
 	componentUpdateCmd.Flags().String("changeset", "", "Changeset name")
 	componentUpdateCmd.Flags().String("module-id", "", "Module ID (will use latest version)")
 	componentUpdateCmd.Flags().StringToString("variable", nil, "Component variable in key=value format (can be used multiple times)")
-	componentUpdateCmd.MarkFlagRequired("changeset")
+	_ = componentUpdateCmd.MarkFlagRequired("changeset")
 
 	componentDeleteCmd.Flags().String("changeset", "", "Changeset name")
-	componentDeleteCmd.MarkFlagRequired("changeset")
+	_ = componentDeleteCmd.MarkFlagRequired("changeset")
 
 	componentPlanCmd.Flags().String("changeset", "", "Changeset name for the plan")
-	componentPlanCmd.MarkFlagRequired("changeset")
+	_ = componentPlanCmd.MarkFlagRequired("changeset")
 
 	componentRestoreCmd.Flags().String("changeset", "", "Changeset name")
-	componentRestoreCmd.MarkFlagRequired("changeset")
+	_ = componentRestoreCmd.MarkFlagRequired("changeset")
 
 	componentCmd.AddCommand(componentGetCmd)
 	componentCmd.AddCommand(componentListCmd)

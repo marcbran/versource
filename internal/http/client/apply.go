@@ -25,14 +25,16 @@ func (c *Client) GetApply(ctx context.Context, req internal.GetApplyRequest) (*i
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var applyResp internal.GetApplyResponse
-	if err := json.NewDecoder(resp.Body).Decode(&applyResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&applyResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -54,7 +56,8 @@ func (c *Client) GetApplyLog(ctx context.Context, req internal.GetApplyLogReques
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
@@ -80,14 +83,16 @@ func (c *Client) ListApplies(ctx context.Context, req internal.ListAppliesReques
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var appliesResp internal.ListAppliesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&appliesResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&appliesResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -109,7 +114,8 @@ func (c *Client) RunApply(ctx context.Context, applyID uint) error {
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return fmt.Errorf("server error: %s", errorResp.Message)

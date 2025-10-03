@@ -50,14 +50,16 @@ func (p *TableData) LoadData() ([]internal.Component, error) {
 	req := internal.ListComponentsRequest{}
 
 	if p.moduleID != "" {
-		if moduleID, err := strconv.ParseUint(p.moduleID, 10, 32); err == nil {
+		moduleID, err := strconv.ParseUint(p.moduleID, 10, 32)
+		if err == nil {
 			moduleIDUint := uint(moduleID)
 			req.ModuleID = &moduleIDUint
 		}
 	}
 
 	if p.moduleVersionID != "" {
-		if moduleVersionID, err := strconv.ParseUint(p.moduleVersionID, 10, 32); err == nil {
+		moduleVersionID, err := strconv.ParseUint(p.moduleVersionID, 10, 32)
+		if err == nil {
 			moduleVersionIDUint := uint(moduleVersionID)
 			req.ModuleVersionID = &moduleVersionIDUint
 		}

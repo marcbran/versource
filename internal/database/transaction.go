@@ -204,7 +204,6 @@ func (tm *GormTransactionManager) RebaseBranch(ctx context.Context, onto string)
 	}
 
 	err = tx.WithContext(ctx).Exec("CALL DOLT_REBASE('--continue')").Error
-
 	if err != nil {
 		err = resolveAllConflicts(ctx, tx)
 		if err != nil {

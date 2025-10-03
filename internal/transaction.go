@@ -2,8 +2,10 @@ package internal
 
 import "context"
 
-const MainBranch = "main"
-const AdminBranch = "admin"
+const (
+	MainBranch  = "main"
+	AdminBranch = "admin"
+)
 
 type TransactionManager interface {
 	Do(ctx context.Context, branch, message string, fn func(ctx context.Context) error) error

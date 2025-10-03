@@ -46,13 +46,14 @@ func (e *Executor) Init(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal stack config: %w", err)
 	}
-	err = os.WriteFile(mainJSONPath, jsonData, 0644)
+	err = os.WriteFile(mainJSONPath, jsonData, 0o644)
 	if err != nil {
 		return fmt.Errorf("failed to write stack config: %w", err)
 	}
 
 	modulesDir := filepath.Join(e.workDir, "modules")
-	if _, err := os.Stat(modulesDir); err == nil {
+	_, err = os.Stat(modulesDir)
+	if err == nil {
 		absModulesDir, err := filepath.Abs(modulesDir)
 		if err != nil {
 			return fmt.Errorf("failed to get absolute path for modules directory: %w", err)

@@ -40,7 +40,7 @@ test-e2e-ci:
   #!/usr/bin/env bash
   set -euo pipefail
   export IMAGE_TAG="SNAPSHOT-amd64"
-  export VS_LOG=DEBUG
+  export VS_LOG="DEBUG"
   go test -v -tags "e2e all" -count=1 ./tests/...
 
 test-e2e-type type: test-prune

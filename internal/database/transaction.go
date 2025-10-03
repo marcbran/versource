@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/marcbran/versource/internal"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -106,6 +107,8 @@ func ensureBranch(tx *gorm.DB, branch string) error {
 	if err != nil {
 		return fmt.Errorf("failed to checkout branch %s: %w", branch, err)
 	}
+
+	log.WithField("branch", branch).Info("Checked out branch")
 
 	return nil
 }

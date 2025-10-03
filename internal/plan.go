@@ -365,9 +365,20 @@ func (pw *PlanWorker) runPlanInBackground(ctx context.Context, planID uint) {
 
 		err := pw.runPlan.Exec(workerCtx, planID)
 		if err != nil {
-			log.WithError(err).WithField("plan_id", planID).Error("Failed to run plan")
+			stateErr := pw.tx.Do(ctx, AdminBranch, "fail plan", func(ctx context.Context) error {
+				return pw.planRepo.UpdatePlanState(ctx, planID, TaskStateFailed)
+			})
+			if stateErr != nil {
+				log.WithError(err).
+					WithField("plan_id", planID).
+					Error("Failed to fail plan")
+			}
+			log.WithError(err).
+				WithField("plan_id", planID).
+				Error("Failed to run plan")
 		} else {
-			log.WithField("plan_id", planID).Info("Plan completed successfully")
+			log.WithField("plan_id", planID).
+				Info("Plan completed successfully")
 		}
 	}()
 }
@@ -443,13 +454,7 @@ func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
 		return err
 	})
 	if err != nil {
-		stateErr := r.tx.Do(ctx, AdminBranch, "fail plan", func(ctx context.Context) error {
-			return r.planRepo.UpdatePlanState(ctx, planID, TaskStateFailed)
-		})
-		if stateErr != nil {
-			return fmt.Errorf("failed to get component at commit: %w, and failed to update plan state: %w", err, stateErr)
-		}
-		return fmt.Errorf("failed to get component at commit: %w", err)
+		return err
 	}
 
 	workDir := r.config.Terraform.WorkDir
@@ -470,38 +475,20 @@ func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
 
 	err = executor.Init(ctx)
 	if err != nil {
-		stateErr := r.tx.Do(ctx, AdminBranch, "fail plan", func(ctx context.Context) error {
-			return r.planRepo.UpdatePlanState(ctx, planID, TaskStateFailed)
-		})
-		if stateErr != nil {
-			return fmt.Errorf("failed to initialize executor: %w, and failed to update plan state: %w", err, stateErr)
-		}
-		return fmt.Errorf("failed to initialize executor: %w", err)
+		return err
 	}
 
 	planPath, resourceCounts, err := executor.Plan(ctx)
 	if err != nil {
-		stateErr := r.tx.Do(ctx, AdminBranch, "fail plan", func(ctx context.Context) error {
-			return r.planRepo.UpdatePlanState(ctx, planID, TaskStateFailed)
-		})
-		if stateErr != nil {
-			return fmt.Errorf("failed to plan executor: %w, and failed to update plan state: %w", err, stateErr)
-		}
-		return fmt.Errorf("failed to plan executor: %w", err)
+		return err
 	}
 
 	err = r.planStore.StorePlan(ctx, planID, planPath)
 	if err != nil {
-		stateErr := r.tx.Do(ctx, AdminBranch, "fail plan", func(ctx context.Context) error {
-			return r.planRepo.UpdatePlanState(ctx, planID, TaskStateFailed)
-		})
-		if stateErr != nil {
-			return fmt.Errorf("failed to store plan: %w, and failed to update plan state: %w", err, stateErr)
-		}
-		return fmt.Errorf("failed to store plan: %w", err)
+		return err
 	}
 
-	err = r.tx.Do(ctx, AdminBranch, "complete plan", func(ctx context.Context) error {
+	err = r.tx.Do(ctx, AdminBranch, "succeed plan", func(ctx context.Context) error {
 		updateErr := r.planRepo.UpdatePlanResourceCounts(ctx, planID, resourceCounts)
 		if updateErr != nil {
 			return fmt.Errorf("failed to update plan resource counts: %w", updateErr)
@@ -516,6 +503,9 @@ func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }

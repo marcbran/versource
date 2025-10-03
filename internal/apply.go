@@ -300,9 +300,20 @@ func (aw *ApplyWorker) runApplyInBackground(ctx context.Context, applyID uint) {
 
 		err := aw.runApply.Exec(workerCtx, applyID)
 		if err != nil {
-			log.WithError(err).WithField("apply_id", applyID).Error("Failed to run apply")
+			stateErr := aw.tx.Do(ctx, AdminBranch, "fail apply", func(ctx context.Context) error {
+				return aw.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
+			})
+			if stateErr != nil {
+				log.WithError(err).
+					WithField("apply_id", applyID).
+					Error("Failed to fail apply")
+			}
+			log.WithError(err).
+				WithField("apply_id", applyID).
+				Error("Failed to run apply")
 		} else {
-			log.WithField("apply_id", applyID).Info("Apply completed successfully")
+			log.WithField("apply_id", applyID).
+				Info("Apply completed successfully")
 		}
 	}()
 }
@@ -390,12 +401,6 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 		return err
 	})
 	if err != nil {
-		stateErr := a.tx.Do(ctx, AdminBranch, "fail apply", func(ctx context.Context) error {
-			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
-		})
-		if stateErr != nil {
-			return fmt.Errorf("failed to get component at commit: %w, and failed to update apply state: %w", err, stateErr)
-		}
 		return fmt.Errorf("failed to get component at commit: %w", err)
 	}
 
@@ -410,23 +415,11 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	err = executor.Init(ctx)
 	if err != nil {
-		stateErr := a.tx.Do(ctx, AdminBranch, "fail apply", func(ctx context.Context) error {
-			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
-		})
-		if stateErr != nil {
-			return fmt.Errorf("failed to initialize terraform: %w, and failed to update apply state: %w", err, stateErr)
-		}
 		return fmt.Errorf("failed to initialize terraform: %w", err)
 	}
 
 	planPath, err := a.planStore.LoadPlan(ctx, apply.PlanID)
 	if err != nil {
-		stateErr := a.tx.Do(ctx, AdminBranch, "fail apply", func(ctx context.Context) error {
-			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
-		})
-		if stateErr != nil {
-			return fmt.Errorf("failed to load plan: %w, and failed to update apply state: %w", err, stateErr)
-		}
 		return fmt.Errorf("failed to load plan: %w", err)
 	}
 
@@ -434,26 +427,16 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	state, stateResources, err := executor.Apply(ctx, planPath)
 	if err != nil {
-		stateErr := a.tx.Do(ctx, AdminBranch, "fail apply", func(ctx context.Context) error {
-			return a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
-		})
-		if stateErr != nil {
-			return fmt.Errorf("failed to apply terraform: %w, and failed to update apply state: %w", err, stateErr)
-		}
 		return fmt.Errorf("failed to apply terraform: %w", err)
 	}
 
 	log.Info("Terraform apply completed successfully")
 
-	err = a.tx.Do(ctx, AdminBranch, "complete apply", func(ctx context.Context) error {
+	err = a.tx.Do(ctx, MainBranch, "update state resources", func(ctx context.Context) error {
 		state.ComponentID = component.ID
 
 		err := a.stateRepo.UpsertState(ctx, &state)
 		if err != nil {
-			stateErr := a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
-			if stateErr != nil {
-				return fmt.Errorf("failed to upsert state: %w, and failed to update apply state: %w", err, stateErr)
-			}
 			return fmt.Errorf("failed to upsert state: %w", err)
 		}
 
@@ -461,32 +444,28 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 			var resources []Resource
 			for i := range stateResources {
 				stateResources[i].StateID = state.ID
+				stateResources[i].Resource.UUID = stateResources[i].Resource.GenerateUUID()
+				stateResources[i].ResourceID = stateResources[i].Resource.UUID
 				resources = append(resources, stateResources[i].Resource)
 			}
 
 			err = a.resourceRepo.UpsertResources(ctx, resources)
 			if err != nil {
-				stateErr := a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
-				if stateErr != nil {
-					return fmt.Errorf("failed to upsert resources: %w, and failed to update apply state: %w", err, stateErr)
-				}
 				return fmt.Errorf("failed to upsert resources: %w", err)
-			}
-
-			for i := range stateResources {
-				stateResources[i].ResourceID = resources[i].ID
 			}
 
 			err = a.stateResourceRepo.UpsertStateResources(ctx, stateResources)
 			if err != nil {
-				stateErr := a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
-				if stateErr != nil {
-					return fmt.Errorf("failed to upsert state resources: %w, and failed to update apply state: %w", err, stateErr)
-				}
 				return fmt.Errorf("failed to upsert state resources: %w", err)
 			}
 		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 
+	err = a.tx.Do(ctx, AdminBranch, "succeed apply", func(ctx context.Context) error {
 		err = a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateSucceeded)
 		if err != nil {
 			return fmt.Errorf("failed to update apply state: %w", err)

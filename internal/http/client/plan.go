@@ -29,14 +29,16 @@ func (c *Client) GetPlan(ctx context.Context, req internal.GetPlanRequest) (*int
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var planResp internal.GetPlanResponse
-	if err := json.NewDecoder(resp.Body).Decode(&planResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&planResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -61,7 +63,8 @@ func (c *Client) GetPlanLog(ctx context.Context, req internal.GetPlanLogRequest)
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
@@ -90,14 +93,16 @@ func (c *Client) ListPlans(ctx context.Context, req internal.ListPlansRequest) (
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var plansResp internal.ListPlansResponse
-	if err := json.NewDecoder(resp.Body).Decode(&plansResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&plansResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -121,14 +126,16 @@ func (c *Client) CreatePlan(ctx context.Context, req internal.CreatePlanRequest)
 
 	if resp.StatusCode != http.StatusCreated {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var planResp internal.CreatePlanResponse
-	if err := json.NewDecoder(resp.Body).Decode(&planResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&planResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -158,7 +165,8 @@ func (c *Client) RunPlan(ctx context.Context, planID uint) error {
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return fmt.Errorf("server error: %s", errorResp.Message)

@@ -26,14 +26,16 @@ func (c *Client) ListChangesets(ctx context.Context, req internal.ListChangesets
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var changesetsResp internal.ListChangesetsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&changesetsResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&changesetsResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -62,14 +64,16 @@ func (c *Client) CreateChangeset(ctx context.Context, req internal.CreateChanges
 
 	if resp.StatusCode != http.StatusCreated {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var changesetResp internal.CreateChangesetResponse
-	if err := json.NewDecoder(resp.Body).Decode(&changesetResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&changesetResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -93,14 +97,16 @@ func (c *Client) CreateMerge(ctx context.Context, req internal.CreateMergeReques
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var mergeResp internal.CreateMergeResponse
-	if err := json.NewDecoder(resp.Body).Decode(&mergeResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&mergeResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -129,14 +135,16 @@ func (c *Client) EnsureChangeset(ctx context.Context, req internal.EnsureChanges
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var changesetResp internal.EnsureChangesetResponse
-	if err := json.NewDecoder(resp.Body).Decode(&changesetResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&changesetResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -165,14 +173,16 @@ func (c *Client) DeleteChangeset(ctx context.Context, req internal.DeleteChanges
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var changesetResp internal.DeleteChangesetResponse
-	if err := json.NewDecoder(resp.Body).Decode(&changesetResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&changesetResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 

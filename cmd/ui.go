@@ -26,7 +26,8 @@ var uiCmd = &cobra.Command{
 		}
 
 		logDir := filepath.Join(configDir, "versource")
-		if err := os.MkdirAll(logDir, 0755); err != nil {
+		err := os.MkdirAll(logDir, 0755)
+		if err != nil {
 			return fmt.Errorf("failed to create log directory: %w", err)
 		}
 

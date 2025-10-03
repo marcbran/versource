@@ -25,14 +25,16 @@ func (c *Client) GetMerge(ctx context.Context, req internal.GetMergeRequest) (*i
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var mergeResp internal.GetMergeResponse
-	if err := json.NewDecoder(resp.Body).Decode(&mergeResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&mergeResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -54,14 +56,16 @@ func (c *Client) ListMerges(ctx context.Context, req internal.ListMergesRequest)
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var mergesResp internal.ListMergesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&mergesResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&mergesResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 

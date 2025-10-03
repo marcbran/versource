@@ -44,7 +44,10 @@ func (e *EditComponentData) GetInitialValue() (internal.UpdateComponentRequest, 
 
 	var variables map[string]any
 	if componentResp.Component.Variables != nil {
-		json.Unmarshal(componentResp.Component.Variables, &variables)
+		err := json.Unmarshal(componentResp.Component.Variables, &variables)
+		if err != nil {
+			return internal.UpdateComponentRequest{}, err
+		}
 	}
 
 	changesetName := e.changesetName

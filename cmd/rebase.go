@@ -94,7 +94,7 @@ var rebaseListCmd = &cobra.Command{
 func init() {
 	rebaseGetCmd.Flags().Bool("wait-for-completion", false, "Wait for the rebase to reach a terminal state before returning")
 	rebaseGetCmd.Flags().String("changeset", "", "Changeset name (required)")
-	rebaseGetCmd.MarkFlagRequired("changeset")
+	_ = rebaseGetCmd.MarkFlagRequired("changeset")
 	rebaseListCmd.Flags().String("changeset", "", "Changeset name (optional)")
 	rebaseCmd.AddCommand(rebaseGetCmd)
 	rebaseCmd.AddCommand(rebaseListCmd)

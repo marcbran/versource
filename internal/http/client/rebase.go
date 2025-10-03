@@ -25,14 +25,16 @@ func (c *Client) GetRebase(ctx context.Context, req internal.GetRebaseRequest) (
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var rebaseResp internal.GetRebaseResponse
-	if err := json.NewDecoder(resp.Body).Decode(&rebaseResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&rebaseResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -54,14 +56,16 @@ func (c *Client) ListRebases(ctx context.Context, req internal.ListRebasesReques
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var rebasesResp internal.ListRebasesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&rebasesResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&rebasesResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -83,14 +87,16 @@ func (c *Client) CreateRebase(ctx context.Context, req internal.CreateRebaseRequ
 
 	if resp.StatusCode != http.StatusCreated {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var rebaseResp internal.CreateRebaseResponse
-	if err := json.NewDecoder(resp.Body).Decode(&rebaseResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&rebaseResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 

@@ -50,16 +50,6 @@ func formatOutput(data any, textFormat string, textArgs ...any) error {
 	return nil
 }
 
-func renderViewpointData[T any](detailData platform.ViewportData[T]) error {
-	resp, err := detailData.LoadData()
-	if err != nil {
-		return err
-	}
-	return renderValue(resp, func() string {
-		return detailData.ResolveData(*resp)
-	})
-}
-
 func renderViewportViewData[T any, V any](detailData platform.ViewportViewData[T, V]) error {
 	resp, err := detailData.LoadData()
 	if err != nil {
@@ -159,7 +149,8 @@ func renderTable(columns []table.Column, rows []table.Row) string {
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	err := rootCmd.Execute()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

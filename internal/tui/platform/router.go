@@ -517,8 +517,8 @@ func (k KeyBindings) With(key, help, command string) KeyBindings {
 }
 
 func (k KeyBindings) Overlay(overlay KeyBindings) KeyBindings {
-	result := make(KeyBindings, len(k))
-	copy(result, k)
+	result := make(KeyBindings, 0, len(k))
+	result = append(result, k...)
 
 	for _, overlayBinding := range overlay {
 		found := false

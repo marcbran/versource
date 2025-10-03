@@ -52,7 +52,8 @@ func (e *Executor) Init(ctx context.Context) error {
 	}
 
 	modulesDir := filepath.Join(e.workDir, "modules")
-	if _, err := os.Stat(modulesDir); err == nil {
+	_, err = os.Stat(modulesDir)
+	if err == nil {
 		absModulesDir, err := filepath.Abs(modulesDir)
 		if err != nil {
 			return fmt.Errorf("failed to get absolute path for modules directory: %w", err)

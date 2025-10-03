@@ -24,7 +24,8 @@ func LoadConfig(cmd *cobra.Command) (*internal.Config, error) {
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
-	if err := v.ReadInConfig(); err != nil {
+	err := v.ReadInConfig()
+	if err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			return nil, err
 		}

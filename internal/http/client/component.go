@@ -33,14 +33,16 @@ func (c *Client) GetComponent(ctx context.Context, req internal.GetComponentRequ
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var componentResp internal.GetComponentResponse
-	if err := json.NewDecoder(resp.Body).Decode(&componentResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&componentResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -80,14 +82,16 @@ func (c *Client) ListComponents(ctx context.Context, req internal.ListComponents
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var componentsResp internal.ListComponentsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&componentsResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&componentsResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -110,14 +114,16 @@ func (c *Client) GetComponentChange(ctx context.Context, req internal.GetCompone
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var changeResp internal.GetComponentChangeResponse
-	if err := json.NewDecoder(resp.Body).Decode(&changeResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&changeResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -140,14 +146,16 @@ func (c *Client) ListComponentChanges(ctx context.Context, req internal.ListComp
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var changesResp internal.ListComponentChangesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&changesResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&changesResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -176,14 +184,16 @@ func (c *Client) CreateComponent(ctx context.Context, req internal.CreateCompone
 
 	if resp.StatusCode != http.StatusCreated {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var componentResp internal.CreateComponentResponse
-	if err := json.NewDecoder(resp.Body).Decode(&componentResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&componentResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -212,14 +222,16 @@ func (c *Client) UpdateComponent(ctx context.Context, req internal.UpdateCompone
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var componentResp internal.UpdateComponentResponse
-	if err := json.NewDecoder(resp.Body).Decode(&componentResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&componentResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -241,14 +253,16 @@ func (c *Client) DeleteComponent(ctx context.Context, req internal.DeleteCompone
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var componentResp internal.DeleteComponentResponse
-	if err := json.NewDecoder(resp.Body).Decode(&componentResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&componentResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -270,14 +284,16 @@ func (c *Client) RestoreComponent(ctx context.Context, req internal.RestoreCompo
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp http2.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errorResp); err != nil {
+		err := json.NewDecoder(resp.Body).Decode(&errorResp)
+		if err != nil {
 			return nil, fmt.Errorf("failed to decode error response: %w", err)
 		}
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
 	var componentResp internal.RestoreComponentResponse
-	if err := json.NewDecoder(resp.Body).Decode(&componentResp); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&componentResp)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 

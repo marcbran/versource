@@ -274,9 +274,8 @@ func verifyRoundTrip(t *testing.T, original interface{}, marshaled []byte) {
 		return
 	}
 
-	originalValue := original
 	if reflect.TypeOf(original).Kind() != reflect.Ptr {
-		originalValue = original
+		originalValue := original
 		newInstanceValue := reflect.ValueOf(newInstance).Elem().Interface()
 		if !reflectDeepEqual(originalValue, newInstanceValue) {
 			t.Errorf("Round trip failed: original = %v, unmarshaled = %v", originalValue, newInstanceValue)

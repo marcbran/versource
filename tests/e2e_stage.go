@@ -95,9 +95,9 @@ func (s *Stage) a_recreated_dbms() *Stage {
 
 func (s *Stage) a_database_user() *Stage {
 	return s.
-		a_db_query_is_run_as_root(`CREATE USER IF NOT EXISTS "versource"@"%" IDENTIFIED BY "versource";`).and().
-		a_db_query_is_run_as_root(`GRANT ALL PRIVILEGES ON *.* TO "versource"@"%";`).
-		a_db_query_is_run_as_root("FLUSH PRIVILEGES;")
+		a_db_query_has_been_run_as_root(`CREATE USER IF NOT EXISTS "versource"@"%" IDENTIFIED BY "versource";`).and().
+		a_db_query_has_been_run_as_root(`GRANT ALL PRIVILEGES ON *.* TO "versource"@"%";`).
+		a_db_query_has_been_run_as_root("FLUSH PRIVILEGES;")
 }
 
 func (s *Stage) a_created_server() *Stage {
@@ -123,8 +123,8 @@ func (s *Stage) a_clean_slate() *Stage {
 
 func (s *Stage) an_empty_database() *Stage {
 	return s.
-		a_db_query_is_run_as_root("DROP DATABASE IF EXISTS versource;").and().
-		a_db_query_is_run_as_root("CREATE DATABASE IF NOT EXISTS versource;")
+		a_db_query_has_been_run_as_root("DROP DATABASE IF EXISTS versource;").and().
+		a_db_query_has_been_run_as_root("CREATE DATABASE IF NOT EXISTS versource;")
 }
 
 func (s *Stage) the_migrations_are_run() *Stage {
@@ -140,14 +140,13 @@ func (s *Stage) the_dataset(dataset Dataset) *Stage {
 
 func (s *Stage) a_dataset_is_cloned(dataset Dataset) *Stage {
 	return s.
-		a_db_query_is_run_as_root("DROP DATABASE IF EXISTS versource;").and().
-		a_db_query_is_run_as_root("CALL DOLT_CLONE('file:///datasets/" + dataset.Name + "', 'versource')").and().
+		a_db_query_has_been_run_as_root("DROP DATABASE IF EXISTS versource;").and().
+		a_db_query_has_been_run_as_root("CALL DOLT_CLONE('file:///datasets/" + dataset.Name + "', 'versource')").and().
 		remote_branches_are_tracked_locally()
 }
 
 func (s *Stage) remote_branches_are_tracked_locally() *Stage {
-	s.a_db_query_is_run_as_versource("SELECT name FROM dolt_remote_branches")
-
+	s.a_db_query_has_been_run_as_versource("SELECT name FROM dolt_remote_branches")
 	lines := strings.Split(s.LastQueryResult, "\n")
 
 	for _, line := range lines {
@@ -165,7 +164,7 @@ func (s *Stage) remote_branches_are_tracked_locally() *Stage {
 			continue
 		}
 
-		s.a_db_query_is_run_as_versource(fmt.Sprintf("CALL DOLT_BRANCH('%s', 'origin/%s')", branchName, branchName))
+		s.a_db_query_has_been_run_as_versource(fmt.Sprintf("CALL DOLT_CHECKOUT('%s')", branchName))
 	}
 
 	return s
@@ -253,6 +252,25 @@ func (s *Stage) a_command_is_executed(service string, args ...string) *Stage {
 	return s
 }
 
+func (s *Stage) a_db_query_has_been_run_as_root(query string) *Stage {
+	return s.a_dolt_client_command_has_been_executed(query, "mysql", "-h", "dolt", "-u", "root")
+}
+
+func (s *Stage) a_db_query_has_been_run_as_versource(query string) *Stage {
+	return s.a_dolt_client_command_has_been_executed(query, "mysql", "-h", "dolt", "-u", "versource", "-pversource", "versource")
+}
+
+func (s *Stage) a_dolt_client_command_has_been_executed(query string, args ...string) *Stage {
+	s.a_dolt_client_command_is_executed(query, args...)
+
+	if s.LastExitCode == 0 {
+		return s
+	}
+
+	require.Fail(s.t, s.LastError)
+	return s
+}
+
 func (s *Stage) a_db_query_is_run_as_root(query string) *Stage {
 	return s.a_dolt_client_command_is_executed(query, "mysql", "-h", "dolt", "-u", "root")
 }
@@ -281,10 +299,15 @@ func (s *Stage) a_dolt_client_command_is_executed(query string, args ...string) 
 	}
 
 	if err != nil {
-		fmt.Println(stderr.String())
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			s.LastExitCode = exitErr.ExitCode()
+		}
+		s.LastError = stderr.String()
+	} else {
+		s.LastExitCode = 0
+		s.LastError = ""
 	}
-
-	require.NoError(s.t, err)
 
 	s.LastQueryResult = output
 

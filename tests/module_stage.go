@@ -14,6 +14,22 @@ func (s *Stage) an_existing_module_has_been_created() *Stage {
 	).and().the_module_creation_has_succeeded()
 }
 
+func (s *Stage) the_resources_module_has_been_created() *Stage {
+	return s.a_module_is_created(
+		"resources",
+		"https://github.com/marcbran/versource/tests/modules/resources",
+		"905bad7db882368c8e7852b019814a8024b57ab5",
+	).and().the_module_creation_has_succeeded()
+}
+
+func (s *Stage) a_module_that_will_fail_on_apply_has_been_created() *Stage {
+	return s.a_module_is_created(
+		"fail",
+		"https://github.com/marcbran/versource/tests/modules/fail",
+		"81840a7d4b0cda6ebe61d5476be8f7334e86b6fb",
+	).and().the_module_creation_has_succeeded()
+}
+
 func (s *Stage) a_non_existing_module_has_been_created() *Stage {
 	return s.a_module_is_created(
 		"not-an-existing-module",

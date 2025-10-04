@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"time"
-
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/rebase"
@@ -32,42 +30,20 @@ var rebaseGetCmd = &cobra.Command{
 		}
 		httpClient := client.NewClient(config)
 		detailData := rebase.NewDetailData(httpClient, changeset, args[0])
-		rebaseResp, err := detailData.LoadData()
-		if err != nil {
-			return err
-		}
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
 		if err != nil {
 			return err
 		}
-		if !waitForCompletion || internal.IsTaskCompleted(rebaseResp.State) {
-			return renderViewModel(*rebaseResp, func() rebase.DetailViewModel {
-				return detailData.ResolveData(*rebaseResp)
-			})
-		}
 
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-ticker.C:
-				rebaseResp, err = detailData.LoadData()
-				if err != nil {
-					return err
-				}
-
-				if !internal.IsTaskCompleted(rebaseResp.State) {
-					continue
-				}
-
-				return renderViewModel(*rebaseResp, func() rebase.DetailViewModel {
-					return detailData.ResolveData(*rebaseResp)
-				})
-			}
-		}
+		return waitForTaskCompletion(
+			ctx,
+			waitForCompletion,
+			detailData,
+			func(resp internal.GetRebaseResponse) bool {
+				return internal.IsTaskCompleted(resp.State)
+			},
+		)
 	},
 }
 
@@ -76,6 +52,7 @@ var rebaseListCmd = &cobra.Command{
 	Short: "List all rebases",
 	Long:  `List all rebases in the system`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
 		changeset, err := cmd.Flags().GetString("changeset")
 		if err != nil {
 			return err
@@ -87,7 +64,25 @@ var rebaseListCmd = &cobra.Command{
 		}
 		httpClient := client.NewClient(config)
 		tableData := rebase.NewTableData(httpClient, changeset)
-		return renderTableData(tableData)
+
+		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
+		if err != nil {
+			return err
+		}
+
+		return waitForTableCompletion(
+			ctx,
+			waitForCompletion,
+			tableData,
+			func(rebases []internal.Rebase) bool {
+				for _, rebase := range rebases {
+					if !internal.IsTaskCompleted(rebase.State) {
+						return false
+					}
+				}
+				return true
+			},
+		)
 	},
 }
 
@@ -96,6 +91,7 @@ func init() {
 	rebaseGetCmd.Flags().String("changeset", "", "Changeset name (required)")
 	_ = rebaseGetCmd.MarkFlagRequired("changeset")
 	rebaseListCmd.Flags().String("changeset", "", "Changeset name (optional)")
+	rebaseListCmd.Flags().Bool("wait-for-completion", false, "Wait for all rebases to reach terminal states before returning")
 	rebaseCmd.AddCommand(rebaseGetCmd)
 	rebaseCmd.AddCommand(rebaseListCmd)
 }

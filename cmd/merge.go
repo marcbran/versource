@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"time"
-
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/merge"
@@ -32,42 +30,20 @@ var mergeGetCmd = &cobra.Command{
 		}
 		httpClient := client.NewClient(config)
 		detailData := merge.NewDetailData(httpClient, changeset, args[0])
-		mergeResp, err := detailData.LoadData()
-		if err != nil {
-			return err
-		}
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
 		if err != nil {
 			return err
 		}
-		if !waitForCompletion || internal.IsTaskCompleted(mergeResp.State) {
-			return renderViewModel(*mergeResp, func() merge.DetailViewModel {
-				return detailData.ResolveData(*mergeResp)
-			})
-		}
 
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-ticker.C:
-				mergeResp, err = detailData.LoadData()
-				if err != nil {
-					return err
-				}
-
-				if !internal.IsTaskCompleted(mergeResp.State) {
-					continue
-				}
-
-				return renderViewModel(*mergeResp, func() merge.DetailViewModel {
-					return detailData.ResolveData(*mergeResp)
-				})
-			}
-		}
+		return waitForTaskCompletion(
+			ctx,
+			waitForCompletion,
+			detailData,
+			func(resp internal.GetMergeResponse) bool {
+				return internal.IsTaskCompleted(resp.State)
+			},
+		)
 	},
 }
 
@@ -76,6 +52,7 @@ var mergeListCmd = &cobra.Command{
 	Short: "List all merges",
 	Long:  `List all merges in the system`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
 		changeset, err := cmd.Flags().GetString("changeset")
 		if err != nil {
 			return err
@@ -87,7 +64,25 @@ var mergeListCmd = &cobra.Command{
 		}
 		httpClient := client.NewClient(config)
 		tableData := merge.NewTableData(httpClient, changeset)
-		return renderTableData(tableData)
+
+		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
+		if err != nil {
+			return err
+		}
+
+		return waitForTableCompletion(
+			ctx,
+			waitForCompletion,
+			tableData,
+			func(merges []internal.Merge) bool {
+				for _, merge := range merges {
+					if !internal.IsTaskCompleted(merge.State) {
+						return false
+					}
+				}
+				return true
+			},
+		)
 	},
 }
 
@@ -96,6 +91,7 @@ func init() {
 	mergeGetCmd.Flags().String("changeset", "", "Changeset name (required)")
 	_ = mergeGetCmd.MarkFlagRequired("changeset")
 	mergeListCmd.Flags().String("changeset", "", "Changeset name (optional)")
+	mergeListCmd.Flags().Bool("wait-for-completion", false, "Wait for all merges to reach terminal states before returning")
 	mergeCmd.AddCommand(mergeGetCmd)
 	mergeCmd.AddCommand(mergeListCmd)
 }

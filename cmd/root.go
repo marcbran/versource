@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/marcbran/versource/internal/tui/platform"
@@ -23,6 +25,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "text", "Output format (text or json)")
 	rootCmd.PersistentFlags().String("config", "default", "Configuration key to use (defaults to 'default')")
+	rootCmd.AddCommand(applyCmd)
 	rootCmd.AddCommand(changesetCmd)
 	rootCmd.AddCommand(componentCmd)
 	rootCmd.AddCommand(mergeCmd)
@@ -146,6 +149,88 @@ func renderTable(columns []table.Column, rows []table.Row) string {
 	}
 
 	return result.String()
+}
+
+func waitForTaskCompletion[T any, V any](
+	ctx context.Context,
+	waitForCompletion bool,
+	detailData platform.ViewportViewData[T, V],
+	isCompleted func(T) bool,
+) error {
+	data, err := detailData.LoadData()
+	if err != nil {
+		return err
+	}
+
+	if !waitForCompletion || isCompleted(*data) {
+		return renderViewModel(*data, func() V {
+			return detailData.ResolveData(*data)
+		})
+	}
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			data, err = detailData.LoadData()
+			if err != nil {
+				return err
+			}
+
+			if !isCompleted(*data) {
+				continue
+			}
+
+			return renderViewModel(*data, func() V {
+				return detailData.ResolveData(*data)
+			})
+		}
+	}
+}
+
+func waitForTableCompletion[T any](
+	ctx context.Context,
+	waitForCompletion bool,
+	tableData platform.TableData[T],
+	isCompleted func([]T) bool,
+) error {
+	data, err := tableData.LoadData()
+	if err != nil {
+		return err
+	}
+
+	if !waitForCompletion || isCompleted(data) {
+		return renderValue(data, func() string {
+			columns, rows, _ := tableData.ResolveData(data)
+			return renderTable(columns, rows)
+		})
+	}
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			data, err = tableData.LoadData()
+			if err != nil {
+				return err
+			}
+
+			if !isCompleted(data) {
+				continue
+			}
+
+			return renderValue(data, func() string {
+				columns, rows, _ := tableData.ResolveData(data)
+				return renderTable(columns, rows)
+			})
+		}
+	}
 }
 
 func Execute() {

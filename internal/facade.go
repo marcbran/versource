@@ -47,6 +47,8 @@ type Facade interface {
 	GetApplyLog(ctx context.Context, req GetApplyLogRequest) (*GetApplyLogResponse, error)
 	ListApplies(ctx context.Context, req ListAppliesRequest) (*ListAppliesResponse, error)
 	RunApply(ctx context.Context, applyID uint) error
+
+	ListResources(ctx context.Context, req ListResourcesRequest) (*ListResourcesResponse, error)
 }
 
 type facade struct {
@@ -90,6 +92,8 @@ type facade struct {
 	getApplyLog *GetApplyLog
 	listApplies *ListApplies
 	runApply    *RunApply
+
+	listResources *ListResources
 
 	planWorker   *PlanWorker
 	applyWorker  *ApplyWorker
@@ -173,6 +177,7 @@ func NewFacade(
 		getApplyLog:          getApplyLog,
 		listApplies:          NewListApplies(applyRepo, transactionManager),
 		runApply:             runApply,
+		listResources:        NewListResources(resourceRepo, transactionManager),
 		planWorker:           planWorker,
 		applyWorker:          applyWorker,
 		mergeWorker:          mergeWorker,
@@ -314,6 +319,10 @@ func (f *facade) ListApplies(ctx context.Context, req ListAppliesRequest) (*List
 
 func (f *facade) RunApply(ctx context.Context, applyID uint) error {
 	return f.runApply.Exec(ctx, applyID)
+}
+
+func (f *facade) ListResources(ctx context.Context, req ListResourcesRequest) (*ListResourcesResponse, error) {
+	return f.listResources.Exec(ctx, req)
 }
 
 func (f *facade) Start(ctx context.Context) {

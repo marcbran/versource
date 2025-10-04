@@ -43,3 +43,13 @@ func (r *GormResourceRepo) UpsertResources(ctx context.Context, resources []inte
 
 	return nil
 }
+
+func (r *GormResourceRepo) ListResources(ctx context.Context) ([]internal.Resource, error) {
+	db := getTxOrDb(ctx, r.db)
+	var resources []internal.Resource
+	err := db.WithContext(ctx).Find(&resources).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list resources: %w", err)
+	}
+	return resources, nil
+}

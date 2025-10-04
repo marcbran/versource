@@ -191,6 +191,48 @@ func waitForTaskCompletion[T any, V any](
 	}
 }
 
+func waitForTableCompletion[T any](
+	ctx context.Context,
+	waitForCompletion bool,
+	tableData platform.TableData[T],
+	isCompleted func([]T) bool,
+) error {
+	data, err := tableData.LoadData()
+	if err != nil {
+		return err
+	}
+
+	if !waitForCompletion || isCompleted(data) {
+		return renderValue(data, func() string {
+			columns, rows, _ := tableData.ResolveData(data)
+			return renderTable(columns, rows)
+		})
+	}
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			data, err = tableData.LoadData()
+			if err != nil {
+				return err
+			}
+
+			if !isCompleted(data) {
+				continue
+			}
+
+			return renderValue(data, func() string {
+				columns, rows, _ := tableData.ResolveData(data)
+				return renderTable(columns, rows)
+			})
+		}
+	}
+}
+
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
@@ -184,45 +183,31 @@ var changesetChangeListCmd = &cobra.Command{
 		}
 		httpClient := client.NewClient(config)
 		tableData := component.NewChangesetChangesTableData(httpClient, changesetName)
-		changes, err := tableData.LoadData()
-		if err != nil {
-			return fmt.Errorf("failed to load changeset changes: %w", err)
-		}
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
 		if err != nil {
 			return fmt.Errorf("failed to get wait-for-completion flag: %w", err)
 		}
-		if !waitForCompletion || allPlansCompleted(changes) {
-			return renderValue(changes, func() string {
-				columns, rows, _ := tableData.ResolveData(changes)
-				return renderTable(columns, rows)
-			})
-		}
 
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-ticker.C:
-				changes, err = tableData.LoadData()
-				if err != nil {
-					return fmt.Errorf("failed to load changeset changes: %w", err)
-				}
-
-				if !allPlansCompleted(changes) {
-					continue
-				}
-
-				return renderValue(changes, func() string {
-					columns, rows, _ := tableData.ResolveData(changes)
-					return renderTable(columns, rows)
-				})
-			}
-		}
+		return waitForTableCompletion(
+			ctx,
+			waitForCompletion,
+			tableData,
+			allPlansCompleted,
+		)
 	},
+}
+
+func allPlansCompleted(changes []internal.ComponentChange) bool {
+	for _, change := range changes {
+		if change.Plan == nil {
+			return false
+		}
+		if !internal.IsTaskCompleted(change.Plan.State) {
+			return false
+		}
+	}
+	return true
 }
 
 func init() {
@@ -241,16 +226,4 @@ func init() {
 	changesetCmd.AddCommand(changesetMergeCmd)
 	changesetCmd.AddCommand(changesetRebaseCmd)
 	changesetCmd.AddCommand(changesetDeleteCmd)
-}
-
-func allPlansCompleted(changes []internal.ComponentChange) bool {
-	for _, change := range changes {
-		if change.Plan == nil {
-			return false
-		}
-		if !internal.IsTaskCompleted(change.Plan.State) {
-			return false
-		}
-	}
-	return true
 }

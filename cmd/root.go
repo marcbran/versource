@@ -32,6 +32,7 @@ func init() {
 	rootCmd.AddCommand(rebaseCmd)
 	rootCmd.AddCommand(moduleCmd)
 	rootCmd.AddCommand(planCmd)
+	rootCmd.AddCommand(resourceCmd)
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(migrateCmd)
 	rootCmd.AddCommand(uiCmd)

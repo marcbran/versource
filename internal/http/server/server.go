@@ -141,6 +141,7 @@ func (s *Server) setupRoutes() {
 			})
 		})
 		r.Get("/applies", s.handleListApplies)
+		r.Get("/resources", s.handleListResources)
 		r.Get("/changesets", s.handleListChangesets)
 		r.Route("/applies/{applyID}", func(r chi.Router) {
 			r.Get("/", s.handleGetApply)

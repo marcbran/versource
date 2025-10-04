@@ -55,7 +55,3 @@ var uiCmd = &cobra.Command{
 		return tui.RunApp(client)
 	},
 }
-
-func init() {
-	rootCmd.AddCommand(uiCmd)
-}

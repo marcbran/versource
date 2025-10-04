@@ -47,8 +47,49 @@ var planGetCmd = &cobra.Command{
 	},
 }
 
+var planListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all plans",
+	Long:  `List all plans in the system`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
+		config, err := LoadConfig(cmd)
+		if err != nil {
+			return err
+		}
+		changeset, err := cmd.Flags().GetString("changeset")
+		if err != nil {
+			return err
+		}
+		httpClient := client.NewClient(config)
+		tableData := plan.NewTableData(httpClient, changeset)
+
+		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
+		if err != nil {
+			return err
+		}
+
+		return waitForTableCompletion(
+			ctx,
+			waitForCompletion,
+			tableData,
+			func(plans []internal.Plan) bool {
+				for _, plan := range plans {
+					if !internal.IsTaskCompleted(plan.State) {
+						return false
+					}
+				}
+				return true
+			},
+		)
+	},
+}
+
 func init() {
 	planGetCmd.Flags().Bool("wait-for-completion", false, "Wait for the plan to reach a terminal state before returning")
 	planGetCmd.Flags().String("changeset", "", "Changeset name to get the plan from")
+	planListCmd.Flags().String("changeset", "", "Changeset name (optional)")
+	planListCmd.Flags().Bool("wait-for-completion", false, "Wait for all plans to reach terminal states before returning")
 	planCmd.AddCommand(planGetCmd)
+	planCmd.AddCommand(planListCmd)
 }

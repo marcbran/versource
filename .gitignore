@@ -5,3 +5,6 @@ data/db
 versource
 data/tf/*
 dist
+.terraform
+.terraform-jsonnet
+vendor

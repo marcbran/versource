@@ -5,6 +5,7 @@ local module(variables) =
   local var = {
     keep: std.split(std.get(variables, 'keep', ''), ','),
     drop: std.split(std.get(variables, 'drop', ''), ','),
+    names: std.split(std.get(variables, 'names', 'a,b,c,d,e,f'), ','),
   };
 
   local resource(name) = nl.resource.resource(name, {
@@ -12,8 +13,7 @@ local module(variables) =
       name: name,
     },
   });
-  local names = ['a', 'b', 'c', 'd', 'e', 'f'];
-  local resourcesMap = { [name]: resource(name) for name in names };
+  local resourcesMap = { [name]: resource(name) for name in var.names };
   local resources = std.objectValues(resourcesMap);
   resources +
   [

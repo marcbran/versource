@@ -52,6 +52,7 @@ var mergeListCmd = &cobra.Command{
 	Short: "List all merges",
 	Long:  `List all merges in the system`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
 		changeset, err := cmd.Flags().GetString("changeset")
 		if err != nil {
 			return err
@@ -63,7 +64,25 @@ var mergeListCmd = &cobra.Command{
 		}
 		httpClient := client.NewClient(config)
 		tableData := merge.NewTableData(httpClient, changeset)
-		return renderTableData(tableData)
+
+		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
+		if err != nil {
+			return err
+		}
+
+		return waitForTableCompletion(
+			ctx,
+			waitForCompletion,
+			tableData,
+			func(merges []internal.Merge) bool {
+				for _, merge := range merges {
+					if !internal.IsTaskCompleted(merge.State) {
+						return false
+					}
+				}
+				return true
+			},
+		)
 	},
 }
 
@@ -72,6 +91,7 @@ func init() {
 	mergeGetCmd.Flags().String("changeset", "", "Changeset name (required)")
 	_ = mergeGetCmd.MarkFlagRequired("changeset")
 	mergeListCmd.Flags().String("changeset", "", "Changeset name (optional)")
+	mergeListCmd.Flags().Bool("wait-for-completion", false, "Wait for all merges to reach terminal states before returning")
 	mergeCmd.AddCommand(mergeGetCmd)
 	mergeCmd.AddCommand(mergeListCmd)
 }

@@ -48,18 +48,38 @@ var applyListCmd = &cobra.Command{
 	Short: "List all applies",
 	Long:  `List all applies in the system`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
 		config, err := LoadConfig(cmd)
 		if err != nil {
 			return err
 		}
 		httpClient := client.NewClient(config)
 		tableData := apply.NewTableData(httpClient)
-		return renderTableData(tableData)
+
+		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
+		if err != nil {
+			return err
+		}
+
+		return waitForTableCompletion(
+			ctx,
+			waitForCompletion,
+			tableData,
+			func(applies []internal.Apply) bool {
+				for _, apply := range applies {
+					if !internal.IsTaskCompleted(apply.State) {
+						return false
+					}
+				}
+				return true
+			},
+		)
 	},
 }
 
 func init() {
 	applyGetCmd.Flags().Bool("wait-for-completion", false, "Wait for the apply to reach a terminal state before returning")
+	applyListCmd.Flags().Bool("wait-for-completion", false, "Wait for all applies to reach terminal states before returning")
 	applyCmd.AddCommand(applyGetCmd)
 	applyCmd.AddCommand(applyListCmd)
 }

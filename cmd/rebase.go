@@ -52,6 +52,7 @@ var rebaseListCmd = &cobra.Command{
 	Short: "List all rebases",
 	Long:  `List all rebases in the system`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
 		changeset, err := cmd.Flags().GetString("changeset")
 		if err != nil {
 			return err
@@ -63,7 +64,25 @@ var rebaseListCmd = &cobra.Command{
 		}
 		httpClient := client.NewClient(config)
 		tableData := rebase.NewTableData(httpClient, changeset)
-		return renderTableData(tableData)
+
+		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
+		if err != nil {
+			return err
+		}
+
+		return waitForTableCompletion(
+			ctx,
+			waitForCompletion,
+			tableData,
+			func(rebases []internal.Rebase) bool {
+				for _, rebase := range rebases {
+					if !internal.IsTaskCompleted(rebase.State) {
+						return false
+					}
+				}
+				return true
+			},
+		)
 	},
 }
 
@@ -72,6 +91,7 @@ func init() {
 	rebaseGetCmd.Flags().String("changeset", "", "Changeset name (required)")
 	_ = rebaseGetCmd.MarkFlagRequired("changeset")
 	rebaseListCmd.Flags().String("changeset", "", "Changeset name (optional)")
+	rebaseListCmd.Flags().Bool("wait-for-completion", false, "Wait for all rebases to reach terminal states before returning")
 	rebaseCmd.AddCommand(rebaseGetCmd)
 	rebaseCmd.AddCommand(rebaseListCmd)
 }

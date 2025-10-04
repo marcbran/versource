@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"time"
-
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/merge"
@@ -32,42 +30,20 @@ var mergeGetCmd = &cobra.Command{
 		}
 		httpClient := client.NewClient(config)
 		detailData := merge.NewDetailData(httpClient, changeset, args[0])
-		mergeResp, err := detailData.LoadData()
-		if err != nil {
-			return err
-		}
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
 		if err != nil {
 			return err
 		}
-		if !waitForCompletion || internal.IsTaskCompleted(mergeResp.State) {
-			return renderViewModel(*mergeResp, func() merge.DetailViewModel {
-				return detailData.ResolveData(*mergeResp)
-			})
-		}
 
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-ticker.C:
-				mergeResp, err = detailData.LoadData()
-				if err != nil {
-					return err
-				}
-
-				if !internal.IsTaskCompleted(mergeResp.State) {
-					continue
-				}
-
-				return renderViewModel(*mergeResp, func() merge.DetailViewModel {
-					return detailData.ResolveData(*mergeResp)
-				})
-			}
-		}
+		return waitForTaskCompletion(
+			ctx,
+			waitForCompletion,
+			detailData,
+			func(resp internal.GetMergeResponse) bool {
+				return internal.IsTaskCompleted(resp.State)
+			},
+		)
 	},
 }
 

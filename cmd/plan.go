@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"time"
-
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/plan"
@@ -30,44 +28,22 @@ var planGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
-		detailData := plan.NewDetailData(httpClient, changeset, args[0])
-		planResp, err := detailData.LoadData()
-		if err != nil {
-			return err
-		}
-
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
 		if err != nil {
 			return err
 		}
-		if !waitForCompletion || internal.IsTaskCompleted(planResp.State) {
-			return renderViewModel(*planResp, func() plan.DetailViewModel {
-				return detailData.ResolveData(*planResp)
-			})
-		}
 
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-ticker.C:
-				planResp, err = detailData.LoadData()
-				if err != nil {
-					return err
-				}
+		httpClient := client.NewClient(config)
+		detailData := plan.NewDetailData(httpClient, changeset, args[0])
 
-				if !internal.IsTaskCompleted(planResp.State) {
-					continue
-				}
-
-				return renderViewModel(*planResp, func() plan.DetailViewModel {
-					return detailData.ResolveData(*planResp)
-				})
-			}
-		}
+		return waitForTaskCompletion(
+			ctx,
+			waitForCompletion,
+			detailData,
+			func(resp internal.GetPlanResponse) bool {
+				return internal.IsTaskCompleted(resp.State)
+			},
+		)
 	},
 }
 

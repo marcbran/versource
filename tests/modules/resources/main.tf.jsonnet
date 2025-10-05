@@ -19,8 +19,8 @@ local module(variables) =
   [
     tf.Output('versource', {
       value: {
-        keep: std.prune([std.get(resourcesMap, keep, null) for keep in var.keep]),
-        drop: std.prune([std.get(resourcesMap, drop, null) for drop in var.drop]),
+        keep: if std.length(var.keep) > 0 then std.prune([std.get(resourcesMap, keep, null) for keep in var.keep]) else null,
+        drop: if std.length(var.drop) > 0 then std.prune([std.get(resourcesMap, drop, null) for drop in var.drop]) else null,
       },
     }),
   ];

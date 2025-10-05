@@ -86,10 +86,6 @@ func (l *ListResources) Exec(ctx context.Context, req ListResourcesRequest) (*Li
 }
 
 func applyResourceMapping(stateResources []StateResource, mapping ResourceMapping) []StateResource {
-	if mapping.Keep != nil && len(*mapping.Keep) == 0 {
-		return []StateResource{}
-	}
-
 	keepMap := make(map[string]bool)
 	if mapping.Keep != nil {
 		for _, item := range *mapping.Keep {
@@ -122,6 +118,8 @@ func applyResourceMapping(stateResources []StateResource, mapping ResourceMappin
 	if mapping.Add != nil {
 		for _, resource := range *mapping.Add {
 			stateResource := StateResource{
+				Address:  resource.GenerateUUID(),
+				Mode:     AddedResourceMode,
 				Resource: resource,
 			}
 			filtered = append(filtered, stateResource)

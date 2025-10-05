@@ -36,6 +36,7 @@ type ResourceMode string
 const (
 	DataResourceMode    ResourceMode = "data"
 	ManagedResourceMode ResourceMode = "managed"
+	AddedResourceMode   ResourceMode = "added"
 )
 
 type StateResourceRepo interface {

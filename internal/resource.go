@@ -39,8 +39,8 @@ func (r Resource) GenerateUUID() string {
 }
 
 type ResourceMapping struct {
-	Keep []datatypes.JSON `json:"keep"`
-	Drop []datatypes.JSON `json:"drop"`
+	Keep *[]datatypes.JSON `json:"keep,omitempty"`
+	Drop *[]datatypes.JSON `json:"drop,omitempty"`
 }
 
 type ResourceRepo interface {
@@ -85,23 +85,31 @@ func (l *ListResources) Exec(ctx context.Context, req ListResourcesRequest) (*Li
 }
 
 func applyResourceMapping(stateResources []StateResource, mapping ResourceMapping) []StateResource {
-	if len(mapping.Keep) == 0 && len(mapping.Drop) == 0 {
-		return stateResources
+	if mapping.Keep != nil && len(*mapping.Keep) == 0 {
+		return []StateResource{}
 	}
 
 	keepMap := make(map[string]bool)
-	for _, item := range mapping.Keep {
-		keepMap[string(item)] = true
+	if mapping.Keep != nil {
+		for _, item := range *mapping.Keep {
+			keepMap[string(item)] = true
+		}
 	}
 
 	dropMap := make(map[string]bool)
-	for _, item := range mapping.Drop {
-		dropMap[string(item)] = true
+	if mapping.Drop != nil {
+		for _, item := range *mapping.Drop {
+			dropMap[string(item)] = true
+		}
 	}
 
 	var filtered []StateResource
 	for _, sr := range stateResources {
 		resourceKey := string(sr.Resource.Attributes)
+
+		if mapping.Keep != nil && !keepMap[resourceKey] {
+			continue
+		}
 
 		if dropMap[resourceKey] && !keepMap[resourceKey] {
 			continue

@@ -38,6 +38,11 @@ func (r Resource) GenerateUUID() string {
 	return resourceUUID.String()
 }
 
+type ResourceMapping struct {
+	Keep []datatypes.JSON `json:"keep"`
+	Drop []datatypes.JSON `json:"drop"`
+}
+
 type ResourceRepo interface {
 	InsertResources(ctx context.Context, resources []Resource) error
 	UpdateResources(ctx context.Context, resources []Resource) error
@@ -77,4 +82,33 @@ func (l *ListResources) Exec(ctx context.Context, req ListResourcesRequest) (*Li
 	return &ListResourcesResponse{
 		Resources: resources,
 	}, nil
+}
+
+func applyResourceMapping(stateResources []StateResource, mapping ResourceMapping) []StateResource {
+	if len(mapping.Keep) == 0 && len(mapping.Drop) == 0 {
+		return stateResources
+	}
+
+	keepMap := make(map[string]bool)
+	for _, item := range mapping.Keep {
+		keepMap[string(item)] = true
+	}
+
+	dropMap := make(map[string]bool)
+	for _, item := range mapping.Drop {
+		dropMap[string(item)] = true
+	}
+
+	var filtered []StateResource
+	for _, sr := range stateResources {
+		resourceKey := string(sr.Resource.Attributes)
+
+		if dropMap[resourceKey] && !keepMap[resourceKey] {
+			continue
+		}
+
+		filtered = append(filtered, sr)
+	}
+
+	return filtered
 }

@@ -48,29 +48,53 @@ func NewGormStateResourceRepo(db *gorm.DB) *GormStateResourceRepo {
 	return &GormStateResourceRepo{db: db}
 }
 
-func (r *GormStateResourceRepo) UpsertStateResources(ctx context.Context, resources []internal.StateResource) error {
+func (r *GormStateResourceRepo) ListStateResourcesByStateID(ctx context.Context, stateID uint) ([]internal.StateResource, error) {
 	db := getTxOrDb(ctx, r.db)
+	var resources []internal.StateResource
+	err := db.WithContext(ctx).Where("state_id = ?", stateID).Find(&resources).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list state resources: %w", err)
+	}
+	return resources, nil
+}
 
-	for _, resource := range resources {
-		var existingResource internal.StateResource
-		err := db.WithContext(ctx).Where("state_id = ? AND address = ?", resource.StateID, resource.Address).First(&existingResource).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("failed to get existing state resource: %w", err)
-		}
-
-		if existingResource.ID == 0 {
-			err := db.WithContext(ctx).Create(&resource).Error
-			if err != nil {
-				return fmt.Errorf("failed to create state resource: %w", err)
-			}
-		} else {
-			resource.ID = existingResource.ID
-			err := db.WithContext(ctx).Model(&existingResource).Updates(&resource).Error
-			if err != nil {
-				return fmt.Errorf("failed to update existing state resource: %w", err)
-			}
-		}
+func (r *GormStateResourceRepo) InsertStateResources(ctx context.Context, resources []internal.StateResource) error {
+	if len(resources) == 0 {
+		return nil
 	}
 
+	db := getTxOrDb(ctx, r.db)
+	err := db.WithContext(ctx).Create(&resources).Error
+	if err != nil {
+		return fmt.Errorf("failed to insert state resources: %w", err)
+	}
+	return nil
+}
+
+func (r *GormStateResourceRepo) UpdateStateResources(ctx context.Context, resources []internal.StateResource) error {
+	if len(resources) == 0 {
+		return nil
+	}
+
+	db := getTxOrDb(ctx, r.db)
+	for _, resource := range resources {
+		err := db.WithContext(ctx).Model(&internal.StateResource{}).Where("id = ?", resource.ID).Updates(&resource).Error
+		if err != nil {
+			return fmt.Errorf("failed to update state resource %d: %w", resource.ID, err)
+		}
+	}
+	return nil
+}
+
+func (r *GormStateResourceRepo) DeleteStateResources(ctx context.Context, stateResourceIDs []uint) error {
+	if len(stateResourceIDs) == 0 {
+		return nil
+	}
+
+	db := getTxOrDb(ctx, r.db)
+	err := db.WithContext(ctx).Where("id IN ?", stateResourceIDs).Delete(&internal.StateResource{}).Error
+	if err != nil {
+		return fmt.Errorf("failed to delete state resources: %w", err)
+	}
 	return nil
 }

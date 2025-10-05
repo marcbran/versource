@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"gorm.io/gorm"
@@ -18,29 +17,44 @@ func NewGormResourceRepo(db *gorm.DB) *GormResourceRepo {
 	return &GormResourceRepo{db: db}
 }
 
-func (r *GormResourceRepo) UpsertResources(ctx context.Context, resources []internal.Resource) error {
-	db := getTxOrDb(ctx, r.db)
-
-	for _, resource := range resources {
-		var existingResource internal.Resource
-		err := db.WithContext(ctx).Where("uuid = ?", resource.UUID).First(&existingResource).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("failed to get existing resource: %w", err)
-		}
-
-		if existingResource.UUID == "" {
-			err := db.WithContext(ctx).Create(&resource).Error
-			if err != nil {
-				return fmt.Errorf("failed to create resource: %w", err)
-			}
-		} else {
-			err := db.WithContext(ctx).Model(&existingResource).Updates(&resource).Error
-			if err != nil {
-				return fmt.Errorf("failed to update existing resource: %w", err)
-			}
-		}
+func (r *GormResourceRepo) InsertResources(ctx context.Context, resources []internal.Resource) error {
+	if len(resources) == 0 {
+		return nil
 	}
 
+	db := getTxOrDb(ctx, r.db)
+	err := db.WithContext(ctx).Create(&resources).Error
+	if err != nil {
+		return fmt.Errorf("failed to insert resources: %w", err)
+	}
+	return nil
+}
+
+func (r *GormResourceRepo) UpdateResources(ctx context.Context, resources []internal.Resource) error {
+	if len(resources) == 0 {
+		return nil
+	}
+
+	db := getTxOrDb(ctx, r.db)
+	for _, resource := range resources {
+		err := db.WithContext(ctx).Model(&internal.Resource{}).Where("uuid = ?", resource.UUID).Updates(&resource).Error
+		if err != nil {
+			return fmt.Errorf("failed to update resource %s: %w", resource.UUID, err)
+		}
+	}
+	return nil
+}
+
+func (r *GormResourceRepo) DeleteResources(ctx context.Context, resourceUUIDs []string) error {
+	if len(resourceUUIDs) == 0 {
+		return nil
+	}
+
+	db := getTxOrDb(ctx, r.db)
+	err := db.WithContext(ctx).Where("uuid IN ?", resourceUUIDs).Delete(&internal.Resource{}).Error
+	if err != nil {
+		return fmt.Errorf("failed to delete resources: %w", err)
+	}
 	return nil
 }
 

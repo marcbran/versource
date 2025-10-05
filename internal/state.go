@@ -39,5 +39,8 @@ const (
 )
 
 type StateResourceRepo interface {
-	UpsertStateResources(ctx context.Context, resources []StateResource) error
+	ListStateResourcesByStateID(ctx context.Context, stateID uint) ([]StateResource, error)
+	InsertStateResources(ctx context.Context, resources []StateResource) error
+	UpdateStateResources(ctx context.Context, resources []StateResource) error
+	DeleteStateResources(ctx context.Context, stateResourceIDs []uint) error
 }

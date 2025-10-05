@@ -440,23 +440,71 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 			return fmt.Errorf("failed to upsert state: %w", err)
 		}
 
-		if len(stateResources) > 0 {
-			var resources []Resource
-			for i := range stateResources {
-				stateResources[i].StateID = state.ID
-				stateResources[i].Resource.UUID = stateResources[i].Resource.GenerateUUID()
-				stateResources[i].ResourceID = stateResources[i].Resource.UUID
-				resources = append(resources, stateResources[i].Resource)
+		if len(stateResources) == 0 {
+			return nil
+		}
+
+		for i := range stateResources {
+			stateResources[i].StateID = state.ID
+			stateResources[i].Resource.UUID = stateResources[i].Resource.GenerateUUID()
+			stateResources[i].ResourceID = stateResources[i].Resource.UUID
+		}
+
+		currentStateResources, err := a.stateResourceRepo.ListStateResourcesByStateID(ctx, state.ID)
+		if err != nil {
+			return fmt.Errorf("failed to get current state resources: %w", err)
+		}
+
+		insertResources, updateResources, deleteResources := a.compareResources(currentStateResources, stateResources)
+
+		if len(insertResources) > 0 {
+			var resourcesToInsert []Resource
+			for _, sr := range insertResources {
+				resourcesToInsert = append(resourcesToInsert, sr.Resource)
+			}
+			err = a.resourceRepo.InsertResources(ctx, resourcesToInsert)
+			if err != nil {
+				return fmt.Errorf("failed to insert resources: %w", err)
 			}
 
-			err = a.resourceRepo.UpsertResources(ctx, resources)
+			err = a.stateResourceRepo.InsertStateResources(ctx, insertResources)
 			if err != nil {
-				return fmt.Errorf("failed to upsert resources: %w", err)
+				return fmt.Errorf("failed to insert state resources: %w", err)
+			}
+		}
+
+		if len(updateResources) > 0 {
+			var resourcesToUpdate []Resource
+			for _, sr := range updateResources {
+				resourcesToUpdate = append(resourcesToUpdate, sr.Resource)
+			}
+			err = a.resourceRepo.UpdateResources(ctx, resourcesToUpdate)
+			if err != nil {
+				return fmt.Errorf("failed to update resources: %w", err)
 			}
 
-			err = a.stateResourceRepo.UpsertStateResources(ctx, stateResources)
+			err = a.stateResourceRepo.UpdateStateResources(ctx, updateResources)
 			if err != nil {
-				return fmt.Errorf("failed to upsert state resources: %w", err)
+				return fmt.Errorf("failed to update state resources: %w", err)
+			}
+		}
+
+		if len(deleteResources) > 0 {
+			var resourceUUIDsToDelete []string
+			var stateResourceIDsToDelete []uint
+			for _, sr := range deleteResources {
+				resourceUUIDsToDelete = append(resourceUUIDsToDelete, sr.ResourceID)
+				stateResourceIDsToDelete = append(stateResourceIDsToDelete, sr.ID)
+			}
+
+			err = a.stateResourceRepo.DeleteStateResources(ctx, stateResourceIDsToDelete)
+			if err != nil {
+				return fmt.Errorf("failed to delete state resources: %w", err)
+			}
+
+			err = a.resourceRepo.DeleteResources(ctx, resourceUUIDsToDelete)
+			if err != nil {
+				return fmt.Errorf("failed to delete resources: %w", err)
 			}
 		}
 		return nil
@@ -477,4 +525,37 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	})
 
 	return err
+}
+
+func (a *RunApply) compareResources(currentStateResources, newStateResources []StateResource) ([]StateResource, []StateResource, []StateResource) {
+	currentMap := make(map[string]StateResource)
+	for _, sr := range currentStateResources {
+		currentMap[sr.ResourceID] = sr
+	}
+
+	newMap := make(map[string]StateResource)
+	for _, sr := range newStateResources {
+		newMap[sr.ResourceID] = sr
+	}
+
+	var insertResources []StateResource
+	var updateResources []StateResource
+	var deleteResources []StateResource
+
+	for resourceUUID, newSR := range newMap {
+		if currentSR, exists := currentMap[resourceUUID]; exists {
+			newSR.ID = currentSR.ID
+			updateResources = append(updateResources, newSR)
+		} else {
+			insertResources = append(insertResources, newSR)
+		}
+	}
+
+	for resourceUUID, currentSR := range currentMap {
+		if _, exists := newMap[resourceUUID]; !exists {
+			deleteResources = append(deleteResources, currentSR)
+		}
+	}
+
+	return insertResources, updateResources, deleteResources
 }

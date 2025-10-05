@@ -39,7 +39,9 @@ func (r Resource) GenerateUUID() string {
 }
 
 type ResourceRepo interface {
-	UpsertResources(ctx context.Context, resources []Resource) error
+	InsertResources(ctx context.Context, resources []Resource) error
+	UpdateResources(ctx context.Context, resources []Resource) error
+	DeleteResources(ctx context.Context, resourceUUIDs []string) error
 	ListResources(ctx context.Context) ([]Resource, error)
 }
 

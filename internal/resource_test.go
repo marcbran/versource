@@ -66,6 +66,16 @@ func TestApplyResourceMapping(t *testing.T) {
 				newResource,
 			},
 		},
+		{
+			name:           "keep empty with add - only add resources",
+			stateResources: []StateResource{resourceA, resourceB, resourceC},
+			mapping: ResourceMapping{
+				Keep: &empty,
+				Drop: nil,
+				Add:  &[]Resource{newResource.Resource},
+			},
+			expected: []StateResource{newResource},
+		},
 	}
 
 	for _, tt := range tests {

@@ -437,6 +437,11 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	err = a.tx.Do(ctx, MainBranch, "update state resources", func(ctx context.Context) error {
 		state.ComponentID = component.ID
 
+		resourceMapping, err := extractResourceMapping(state.Output)
+		if err != nil {
+			return fmt.Errorf("failed to extract resource mapping: %w", err)
+		}
+
 		filteredOutput, err := filterVersourceOutput(state.Output)
 		if err != nil {
 			return fmt.Errorf("failed to filter versource output: %w", err)
@@ -463,7 +468,9 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 			return fmt.Errorf("failed to get current state resources: %w", err)
 		}
 
-		insertResources, updateResources, deleteResources := a.compareResources(currentStateResources, stateResources)
+		filteredStateResources := applyResourceMapping(stateResources, resourceMapping)
+
+		insertResources, updateResources, deleteResources := a.compareResources(currentStateResources, filteredStateResources)
 
 		if len(insertResources) > 0 {
 			var resourcesToInsert []Resource
@@ -566,6 +573,32 @@ func (a *RunApply) compareResources(currentStateResources, newStateResources []S
 	}
 
 	return insertResources, updateResources, deleteResources
+}
+
+func extractResourceMapping(output datatypes.JSON) (ResourceMapping, error) {
+	var outputMap map[string]any
+	err := json.Unmarshal(output, &outputMap)
+	if err != nil {
+		return ResourceMapping{}, fmt.Errorf("failed to unmarshal output: %w", err)
+	}
+
+	versourceOutput, exists := outputMap["versource"]
+	if !exists {
+		return ResourceMapping{}, nil
+	}
+
+	versourceBytes, err := json.Marshal(versourceOutput)
+	if err != nil {
+		return ResourceMapping{}, fmt.Errorf("failed to marshal versource output: %w", err)
+	}
+
+	var resourceMapping ResourceMapping
+	err = json.Unmarshal(versourceBytes, &resourceMapping)
+	if err != nil {
+		return ResourceMapping{}, fmt.Errorf("failed to unmarshal resource mapping: %w", err)
+	}
+
+	return resourceMapping, nil
 }
 
 func filterVersourceOutput(output datatypes.JSON) (datatypes.JSON, error) {

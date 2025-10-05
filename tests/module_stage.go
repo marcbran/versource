@@ -18,7 +18,7 @@ func (s *Stage) the_resources_module_has_been_created() *Stage {
 	return s.a_module_is_created(
 		"resources",
 		"https://github.com/marcbran/versource/tests/modules/resources",
-		"069ac0b685f19fa847191fad8d13cff790f1728a",
+		"2f57bc47db7c314e02819b110bae9da173d2829d",
 	).and().the_module_creation_has_succeeded()
 }
 

@@ -10,6 +10,7 @@ func TestApplyResourceMapping(t *testing.T) {
 	resourceA := StateResource{Resource: Resource{Attributes: datatypes.JSON(`{"name":"a"}`)}}
 	resourceB := StateResource{Resource: Resource{Attributes: datatypes.JSON(`{"name":"b"}`)}}
 	resourceC := StateResource{Resource: Resource{Attributes: datatypes.JSON(`{"name":"c"}`)}}
+	newResource := StateResource{Resource: Resource{Provider: "test", ResourceType: "test", Name: "new", Attributes: datatypes.JSON(`{"name":"new"}`)}}
 
 	keepA := []datatypes.JSON{datatypes.JSON(`{"name":"a"}`)}
 	dropA := []datatypes.JSON{datatypes.JSON(`{"name":"a"}`)}
@@ -50,6 +51,20 @@ func TestApplyResourceMapping(t *testing.T) {
 			stateResources: []StateResource{resourceA, resourceB, resourceC},
 			mapping:        ResourceMapping{Keep: &keepA, Drop: &dropA},
 			expected:       []StateResource{resourceA},
+		},
+		{
+			name:           "add resources - new resources added",
+			stateResources: []StateResource{resourceA, resourceB},
+			mapping: ResourceMapping{
+				Keep: nil,
+				Drop: nil,
+				Add:  &[]Resource{newResource.Resource},
+			},
+			expected: []StateResource{
+				resourceA,
+				resourceB,
+				newResource,
+			},
 		},
 	}
 

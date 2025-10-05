@@ -2,11 +2,13 @@ package internal
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"gorm.io/datatypes"
 )
 
 type TaskState string
@@ -435,7 +437,13 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	err = a.tx.Do(ctx, MainBranch, "update state resources", func(ctx context.Context) error {
 		state.ComponentID = component.ID
 
-		err := a.stateRepo.UpsertState(ctx, &state)
+		filteredOutput, err := filterVersourceOutput(state.Output)
+		if err != nil {
+			return fmt.Errorf("failed to filter versource output: %w", err)
+		}
+		state.Output = filteredOutput
+
+		err = a.stateRepo.UpsertState(ctx, &state)
 		if err != nil {
 			return fmt.Errorf("failed to upsert state: %w", err)
 		}
@@ -558,4 +566,21 @@ func (a *RunApply) compareResources(currentStateResources, newStateResources []S
 	}
 
 	return insertResources, updateResources, deleteResources
+}
+
+func filterVersourceOutput(output datatypes.JSON) (datatypes.JSON, error) {
+	var outputMap map[string]any
+	err := json.Unmarshal(output, &outputMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal output: %w", err)
+	}
+
+	delete(outputMap, "versource")
+
+	filteredOutput, err := json.Marshal(outputMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal filtered output: %w", err)
+	}
+
+	return datatypes.JSON(filteredOutput), nil
 }

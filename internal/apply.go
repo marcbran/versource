@@ -427,7 +427,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 
 	log.WithField("plan_path", planPath).Info("Loaded plan")
 
-	state, stateResources, err := executor.Apply(ctx, planPath)
+	state, originalStateResources, err := executor.Apply(ctx, planPath)
 	if err != nil {
 		return fmt.Errorf("failed to apply terraform: %w", err)
 	}
@@ -453,9 +453,11 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 			return fmt.Errorf("failed to upsert state: %w", err)
 		}
 
-		if len(stateResources) == 0 {
+		if len(originalStateResources) == 0 {
 			return nil
 		}
+
+		stateResources := applyResourceMapping(originalStateResources, resourceMapping)
 
 		for i := range stateResources {
 			stateResources[i].StateID = state.ID
@@ -468,9 +470,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 			return fmt.Errorf("failed to get current state resources: %w", err)
 		}
 
-		filteredStateResources := applyResourceMapping(stateResources, resourceMapping)
-
-		insertResources, updateResources, deleteResources := a.compareResources(currentStateResources, filteredStateResources)
+		insertResources, updateResources, deleteResources := a.compareResources(currentStateResources, stateResources)
 
 		if len(insertResources) > 0 {
 			var resourcesToInsert []Resource

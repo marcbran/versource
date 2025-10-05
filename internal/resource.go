@@ -41,6 +41,7 @@ func (r Resource) GenerateUUID() string {
 type ResourceMapping struct {
 	Keep *[]datatypes.JSON `json:"keep,omitempty"`
 	Drop *[]datatypes.JSON `json:"drop,omitempty"`
+	Add  *[]Resource       `json:"add,omitempty"`
 }
 
 type ResourceRepo interface {
@@ -116,6 +117,15 @@ func applyResourceMapping(stateResources []StateResource, mapping ResourceMappin
 		}
 
 		filtered = append(filtered, sr)
+	}
+
+	if mapping.Add != nil {
+		for _, resource := range *mapping.Add {
+			stateResource := StateResource{
+				Resource: resource,
+			}
+			filtered = append(filtered, stateResource)
+		}
 	}
 
 	return filtered

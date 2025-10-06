@@ -178,7 +178,6 @@ func NewUpdateViewResource(viewResourceRepo ViewResourceRepo, queryParser ViewQu
 
 type UpdateViewResourceRequest struct {
 	ViewResourceID uint    `json:"viewResourceId" yaml:"viewResourceId"`
-	Name           *string `json:"name,omitempty" yaml:"name,omitempty"`
 	Query          *string `json:"query,omitempty" yaml:"query,omitempty"`
 }
 
@@ -203,9 +202,6 @@ func (u *UpdateViewResource) Exec(ctx context.Context, req UpdateViewResourceReq
 			return UserErr("view resource not found")
 		}
 
-		if req.Name != nil {
-			viewResource.Name = *req.Name
-		}
 		if req.Query != nil {
 			validatedQuery, err := u.queryParser.Parse(*req.Query)
 			if err != nil {

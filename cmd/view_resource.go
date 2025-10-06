@@ -117,7 +117,7 @@ var viewResourceCreateCmd = &cobra.Command{
 var viewResourceUpdateCmd = &cobra.Command{
 	Use:   "update [view-resource-id]",
 	Short: "Update a view resource",
-	Long:  `Update a view resource's name or query`,
+	Long:  `Update a view resource's query`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		viewResourceIDStr := args[0]
@@ -126,18 +126,13 @@ var viewResourceUpdateCmd = &cobra.Command{
 			return fmt.Errorf("invalid view resource ID: %w", err)
 		}
 
-		name, err := cmd.Flags().GetString("name")
-		if err != nil {
-			return fmt.Errorf("failed to get name flag: %w", err)
-		}
-
 		query, err := cmd.Flags().GetString("query")
 		if err != nil {
 			return fmt.Errorf("failed to get query flag: %w", err)
 		}
 
-		if name == "" && query == "" {
-			return fmt.Errorf("at least one of name or query must be provided")
+		if query == "" {
+			return fmt.Errorf("query is required")
 		}
 
 		config, err := LoadConfig(cmd)
@@ -149,13 +144,7 @@ var viewResourceUpdateCmd = &cobra.Command{
 
 		req := internal.UpdateViewResourceRequest{
 			ViewResourceID: uint(viewResourceID),
-		}
-
-		if name != "" {
-			req.Name = &name
-		}
-		if query != "" {
-			req.Query = &query
+			Query:          &query,
 		}
 
 		viewResource, err := client.UpdateViewResource(cmd.Context(), req)
@@ -205,8 +194,8 @@ func init() {
 	_ = viewResourceCreateCmd.MarkFlagRequired("name")
 	_ = viewResourceCreateCmd.MarkFlagRequired("query")
 
-	viewResourceUpdateCmd.Flags().String("name", "", "View resource name")
 	viewResourceUpdateCmd.Flags().String("query", "", "View resource query")
+	_ = viewResourceUpdateCmd.MarkFlagRequired("query")
 
 	viewResourceCmd.AddCommand(viewResourceGetCmd)
 	viewResourceCmd.AddCommand(viewResourceListCmd)

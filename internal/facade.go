@@ -130,6 +130,7 @@ func NewFacade(
 	moduleRepo ModuleRepo,
 	moduleVersionRepo ModuleVersionRepo,
 	viewResourceRepo ViewResourceRepo,
+	queryParser ViewQueryParser,
 	transactionManager TransactionManager,
 	newExecutor NewExecutor,
 ) Facade {
@@ -193,8 +194,8 @@ func NewFacade(
 		listResources:        NewListResources(resourceRepo, transactionManager),
 		getViewResource:      NewGetViewResource(viewResourceRepo, transactionManager),
 		listViewResources:    NewListViewResources(viewResourceRepo, transactionManager),
-		createViewResource:   NewCreateViewResource(viewResourceRepo, transactionManager),
-		updateViewResource:   NewUpdateViewResource(viewResourceRepo, transactionManager),
+		createViewResource:   NewCreateViewResource(viewResourceRepo, queryParser, transactionManager),
+		updateViewResource:   NewUpdateViewResource(viewResourceRepo, queryParser, transactionManager),
 		deleteViewResource:   NewDeleteViewResource(viewResourceRepo, transactionManager),
 		planWorker:           planWorker,
 		applyWorker:          applyWorker,

@@ -10,6 +10,10 @@ type ViewResource struct {
 	Query string `gorm:"not null" json:"query" yaml:"query"`
 }
 
+type ViewQueryParser interface {
+	Parse(query string) (string, error)
+}
+
 type ViewResourceRepo interface {
 	GetViewResource(ctx context.Context, viewResourceID uint) (*ViewResource, error)
 	GetViewResourceByName(ctx context.Context, name string) (*ViewResource, error)
@@ -95,12 +99,14 @@ func (l *ListViewResources) Exec(ctx context.Context, req ListViewResourcesReque
 
 type CreateViewResource struct {
 	viewResourceRepo ViewResourceRepo
+	queryParser      ViewQueryParser
 	tx               TransactionManager
 }
 
-func NewCreateViewResource(viewResourceRepo ViewResourceRepo, tx TransactionManager) *CreateViewResource {
+func NewCreateViewResource(viewResourceRepo ViewResourceRepo, queryParser ViewQueryParser, tx TransactionManager) *CreateViewResource {
 	return &CreateViewResource{
 		viewResourceRepo: viewResourceRepo,
+		queryParser:      queryParser,
 		tx:               tx,
 	}
 }
@@ -125,13 +131,18 @@ func (c *CreateViewResource) Exec(ctx context.Context, req CreateViewResourceReq
 		return nil, UserErr("query is required")
 	}
 
+	validatedQuery, err := c.queryParser.Parse(req.Query)
+	if err != nil {
+		return nil, UserErrE("invalid query", err)
+	}
+
 	viewResource := &ViewResource{
 		Name:  req.Name,
-		Query: req.Query,
+		Query: validatedQuery,
 	}
 
 	var response *CreateViewResourceResponse
-	err := c.tx.Do(ctx, MainBranch, "create view resource", func(ctx context.Context) error {
+	err = c.tx.Do(ctx, MainBranch, "create view resource", func(ctx context.Context) error {
 		err := c.viewResourceRepo.CreateViewResource(ctx, viewResource)
 		if err != nil {
 			return InternalErrE("failed to create view resource", err)
@@ -153,12 +164,14 @@ func (c *CreateViewResource) Exec(ctx context.Context, req CreateViewResourceReq
 
 type UpdateViewResource struct {
 	viewResourceRepo ViewResourceRepo
+	queryParser      ViewQueryParser
 	tx               TransactionManager
 }
 
-func NewUpdateViewResource(viewResourceRepo ViewResourceRepo, tx TransactionManager) *UpdateViewResource {
+func NewUpdateViewResource(viewResourceRepo ViewResourceRepo, queryParser ViewQueryParser, tx TransactionManager) *UpdateViewResource {
 	return &UpdateViewResource{
 		viewResourceRepo: viewResourceRepo,
+		queryParser:      queryParser,
 		tx:               tx,
 	}
 }
@@ -194,7 +207,11 @@ func (u *UpdateViewResource) Exec(ctx context.Context, req UpdateViewResourceReq
 			viewResource.Name = *req.Name
 		}
 		if req.Query != nil {
-			viewResource.Query = *req.Query
+			validatedQuery, err := u.queryParser.Parse(*req.Query)
+			if err != nil {
+				return UserErrE("invalid query", err)
+			}
+			viewResource.Query = validatedQuery
 		}
 
 		err = u.viewResourceRepo.UpdateViewResource(ctx, viewResource)

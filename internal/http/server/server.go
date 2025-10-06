@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/database"
+	"github.com/marcbran/versource/internal/database/parser"
 	"github.com/marcbran/versource/internal/infra"
 	"github.com/marcbran/versource/internal/store/file"
 	log "github.com/sirupsen/logrus"
@@ -84,6 +85,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 	moduleRepo := database.NewGormModuleRepo(db)
 	moduleVersionRepo := database.NewGormModuleVersionRepo(db)
 	viewResourceRepo := database.NewGormViewResourceRepo(db)
+	queryParser := parser.NewSQLViewQueryParser()
 	transactionManager := database.NewGormTransactionManager(db)
 
 	newExecutor := infra.NewExecutor
@@ -105,6 +107,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		moduleRepo,
 		moduleVersionRepo,
 		viewResourceRepo,
+		queryParser,
 		transactionManager,
 		newExecutor,
 	)

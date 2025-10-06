@@ -83,6 +83,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 	changesetRepo := database.NewGormChangesetRepo(db)
 	moduleRepo := database.NewGormModuleRepo(db)
 	moduleVersionRepo := database.NewGormModuleVersionRepo(db)
+	viewResourceRepo := database.NewGormViewResourceRepo(db)
 	transactionManager := database.NewGormTransactionManager(db)
 
 	newExecutor := infra.NewExecutor
@@ -103,6 +104,7 @@ func NewServer(config *internal.Config) (*Server, error) {
 		changesetRepo,
 		moduleRepo,
 		moduleVersionRepo,
+		viewResourceRepo,
 		transactionManager,
 		newExecutor,
 	)
@@ -142,6 +144,11 @@ func (s *Server) setupRoutes() {
 		})
 		r.Get("/applies", s.handleListApplies)
 		r.Get("/resources", s.handleListResources)
+		r.Get("/view-resources", s.handleListViewResources)
+		r.Get("/view-resources/{viewResourceID}", s.handleGetViewResource)
+		r.Post("/view-resources", s.handleCreateViewResource)
+		r.Put("/view-resources/{viewResourceID}", s.handleUpdateViewResource)
+		r.Delete("/view-resources/{viewResourceID}", s.handleDeleteViewResource)
 		r.Get("/changesets", s.handleListChangesets)
 		r.Route("/applies/{applyID}", func(r chi.Router) {
 			r.Get("/", s.handleGetApply)

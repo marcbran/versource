@@ -102,7 +102,19 @@ CREATE INDEX state_resources_state_id ON state_resources (state_id);
 CREATE INDEX state_resources_type ON state_resources (type);
 -- +goose StatementEnd
 
+-- +goose StatementBegin
+CREATE TABLE IF NOT EXISTS view_resources (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    query TEXT NOT NULL
+);
+-- +goose StatementEnd
+
 -- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS view_resources;
+-- +goose StatementEnd
+
 -- +goose StatementBegin
 DROP TABLE IF EXISTS state_resources;
 -- +goose StatementEnd

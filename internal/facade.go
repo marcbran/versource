@@ -52,8 +52,7 @@ type Facade interface {
 
 	GetViewResource(ctx context.Context, req GetViewResourceRequest) (*GetViewResourceResponse, error)
 	ListViewResources(ctx context.Context, req ListViewResourcesRequest) (*ListViewResourcesResponse, error)
-	CreateViewResource(ctx context.Context, req CreateViewResourceRequest) (*CreateViewResourceResponse, error)
-	UpdateViewResource(ctx context.Context, req UpdateViewResourceRequest) (*UpdateViewResourceResponse, error)
+	SaveViewResource(ctx context.Context, req SaveViewResourceRequest) (*SaveViewResourceResponse, error)
 	DeleteViewResource(ctx context.Context, req DeleteViewResourceRequest) (*DeleteViewResourceResponse, error)
 }
 
@@ -103,8 +102,7 @@ type facade struct {
 
 	getViewResource    *GetViewResource
 	listViewResources  *ListViewResources
-	createViewResource *CreateViewResource
-	updateViewResource *UpdateViewResource
+	saveViewResource   *SaveViewResource
 	deleteViewResource *DeleteViewResource
 
 	planWorker   *PlanWorker
@@ -194,8 +192,7 @@ func NewFacade(
 		listResources:        NewListResources(resourceRepo, transactionManager),
 		getViewResource:      NewGetViewResource(viewResourceRepo, transactionManager),
 		listViewResources:    NewListViewResources(viewResourceRepo, transactionManager),
-		createViewResource:   NewCreateViewResource(viewResourceRepo, queryParser, transactionManager),
-		updateViewResource:   NewUpdateViewResource(viewResourceRepo, queryParser, transactionManager),
+		saveViewResource:     NewSaveViewResource(viewResourceRepo, queryParser, transactionManager),
 		deleteViewResource:   NewDeleteViewResource(viewResourceRepo, transactionManager),
 		planWorker:           planWorker,
 		applyWorker:          applyWorker,
@@ -352,12 +349,8 @@ func (f *facade) ListViewResources(ctx context.Context, req ListViewResourcesReq
 	return f.listViewResources.Exec(ctx, req)
 }
 
-func (f *facade) CreateViewResource(ctx context.Context, req CreateViewResourceRequest) (*CreateViewResourceResponse, error) {
-	return f.createViewResource.Exec(ctx, req)
-}
-
-func (f *facade) UpdateViewResource(ctx context.Context, req UpdateViewResourceRequest) (*UpdateViewResourceResponse, error) {
-	return f.updateViewResource.Exec(ctx, req)
+func (f *facade) SaveViewResource(ctx context.Context, req SaveViewResourceRequest) (*SaveViewResourceResponse, error) {
+	return f.saveViewResource.Exec(ctx, req)
 }
 
 func (f *facade) DeleteViewResource(ctx context.Context, req DeleteViewResourceRequest) (*DeleteViewResourceResponse, error) {

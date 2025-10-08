@@ -32,6 +32,9 @@ func (r *GormViewResourceRepo) GetViewResourceByName(ctx context.Context, name s
 	var viewResource internal.ViewResource
 	err := db.WithContext(ctx).Where("name = ?", name).First(&viewResource).Error
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to get view resource by name: %w", err)
 	}
 	return &viewResource, nil

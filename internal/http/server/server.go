@@ -149,8 +149,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/resources", s.handleListResources)
 		r.Get("/view-resources", s.handleListViewResources)
 		r.Get("/view-resources/{viewResourceID}", s.handleGetViewResource)
-		r.Post("/view-resources", s.handleCreateViewResource)
-		r.Put("/view-resources/{viewResourceID}", s.handleUpdateViewResource)
+		r.Post("/view-resources", s.handleSaveViewResource)
 		r.Delete("/view-resources/{viewResourceID}", s.handleDeleteViewResource)
 		r.Get("/changesets", s.handleListChangesets)
 		r.Route("/applies/{applyID}", func(r chi.Router) {

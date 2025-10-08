@@ -70,23 +70,14 @@ var viewResourceListCmd = &cobra.Command{
 	},
 }
 
-var viewResourceCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create a new view resource",
-	Long:  `Create a new view resource with name and query`,
+var viewResourceSaveCmd = &cobra.Command{
+	Use:   "save",
+	Short: "Save a view resource",
+	Long:  `Save a view resource. If a view resource with the same name exists, it will be updated. Otherwise, a new one will be created.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name, err := cmd.Flags().GetString("name")
-		if err != nil {
-			return fmt.Errorf("failed to get name flag: %w", err)
-		}
-
 		query, err := cmd.Flags().GetString("query")
 		if err != nil {
 			return fmt.Errorf("failed to get query flag: %w", err)
-		}
-
-		if name == "" {
-			return fmt.Errorf("name is required")
 		}
 
 		if query == "" {
@@ -100,59 +91,16 @@ var viewResourceCreateCmd = &cobra.Command{
 
 		client := client.NewClient(config)
 
-		req := internal.CreateViewResourceRequest{
-			Name:  name,
+		req := internal.SaveViewResourceRequest{
 			Query: query,
 		}
 
-		viewResource, err := client.CreateViewResource(cmd.Context(), req)
+		viewResource, err := client.SaveViewResource(cmd.Context(), req)
 		if err != nil {
 			return err
 		}
 
-		return formatOutput(viewResource, "View resource created successfully with ID: %d\n", viewResource.ID)
-	},
-}
-
-var viewResourceUpdateCmd = &cobra.Command{
-	Use:   "update [view-resource-id]",
-	Short: "Update a view resource",
-	Long:  `Update a view resource's query`,
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		viewResourceIDStr := args[0]
-		viewResourceID, err := strconv.ParseUint(viewResourceIDStr, 10, 64)
-		if err != nil {
-			return fmt.Errorf("invalid view resource ID: %w", err)
-		}
-
-		query, err := cmd.Flags().GetString("query")
-		if err != nil {
-			return fmt.Errorf("failed to get query flag: %w", err)
-		}
-
-		if query == "" {
-			return fmt.Errorf("query is required")
-		}
-
-		config, err := LoadConfig(cmd)
-		if err != nil {
-			return err
-		}
-
-		client := client.NewClient(config)
-
-		req := internal.UpdateViewResourceRequest{
-			ViewResourceID: uint(viewResourceID),
-			Query:          &query,
-		}
-
-		viewResource, err := client.UpdateViewResource(cmd.Context(), req)
-		if err != nil {
-			return err
-		}
-
-		return formatOutput(viewResource, "View resource updated successfully\n")
+		return formatOutput(viewResource, "View resource saved successfully with ID: %d\n", viewResource.ID)
 	},
 }
 
@@ -189,17 +137,11 @@ var viewResourceDeleteCmd = &cobra.Command{
 }
 
 func init() {
-	viewResourceCreateCmd.Flags().String("name", "", "View resource name")
-	viewResourceCreateCmd.Flags().String("query", "", "View resource query")
-	_ = viewResourceCreateCmd.MarkFlagRequired("name")
-	_ = viewResourceCreateCmd.MarkFlagRequired("query")
-
-	viewResourceUpdateCmd.Flags().String("query", "", "View resource query")
-	_ = viewResourceUpdateCmd.MarkFlagRequired("query")
+	viewResourceSaveCmd.Flags().String("query", "", "View resource query")
+	_ = viewResourceSaveCmd.MarkFlagRequired("query")
 
 	viewResourceCmd.AddCommand(viewResourceGetCmd)
 	viewResourceCmd.AddCommand(viewResourceListCmd)
-	viewResourceCmd.AddCommand(viewResourceCreateCmd)
-	viewResourceCmd.AddCommand(viewResourceUpdateCmd)
+	viewResourceCmd.AddCommand(viewResourceSaveCmd)
 	viewResourceCmd.AddCommand(viewResourceDeleteCmd)
 }

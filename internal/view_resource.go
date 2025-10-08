@@ -11,7 +11,7 @@ type ViewResource struct {
 }
 
 type ViewQueryParser interface {
-	Parse(query string) (string, error)
+	Parse(query string) (*ViewResource, error)
 }
 
 type ViewResourceRepo interface {
@@ -97,125 +97,62 @@ func (l *ListViewResources) Exec(ctx context.Context, req ListViewResourcesReque
 	}, nil
 }
 
-type CreateViewResource struct {
+type SaveViewResource struct {
 	viewResourceRepo ViewResourceRepo
 	queryParser      ViewQueryParser
 	tx               TransactionManager
 }
 
-func NewCreateViewResource(viewResourceRepo ViewResourceRepo, queryParser ViewQueryParser, tx TransactionManager) *CreateViewResource {
-	return &CreateViewResource{
+func NewSaveViewResource(viewResourceRepo ViewResourceRepo, queryParser ViewQueryParser, tx TransactionManager) *SaveViewResource {
+	return &SaveViewResource{
 		viewResourceRepo: viewResourceRepo,
 		queryParser:      queryParser,
 		tx:               tx,
 	}
 }
 
-type CreateViewResourceRequest struct {
-	Name  string `json:"name" yaml:"name"`
+type SaveViewResourceRequest struct {
 	Query string `json:"query" yaml:"query"`
 }
 
-type CreateViewResourceResponse struct {
+type SaveViewResourceResponse struct {
 	ID    uint   `json:"id" yaml:"id"`
 	Name  string `json:"name" yaml:"name"`
 	Query string `json:"query" yaml:"query"`
 }
 
-func (c *CreateViewResource) Exec(ctx context.Context, req CreateViewResourceRequest) (*CreateViewResourceResponse, error) {
-	if req.Name == "" {
-		return nil, UserErr("name is required")
-	}
-
+func (s *SaveViewResource) Exec(ctx context.Context, req SaveViewResourceRequest) (*SaveViewResourceResponse, error) {
 	if req.Query == "" {
 		return nil, UserErr("query is required")
 	}
 
-	validatedQuery, err := c.queryParser.Parse(req.Query)
+	viewResource, err := s.queryParser.Parse(req.Query)
 	if err != nil {
 		return nil, UserErrE("invalid query", err)
 	}
 
-	viewResource := &ViewResource{
-		Name:  req.Name,
-		Query: validatedQuery,
-	}
-
-	var response *CreateViewResourceResponse
-	err = c.tx.Do(ctx, MainBranch, "create view resource", func(ctx context.Context) error {
-		err := c.viewResourceRepo.CreateViewResource(ctx, viewResource)
+	var response *SaveViewResourceResponse
+	err = s.tx.Do(ctx, MainBranch, "save view resource", func(ctx context.Context) error {
+		existing, err := s.viewResourceRepo.GetViewResourceByName(ctx, viewResource.Name)
 		if err != nil {
-			return InternalErrE("failed to create view resource", err)
+			return InternalErrE("failed to check existing view resource", err)
 		}
 
-		response = &CreateViewResourceResponse{
-			ID:    viewResource.ID,
-			Name:  viewResource.Name,
-			Query: viewResource.Query,
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
-}
-
-type UpdateViewResource struct {
-	viewResourceRepo ViewResourceRepo
-	queryParser      ViewQueryParser
-	tx               TransactionManager
-}
-
-func NewUpdateViewResource(viewResourceRepo ViewResourceRepo, queryParser ViewQueryParser, tx TransactionManager) *UpdateViewResource {
-	return &UpdateViewResource{
-		viewResourceRepo: viewResourceRepo,
-		queryParser:      queryParser,
-		tx:               tx,
-	}
-}
-
-type UpdateViewResourceRequest struct {
-	ViewResourceID uint    `json:"viewResourceId" yaml:"viewResourceId"`
-	Query          *string `json:"query,omitempty" yaml:"query,omitempty"`
-}
-
-type UpdateViewResourceResponse struct {
-	ID    uint   `json:"id" yaml:"id"`
-	Name  string `json:"name" yaml:"name"`
-	Query string `json:"query" yaml:"query"`
-}
-
-func (u *UpdateViewResource) Exec(ctx context.Context, req UpdateViewResourceRequest) (*UpdateViewResourceResponse, error) {
-	if req.ViewResourceID == 0 {
-		return nil, UserErr("viewResourceId is required")
-	}
-
-	var response *UpdateViewResourceResponse
-	err := u.tx.Do(ctx, MainBranch, "update view resource", func(ctx context.Context) error {
-		viewResource, err := u.viewResourceRepo.GetViewResource(ctx, req.ViewResourceID)
-		if err != nil {
-			return InternalErrE("failed to get view resource", err)
-		}
-		if viewResource == nil {
-			return UserErr("view resource not found")
-		}
-
-		if req.Query != nil {
-			validatedQuery, err := u.queryParser.Parse(*req.Query)
+		if existing != nil {
+			existing.Query = viewResource.Query
+			err = s.viewResourceRepo.UpdateViewResource(ctx, existing)
 			if err != nil {
-				return UserErrE("invalid query", err)
+				return InternalErrE("failed to update view resource", err)
 			}
-			viewResource.Query = validatedQuery
+			viewResource = existing
+		} else {
+			err = s.viewResourceRepo.CreateViewResource(ctx, viewResource)
+			if err != nil {
+				return InternalErrE("failed to create view resource", err)
+			}
 		}
 
-		err = u.viewResourceRepo.UpdateViewResource(ctx, viewResource)
-		if err != nil {
-			return InternalErrE("failed to update view resource", err)
-		}
-
-		response = &UpdateViewResourceResponse{
+		response = &SaveViewResourceResponse{
 			ID:    viewResource.ID,
 			Name:  viewResource.Name,
 			Query: viewResource.Query,

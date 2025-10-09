@@ -21,6 +21,8 @@ type ViewResourceRepo interface {
 	CreateViewResource(ctx context.Context, viewResource *ViewResource) error
 	UpdateViewResource(ctx context.Context, viewResource *ViewResource) error
 	DeleteViewResource(ctx context.Context, viewResourceID uint) error
+	SaveDatabaseView(ctx context.Context, name, query string) error
+	DropDatabaseView(ctx context.Context, name string) error
 }
 
 type GetViewResource struct {
@@ -152,6 +154,11 @@ func (s *SaveViewResource) Exec(ctx context.Context, req SaveViewResourceRequest
 			}
 		}
 
+		err = s.viewResourceRepo.SaveDatabaseView(ctx, viewResource.Name, viewResource.Query)
+		if err != nil {
+			return InternalErrE("failed to save database view", err)
+		}
+
 		response = &SaveViewResourceResponse{
 			ID:    viewResource.ID,
 			Name:  viewResource.Name,
@@ -204,6 +211,11 @@ func (d *DeleteViewResource) Exec(ctx context.Context, req DeleteViewResourceReq
 		err = d.viewResourceRepo.DeleteViewResource(ctx, req.ViewResourceID)
 		if err != nil {
 			return InternalErrE("failed to delete view resource", err)
+		}
+
+		err = d.viewResourceRepo.DropDatabaseView(ctx, viewResource.Name)
+		if err != nil {
+			return InternalErrE("failed to drop database view", err)
 		}
 
 		response = &DeleteViewResourceResponse{

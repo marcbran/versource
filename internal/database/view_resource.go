@@ -76,3 +76,23 @@ func (r *GormViewResourceRepo) DeleteViewResource(ctx context.Context, viewResou
 	}
 	return nil
 }
+
+func (r *GormViewResourceRepo) SaveDatabaseView(ctx context.Context, name, query string) error {
+	db := getTxOrDb(ctx, r.db)
+	saveViewSQL := fmt.Sprintf("CREATE OR REPLACE VIEW %s AS %s", name, query)
+	err := db.WithContext(ctx).Exec(saveViewSQL).Error
+	if err != nil {
+		return fmt.Errorf("failed to save database view: %w", err)
+	}
+	return nil
+}
+
+func (r *GormViewResourceRepo) DropDatabaseView(ctx context.Context, name string) error {
+	db := getTxOrDb(ctx, r.db)
+	dropViewSQL := fmt.Sprintf("DROP VIEW IF EXISTS %s", name)
+	err := db.WithContext(ctx).Exec(dropViewSQL).Error
+	if err != nil {
+		return fmt.Errorf("failed to drop database view: %w", err)
+	}
+	return nil
+}

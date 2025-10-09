@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/database"
+	"github.com/marcbran/versource/internal/database/parser"
 	"github.com/marcbran/versource/internal/infra"
 	"github.com/marcbran/versource/internal/store/file"
 	log "github.com/sirupsen/logrus"
@@ -83,6 +84,8 @@ func NewServer(config *internal.Config) (*Server, error) {
 	changesetRepo := database.NewGormChangesetRepo(db)
 	moduleRepo := database.NewGormModuleRepo(db)
 	moduleVersionRepo := database.NewGormModuleVersionRepo(db)
+	viewResourceRepo := database.NewGormViewResourceRepo(db)
+	queryParser := parser.NewSQLViewQueryParser()
 	transactionManager := database.NewGormTransactionManager(db)
 
 	newExecutor := infra.NewExecutor
@@ -103,6 +106,8 @@ func NewServer(config *internal.Config) (*Server, error) {
 		changesetRepo,
 		moduleRepo,
 		moduleVersionRepo,
+		viewResourceRepo,
+		queryParser,
 		transactionManager,
 		newExecutor,
 	)
@@ -142,6 +147,10 @@ func (s *Server) setupRoutes() {
 		})
 		r.Get("/applies", s.handleListApplies)
 		r.Get("/resources", s.handleListResources)
+		r.Get("/view-resources", s.handleListViewResources)
+		r.Get("/view-resources/{viewResourceID}", s.handleGetViewResource)
+		r.Post("/view-resources", s.handleSaveViewResource)
+		r.Delete("/view-resources/{viewResourceID}", s.handleDeleteViewResource)
 		r.Get("/changesets", s.handleListChangesets)
 		r.Route("/applies/{applyID}", func(r chi.Router) {
 			r.Get("/", s.handleGetApply)

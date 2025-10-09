@@ -13,6 +13,7 @@ import (
 	"github.com/marcbran/versource/internal/tui/plan"
 	"github.com/marcbran/versource/internal/tui/platform"
 	"github.com/marcbran/versource/internal/tui/rebase"
+	"github.com/marcbran/versource/internal/tui/resource"
 )
 
 func RunApp(facade internal.Facade) error {
@@ -27,6 +28,7 @@ func RunApp(facade internal.Facade) error {
 				{Key: "c", Help: "View components", Command: "components"},
 				{Key: "p", Help: "View plans", Command: "plans"},
 				{Key: "a", Help: "View applies", Command: "applies"},
+				{Key: "e", Help: "View resources", Command: "resources"},
 			}
 		}).
 		KeyBinding("changesets/{changesetName}", func(params map[string]string, currentPath string) platform.KeyBindings {
@@ -76,7 +78,8 @@ func RunApp(facade internal.Facade) error {
 		Route("changesets/{changesetName}/rebase", changeset.NewRebaseChangeset(facade)).
 		Route("changesets/{changesetName}/rebases", rebase.NewTable(facade)).
 		Route("changesets/{changesetName}/rebases/{rebaseID}", rebase.NewDetail(facade)).
-		Route("changesets/{changesetName}/delete", changeset.NewDeleteChangeset(facade))
+		Route("changesets/{changesetName}/delete", changeset.NewDeleteChangeset(facade)).
+		Route("resources", resource.NewTable(facade))
 
 	app := platform.NewCommandable(router, facade)
 

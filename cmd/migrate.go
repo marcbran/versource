@@ -7,8 +7,8 @@ import (
 
 var migrateCmd = &cobra.Command{
 	Use:   "migrate",
-	Short: "Start the HTTP server",
-	Long:  `Start the HTTP server to handle API requests`,
+	Short: "Run database migrations",
+	Long:  `Run database migrations to set up the database schema`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config, err := LoadConfig(cmd)
 		if err != nil {

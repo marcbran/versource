@@ -10,7 +10,7 @@ func (s *Stage) an_existing_module_has_been_created() *Stage {
 	return s.a_module_is_created(
 		"jsonnet",
 		"https://github.com/marcbran/versource/tests/modules/jsonnet",
-		"199fa5704319b958d47b791f063729a83ec83f15",
+		"c550182f94d192177a47c5b29c6b06be5ddb6bb3",
 	).and().the_module_creation_has_succeeded()
 }
 

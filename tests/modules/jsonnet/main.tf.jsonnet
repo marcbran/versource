@@ -7,6 +7,8 @@ local module(var) =
   local repo = nl.resource.resource('test', {
     triggers: {
       name: var.name,
+      age: std.get(var, 'age', 20),
+      enabled: std.get(var, 'enabled', true),
     },
   });
   [

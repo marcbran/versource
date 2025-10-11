@@ -181,11 +181,15 @@ func (r *GormComponentChangeRepo) ListComponentChanges(ctx context.Context) ([]i
 				p.destroy as plan_destroy,
 				ROW_NUMBER() OVER (
 					PARTITION BY d.to_id
-					ORDER BY d.to_commit_date DESC, m.to_commit_date DESC, p.id DESC
+					ORDER BY dl.commit_order DESC, ml.commit_order DESC, p.id DESC
 				) AS rn
 			FROM dolt_diff_components d
-			LEFT JOIN dolt_diff_components AS OF main m
+			LEFT JOIN dolt_log dl
+				ON d.to_commit = dl.commit_hash
+			LEFT JOIN dolt_diff_components AS OF main AS m
 				ON d.to_id = m.to_id
+			LEFT JOIN dolt_log AS OF main AS ml
+				ON m.to_commit = ml.commit_hash
 			LEFT JOIN plans AS OF admin p
 				ON d.to_id = p.component_id AND d.to_commit = p.to
 				AND (m.to_commit IS NULL OR m.to_commit = p.from)
@@ -241,8 +245,12 @@ func (r *GormComponentChangeRepo) GetComponentChange(ctx context.Context, compon
 			p.change as plan_change,
 			p.destroy as plan_destroy
 		FROM dolt_diff_components d
+		LEFT JOIN dolt_log dl
+			ON d.to_commit = dl.commit_hash
 		LEFT JOIN dolt_diff_components AS OF main AS m
 			ON d.to_id = m.to_id
+		LEFT JOIN dolt_log AS OF main AS ml
+			ON m.to_commit = ml.commit_hash
 		LEFT JOIN plans AS OF admin AS p
 			ON d.to_id = p.component_id AND d.to_commit = p.to
 			AND (m.to_commit IS NULL OR m.to_commit = p.from)
@@ -252,7 +260,7 @@ func (r *GormComponentChangeRepo) GetComponentChange(ctx context.Context, compon
                 OR (d.to_commit IS NULL AND m.to_commit IS NOT NULL)
                 OR (d.to_commit IS NOT NULL AND m.to_commit IS NULL)
 			)
-		ORDER BY d.to_commit_date DESC, m.to_commit_date DESC, p.id DESC
+		ORDER BY dl.commit_order DESC, ml.commit_order DESC, p.id DESC
 		LIMIT 1;
 	`
 

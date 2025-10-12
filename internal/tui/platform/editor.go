@@ -26,13 +26,15 @@ type Editor[T any] struct {
 	errorMsg       string
 	showError      bool
 
-	size    Size
-	focused bool
+	size     Size
+	focused  bool
+	loadView LoadView
 }
 
 func NewEditor[T any](data EditorData[T]) *Editor[T] {
 	return &Editor[T]{
-		data: data,
+		data:     data,
+		loadView: NewLoadView(),
 	}
 }
 
@@ -42,6 +44,7 @@ func (e *Editor[T]) Init() tea.Cmd {
 
 func (e *Editor[T]) Resize(size Size) {
 	e.size = size
+	e.loadView.Resize(size)
 }
 
 func (e *Editor[T]) Focus() {
@@ -85,14 +88,17 @@ func (e *Editor[T]) Update(msg tea.Msg) (Page, tea.Cmd) {
 			return e, func() tea.Msg { return goBackRequestedMsg{} }
 		}
 	}
-	return e, nil
+
+	var cmd tea.Cmd
+	e.loadView, cmd = e.loadView.Update(msg)
+	return e, cmd
 }
 
 func (e *Editor[T]) View() string {
 	if e.showError {
 		return e.renderError()
 	}
-	return e.renderReady()
+	return e.loadView.View()
 }
 
 func (e *Editor[T]) KeyBindings() KeyBindings {
@@ -203,18 +209,6 @@ func (e Editor[T]) renderError() string {
 		Height(e.size.Height).
 		Align(lipgloss.Center, lipgloss.Center).
 		Render(content)
-
-	return centeredContent
-}
-
-func (e Editor[T]) renderReady() string {
-	readyText := "Press Enter to open editor, Esc to cancel"
-
-	centeredContent := lipgloss.NewStyle().
-		Width(e.size.Width).
-		Height(e.size.Height).
-		Align(lipgloss.Center, lipgloss.Center).
-		Render(readyText)
 
 	return centeredContent
 }

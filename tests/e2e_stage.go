@@ -118,6 +118,7 @@ func (s *Stage) a_clean_slate() *Stage {
 	return s.an_empty_database().and().
 		the_migrations_are_run().and().
 		a_restarted_server().and().
+		the_terraform_folder_is_cleared().and().
 		the_stage_is_cleared()
 }
 
@@ -127,14 +128,20 @@ func (s *Stage) an_empty_database() *Stage {
 		a_db_query_has_been_run_as_root("CREATE DATABASE IF NOT EXISTS versource;")
 }
 
+func (s *Stage) the_terraform_folder_is_cleared() *Stage {
+	return s.a_command_is_executed("server", "sh", "-lc", "rm -rf /terraform/* || true").and().
+		the_command_has_to_succeed()
+}
+
 func (s *Stage) the_migrations_are_run() *Stage {
 	return s.a_command_is_executed("migrate", "versource", "migrate").and().
-		the_command_has_to_succeeded()
+		the_command_has_to_succeed()
 }
 
 func (s *Stage) the_dataset(dataset Dataset) *Stage {
 	return s.a_dataset_is_cloned(dataset).and().
 		a_restarted_server().and().
+		the_terraform_folder_is_cleared().and().
 		the_stage_is_cleared()
 }
 
@@ -186,7 +193,7 @@ func (s *Stage) the_command_has_succeeded() *Stage {
 	return s
 }
 
-func (s *Stage) the_command_has_to_succeeded() *Stage {
+func (s *Stage) the_command_has_to_succeed() *Stage {
 	if s.LastExitCode != 0 {
 		fmt.Println(s.LastError)
 	}

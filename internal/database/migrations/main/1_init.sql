@@ -27,10 +27,11 @@ CREATE INDEX module_versions_module_id ON module_versions (module_id);
 CREATE TABLE IF NOT EXISTS components (
     id INT AUTO_INCREMENT PRIMARY KEY,
     module_version_id INT NOT NULL,
-    name VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT ('Ready'),
     variables JSON NOT NULL DEFAULT ('{}'),
-    FOREIGN KEY (module_version_id) REFERENCES module_versions(id) ON DELETE CASCADE
+    FOREIGN KEY (module_version_id) REFERENCES module_versions(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_component (module_version_id, name)
 );
 -- +goose StatementEnd
 
@@ -90,7 +91,7 @@ CREATE TABLE IF NOT EXISTS state_resources (
     attributes JSON NOT NULL DEFAULT ('{}'),
     FOREIGN KEY (state_id) REFERENCES states(id) ON DELETE CASCADE,
     FOREIGN KEY (resource_id) REFERENCES resources(uuid) ON DELETE CASCADE,
-    UNIQUE KEY unique_state_address (state_id, address)
+    UNIQUE KEY unique_state_resource (state_id, address)
 );
 -- +goose StatementEnd
 

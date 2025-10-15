@@ -21,7 +21,7 @@ var resourceListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := resource.NewTableData(httpClient)
 		return renderTableData(tableData)
 	},

@@ -28,7 +28,7 @@ var rebaseGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		detailData := rebase.NewDetailData(httpClient, changeset, args[0])
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
@@ -62,7 +62,7 @@ var rebaseListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := rebase.NewTableData(httpClient, changeset)
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")

@@ -35,7 +35,7 @@ var changesetCreateCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.CreateChangesetRequest{
 			Name: name,
@@ -59,7 +59,7 @@ var changesetListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := changeset.NewTableData(httpClient)
 		return renderTableData(tableData)
 	},
@@ -81,7 +81,7 @@ var changesetMergeCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.CreateMergeRequest{
 			ChangesetName: changesetName,
@@ -112,7 +112,7 @@ var changesetRebaseCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.CreateRebaseRequest{
 			ChangesetName: changesetName,
@@ -143,7 +143,7 @@ var changesetDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.DeleteChangesetRequest{
 			ChangesetName: changesetName,
@@ -181,7 +181,7 @@ var changesetChangeListCmd = &cobra.Command{
 		if changesetName == "" {
 			return fmt.Errorf("changeset is required")
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := component.NewChangesetChangesTableData(httpClient, changesetName)
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")

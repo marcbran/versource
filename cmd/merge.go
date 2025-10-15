@@ -28,7 +28,7 @@ var mergeGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		detailData := merge.NewDetailData(httpClient, changeset, args[0])
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
@@ -62,7 +62,7 @@ var mergeListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := merge.NewTableData(httpClient, changeset)
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")

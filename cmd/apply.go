@@ -24,7 +24,7 @@ var applyGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		detailData := apply.NewDetailData(httpClient, args[0])
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
@@ -53,7 +53,7 @@ var applyListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := apply.NewTableData(httpClient)
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")

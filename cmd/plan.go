@@ -33,7 +33,7 @@ var planGetCmd = &cobra.Command{
 			return err
 		}
 
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		detailData := plan.NewDetailData(httpClient, changeset, args[0])
 
 		return waitForTaskCompletion(
@@ -61,7 +61,7 @@ var planListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := plan.NewTableData(httpClient, changeset)
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")

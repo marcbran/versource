@@ -26,7 +26,7 @@ var moduleGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		detailData := module.NewDetailData(httpClient, args[0])
 		return renderViewportViewData(detailData)
 	},
@@ -41,7 +41,7 @@ var moduleListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := module.NewTableData(httpClient)
 		return renderTableData(tableData)
 	},
@@ -85,7 +85,7 @@ var moduleCreateCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.CreateModuleRequest{
 			Name:         name,
@@ -132,7 +132,7 @@ var moduleUpdateCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.UpdateModuleRequest{
 			ModuleID: uint(moduleID),
@@ -165,7 +165,7 @@ var moduleDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		_, err = client.DeleteModule(cmd.Context(), versource.DeleteModuleRequest{ModuleID: uint(moduleID)})
 		if err != nil {
@@ -192,7 +192,7 @@ var moduleVersionGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		detailData := module.NewVersionDetailData(httpClient, args[0])
 		return renderViewportViewData(detailData)
 	},
@@ -214,7 +214,7 @@ var moduleVersionListCmd = &cobra.Command{
 			moduleID = &moduleIDStr
 		}
 
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := module.NewVersionsTableData(httpClient, moduleID)
 		return renderTableData(tableData)
 	},

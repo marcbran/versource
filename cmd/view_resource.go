@@ -32,7 +32,7 @@ var viewResourceGetCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.GetViewResourceRequest{
 			ViewResourceID: uint(viewResourceID),
@@ -57,7 +57,7 @@ var viewResourceListCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.ListViewResourcesRequest{}
 
@@ -89,7 +89,7 @@ var viewResourceSaveCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.SaveViewResourceRequest{
 			Query: query,
@@ -121,7 +121,7 @@ var viewResourceDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.DeleteViewResourceRequest{
 			ViewResourceID: uint(viewResourceID),

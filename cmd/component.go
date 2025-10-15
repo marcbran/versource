@@ -32,7 +32,7 @@ var componentGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		detailData := component.NewDetailData(httpClient, args[0], changeset)
 		return renderViewportViewData(detailData)
 	},
@@ -62,7 +62,7 @@ var componentListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := component.NewTableData(httpClient, moduleIDStr, moduleVersionIDStr, changeset)
 		return renderTableData(tableData)
 	},
@@ -117,7 +117,7 @@ var componentCreateCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.CreateComponentRequest{
 			ModuleID:      uint(moduleID),
@@ -174,7 +174,7 @@ var componentUpdateCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.UpdateComponentRequest{
 			ComponentID:   uint(componentID),
@@ -232,7 +232,7 @@ var componentDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.DeleteComponentRequest{
 			ComponentID:   uint(componentID),
@@ -274,7 +274,7 @@ var componentPlanCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.CreatePlanRequest{
 			ComponentID:   uint(componentID),
@@ -316,7 +316,7 @@ var componentRestoreCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		req := versource.RestoreComponentRequest{
 			ComponentID:   uint(componentID),

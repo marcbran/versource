@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/jsonnet-bundler/jsonnet-bundler/spec/v1/deps"
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/datatypes"
 )

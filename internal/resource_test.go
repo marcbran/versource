@@ -3,14 +3,15 @@ package internal
 import (
 	"testing"
 
+	"github.com/marcbran/versource/pkg/versource"
 	"gorm.io/datatypes"
 )
 
 func TestApplyResourceMapping(t *testing.T) {
-	resourceA := StateResource{Resource: Resource{Attributes: datatypes.JSON(`{"name":"a"}`)}}
-	resourceB := StateResource{Resource: Resource{Attributes: datatypes.JSON(`{"name":"b"}`)}}
-	resourceC := StateResource{Resource: Resource{Attributes: datatypes.JSON(`{"name":"c"}`)}}
-	newResource := StateResource{Resource: Resource{Provider: "test", ResourceType: "test", Name: "new", Attributes: datatypes.JSON(`{"name":"new"}`)}}
+	resourceA := versource.StateResource{Resource: versource.Resource{Attributes: datatypes.JSON(`{"name":"a"}`)}}
+	resourceB := versource.StateResource{Resource: versource.Resource{Attributes: datatypes.JSON(`{"name":"b"}`)}}
+	resourceC := versource.StateResource{Resource: versource.Resource{Attributes: datatypes.JSON(`{"name":"c"}`)}}
+	newResource := versource.StateResource{Resource: versource.Resource{Provider: "test", ResourceType: "test", Name: "new", Attributes: datatypes.JSON(`{"name":"new"}`)}}
 
 	keepA := []datatypes.JSON{datatypes.JSON(`{"name":"a"}`)}
 	dropA := []datatypes.JSON{datatypes.JSON(`{"name":"a"}`)}
@@ -18,49 +19,49 @@ func TestApplyResourceMapping(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		stateResources []StateResource
-		mapping        ResourceMapping
-		expected       []StateResource
+		stateResources []versource.StateResource
+		mapping        versource.ResourceMapping
+		expected       []versource.StateResource
 	}{
 		{
 			name:           "keep omitted - all resources kept",
-			stateResources: []StateResource{resourceA, resourceB, resourceC},
-			mapping:        ResourceMapping{Keep: nil, Drop: nil},
-			expected:       []StateResource{resourceA, resourceB, resourceC},
+			stateResources: []versource.StateResource{resourceA, resourceB, resourceC},
+			mapping:        versource.ResourceMapping{Keep: nil, Drop: nil},
+			expected:       []versource.StateResource{resourceA, resourceB, resourceC},
 		},
 		{
 			name:           "keep empty - no resources kept",
-			stateResources: []StateResource{resourceA, resourceB, resourceC},
-			mapping:        ResourceMapping{Keep: &empty, Drop: nil},
-			expected:       []StateResource{},
+			stateResources: []versource.StateResource{resourceA, resourceB, resourceC},
+			mapping:        versource.ResourceMapping{Keep: &empty, Drop: nil},
+			expected:       []versource.StateResource{},
 		},
 		{
 			name:           "keep specific - only kept resources",
-			stateResources: []StateResource{resourceA, resourceB, resourceC},
-			mapping:        ResourceMapping{Keep: &keepA, Drop: nil},
-			expected:       []StateResource{resourceA},
+			stateResources: []versource.StateResource{resourceA, resourceB, resourceC},
+			mapping:        versource.ResourceMapping{Keep: &keepA, Drop: nil},
+			expected:       []versource.StateResource{resourceA},
 		},
 		{
 			name:           "drop specific - dropped resources removed",
-			stateResources: []StateResource{resourceA, resourceB, resourceC},
-			mapping:        ResourceMapping{Keep: nil, Drop: &dropA},
-			expected:       []StateResource{resourceB, resourceC},
+			stateResources: []versource.StateResource{resourceA, resourceB, resourceC},
+			mapping:        versource.ResourceMapping{Keep: nil, Drop: &dropA},
+			expected:       []versource.StateResource{resourceB, resourceC},
 		},
 		{
 			name:           "keep and drop - keep takes precedence",
-			stateResources: []StateResource{resourceA, resourceB, resourceC},
-			mapping:        ResourceMapping{Keep: &keepA, Drop: &dropA},
-			expected:       []StateResource{resourceA},
+			stateResources: []versource.StateResource{resourceA, resourceB, resourceC},
+			mapping:        versource.ResourceMapping{Keep: &keepA, Drop: &dropA},
+			expected:       []versource.StateResource{resourceA},
 		},
 		{
 			name:           "add resources - new resources added",
-			stateResources: []StateResource{resourceA, resourceB},
-			mapping: ResourceMapping{
+			stateResources: []versource.StateResource{resourceA, resourceB},
+			mapping: versource.ResourceMapping{
 				Keep: nil,
 				Drop: nil,
-				Add:  &[]Resource{newResource.Resource},
+				Add:  &[]versource.Resource{newResource.Resource},
 			},
-			expected: []StateResource{
+			expected: []versource.StateResource{
 				resourceA,
 				resourceB,
 				newResource,
@@ -68,13 +69,13 @@ func TestApplyResourceMapping(t *testing.T) {
 		},
 		{
 			name:           "keep empty with add - only add resources",
-			stateResources: []StateResource{resourceA, resourceB, resourceC},
-			mapping: ResourceMapping{
+			stateResources: []versource.StateResource{resourceA, resourceB, resourceC},
+			mapping: versource.ResourceMapping{
 				Keep: &empty,
 				Drop: nil,
-				Add:  &[]Resource{newResource.Resource},
+				Add:  &[]versource.Resource{newResource.Resource},
 			},
-			expected: []StateResource{newResource},
+			expected: []versource.StateResource{newResource},
 		},
 	}
 

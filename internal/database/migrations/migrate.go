@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/pressly/goose/v3"
 )
 
@@ -17,7 +17,7 @@ var embedMainMigrations embed.FS
 //go:embed admin/*.sql
 var embedAdminMigrations embed.FS
 
-func Migrate(ctx context.Context, config *internal.DatabaseConfig) error {
+func Migrate(ctx context.Context, config *versource.DatabaseConfig) error {
 	err := goose.SetDialect("mysql")
 	if err != nil {
 		return err
@@ -36,7 +36,7 @@ func Migrate(ctx context.Context, config *internal.DatabaseConfig) error {
 	return nil
 }
 
-func migrateBranch(ctx context.Context, config *internal.DatabaseConfig, branchName string, embedFS embed.FS, migrationPath string) error {
+func migrateBranch(ctx context.Context, config *versource.DatabaseConfig, branchName string, embedFS embed.FS, migrationPath string) error {
 	db, err := newDb(config)
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func migrateBranch(ctx context.Context, config *internal.DatabaseConfig, branchN
 	return nil
 }
 
-func newDb(config *internal.DatabaseConfig) (*sql.DB, error) {
+func newDb(config *versource.DatabaseConfig) (*sql.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
 		config.User, config.Password, config.Host, config.Port, config.DBName)
 

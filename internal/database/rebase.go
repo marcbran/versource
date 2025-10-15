@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/marcbran/versource/pkg/versource"
 	"gorm.io/gorm"
-
-	"github.com/marcbran/versource/internal"
 )
 
 type GormRebaseRepo struct {
@@ -17,9 +16,9 @@ func NewGormRebaseRepo(db *gorm.DB) *GormRebaseRepo {
 	return &GormRebaseRepo{db: db}
 }
 
-func (r *GormRebaseRepo) GetRebase(ctx context.Context, rebaseID uint) (*internal.Rebase, error) {
+func (r *GormRebaseRepo) GetRebase(ctx context.Context, rebaseID uint) (*versource.Rebase, error) {
 	db := getTxOrDb(ctx, r.db)
-	var rebase internal.Rebase
+	var rebase versource.Rebase
 	err := db.WithContext(ctx).
 		Preload("Changeset").
 		Where("id = ?", rebaseID).First(&rebase).Error
@@ -31,8 +30,8 @@ func (r *GormRebaseRepo) GetRebase(ctx context.Context, rebaseID uint) (*interna
 
 func (r *GormRebaseRepo) GetQueuedRebases(ctx context.Context) ([]uint, error) {
 	db := getTxOrDb(ctx, r.db)
-	var rebases []internal.Rebase
-	err := db.WithContext(ctx).Where("state = ?", internal.TaskStateQueued).Find(&rebases).Error
+	var rebases []versource.Rebase
+	err := db.WithContext(ctx).Where("state = ?", versource.TaskStateQueued).Find(&rebases).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queued rebases: %w", err)
 	}
@@ -46,8 +45,8 @@ func (r *GormRebaseRepo) GetQueuedRebases(ctx context.Context) ([]uint, error) {
 
 func (r *GormRebaseRepo) GetQueuedRebasesByChangeset(ctx context.Context, changesetID uint) ([]uint, error) {
 	db := getTxOrDb(ctx, r.db)
-	var rebases []internal.Rebase
-	err := db.WithContext(ctx).Where("state = ? AND changeset_id = ?", internal.TaskStateQueued, changesetID).Find(&rebases).Error
+	var rebases []versource.Rebase
+	err := db.WithContext(ctx).Where("state = ? AND changeset_id = ?", versource.TaskStateQueued, changesetID).Find(&rebases).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queued rebases by changeset: %w", err)
 	}
@@ -59,9 +58,9 @@ func (r *GormRebaseRepo) GetQueuedRebasesByChangeset(ctx context.Context, change
 	return rebaseIDs, nil
 }
 
-func (r *GormRebaseRepo) ListRebases(ctx context.Context) ([]internal.Rebase, error) {
+func (r *GormRebaseRepo) ListRebases(ctx context.Context) ([]versource.Rebase, error) {
 	db := getTxOrDb(ctx, r.db)
-	var rebases []internal.Rebase
+	var rebases []versource.Rebase
 	err := db.WithContext(ctx).
 		Preload("Changeset").
 		Order("id DESC").
@@ -72,9 +71,9 @@ func (r *GormRebaseRepo) ListRebases(ctx context.Context) ([]internal.Rebase, er
 	return rebases, nil
 }
 
-func (r *GormRebaseRepo) ListRebasesByChangesetName(ctx context.Context, changesetName string) ([]internal.Rebase, error) {
+func (r *GormRebaseRepo) ListRebasesByChangesetName(ctx context.Context, changesetName string) ([]versource.Rebase, error) {
 	db := getTxOrDb(ctx, r.db)
-	var rebases []internal.Rebase
+	var rebases []versource.Rebase
 	err := db.WithContext(ctx).
 		Preload("Changeset").
 		Joins("JOIN changesets ON rebases.changeset_id = changesets.id").
@@ -87,7 +86,7 @@ func (r *GormRebaseRepo) ListRebasesByChangesetName(ctx context.Context, changes
 	return rebases, nil
 }
 
-func (r *GormRebaseRepo) CreateRebase(ctx context.Context, rebase *internal.Rebase) error {
+func (r *GormRebaseRepo) CreateRebase(ctx context.Context, rebase *versource.Rebase) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(rebase).Error
 	if err != nil {
@@ -96,9 +95,9 @@ func (r *GormRebaseRepo) CreateRebase(ctx context.Context, rebase *internal.Reba
 	return nil
 }
 
-func (r *GormRebaseRepo) UpdateRebaseState(ctx context.Context, rebaseID uint, state internal.TaskState) error {
+func (r *GormRebaseRepo) UpdateRebaseState(ctx context.Context, rebaseID uint, state versource.TaskState) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Model(&internal.Rebase{}).Where("id = ?", rebaseID).Update("state", state).Error
+	err := db.WithContext(ctx).Model(&versource.Rebase{}).Where("id = ?", rebaseID).Update("state", state).Error
 	if err != nil {
 		return fmt.Errorf("failed to update rebase state: %w", err)
 	}

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type DetailData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	changesetName string
 	mergeID       string
 }
@@ -23,13 +23,13 @@ type DetailViewModel struct {
 	Head        string `yaml:"head"`
 }
 
-func NewDetail(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewDetail(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewViewDataViewport(NewDetailData(facade, params["changesetName"], params["mergeID"]))
 	}
 }
 
-func NewDetailData(facade internal.Facade, changesetName, mergeID string) *DetailData {
+func NewDetailData(facade versource.Facade, changesetName, mergeID string) *DetailData {
 	return &DetailData{
 		facade:        facade,
 		changesetName: changesetName,
@@ -37,14 +37,14 @@ func NewDetailData(facade internal.Facade, changesetName, mergeID string) *Detai
 	}
 }
 
-func (p *DetailData) LoadData() (*internal.GetMergeResponse, error) {
+func (p *DetailData) LoadData() (*versource.GetMergeResponse, error) {
 	ctx := context.Background()
 	mergeID, err := strconv.ParseUint(p.mergeID, 10, 32)
 	if err != nil {
 		return nil, fmt.Errorf("invalid merge ID: %w", err)
 	}
 
-	req := internal.GetMergeRequest{
+	req := versource.GetMergeRequest{
 		MergeID:       uint(mergeID),
 		ChangesetName: p.changesetName,
 	}
@@ -57,7 +57,7 @@ func (p *DetailData) LoadData() (*internal.GetMergeResponse, error) {
 	return resp, nil
 }
 
-func (p *DetailData) ResolveData(data internal.GetMergeResponse) DetailViewModel {
+func (p *DetailData) ResolveData(data versource.GetMergeResponse) DetailViewModel {
 	return DetailViewModel{
 		ID:          data.ID,
 		ChangesetID: data.ChangesetID,
@@ -67,7 +67,7 @@ func (p *DetailData) ResolveData(data internal.GetMergeResponse) DetailViewModel
 	}
 }
 
-func (p *DetailData) KeyBindings(elem internal.GetMergeResponse) platform.KeyBindings {
+func (p *DetailData) KeyBindings(elem versource.GetMergeResponse) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "esc", Help: "View merges", Command: fmt.Sprintf("changesets/%s/merges", p.changesetName)},
 	}

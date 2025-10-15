@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,7 +21,7 @@ func (s *Server) handleGetPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.GetPlanRequest{
+	req := versource.GetPlanRequest{
 		PlanID: uint(planID),
 	}
 	if changesetName != "" {
@@ -47,7 +47,7 @@ func (s *Server) handleGetPlanLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.GetPlanLogRequest{
+	req := versource.GetPlanLogRequest{
 		PlanID: uint(planID),
 	}
 	if changesetName != "" {
@@ -76,7 +76,7 @@ func (s *Server) handleGetPlanLog(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleListPlans(w http.ResponseWriter, r *http.Request) {
 	changesetName := chi.URLParam(r, "changesetName")
 
-	req := internal.ListPlansRequest{
+	req := versource.ListPlansRequest{
 		ChangesetName: changesetName,
 	}
 
@@ -103,7 +103,7 @@ func (s *Server) handleCreatePlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.CreatePlanRequest{
+	req := versource.CreatePlanRequest{
 		ComponentID:   uint(componentID),
 		ChangesetName: changesetName,
 	}

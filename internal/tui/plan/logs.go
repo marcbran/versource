@@ -6,17 +6,17 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type LogsData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	changesetName string
 	planID        string
 }
 
-func NewLogs(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewLogs(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewDataViewport(NewLogsData(
 			facade,
@@ -26,7 +26,7 @@ func NewLogs(facade internal.Facade) func(params map[string]string) platform.Pag
 	}
 }
 
-func NewLogsData(facade internal.Facade, changesetName string, planID string) *LogsData {
+func NewLogsData(facade versource.Facade, changesetName string, planID string) *LogsData {
 	return &LogsData{
 		facade:        facade,
 		changesetName: changesetName,
@@ -34,7 +34,7 @@ func NewLogsData(facade internal.Facade, changesetName string, planID string) *L
 	}
 }
 
-func (p *LogsData) LoadData() (*internal.GetPlanLogResponse, error) {
+func (p *LogsData) LoadData() (*versource.GetPlanLogResponse, error) {
 	ctx := context.Background()
 
 	planIDUint, err := strconv.ParseUint(p.planID, 10, 32)
@@ -42,7 +42,7 @@ func (p *LogsData) LoadData() (*internal.GetPlanLogResponse, error) {
 		return nil, err
 	}
 
-	req := internal.GetPlanLogRequest{PlanID: uint(planIDUint)}
+	req := versource.GetPlanLogRequest{PlanID: uint(planIDUint)}
 	if p.changesetName != "" {
 		req.ChangesetName = &p.changesetName
 	}
@@ -54,7 +54,7 @@ func (p *LogsData) LoadData() (*internal.GetPlanLogResponse, error) {
 	return resp, nil
 }
 
-func (p *LogsData) ResolveData(data internal.GetPlanLogResponse) string {
+func (p *LogsData) ResolveData(data versource.GetPlanLogResponse) string {
 	content, err := io.ReadAll(data.Content)
 	if err != nil {
 		return "Failed to read log content"
@@ -64,7 +64,7 @@ func (p *LogsData) ResolveData(data internal.GetPlanLogResponse) string {
 	return string(content)
 }
 
-func (p *LogsData) KeyBindings(elem internal.GetPlanLogResponse) platform.KeyBindings {
+func (p *LogsData) KeyBindings(elem versource.GetPlanLogResponse) platform.KeyBindings {
 	changesetPrefix := ""
 	if p.changesetName != "" {
 		changesetPrefix = fmt.Sprintf("changesets/%s", p.changesetName)

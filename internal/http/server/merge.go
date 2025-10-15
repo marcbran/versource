@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 func (s *Server) handleGetMerge(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +19,7 @@ func (s *Server) handleGetMerge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.GetMergeRequest{
+	req := versource.GetMergeRequest{
 		MergeID:       uint(mergeID),
 		ChangesetName: changesetName,
 	}
@@ -36,7 +36,7 @@ func (s *Server) handleGetMerge(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleListMerges(w http.ResponseWriter, r *http.Request) {
 	changesetName := chi.URLParam(r, "changesetName")
 
-	req := internal.ListMergesRequest{
+	req := versource.ListMergesRequest{
 		ChangesetName: changesetName,
 	}
 

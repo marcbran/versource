@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/marcbran/versource/internal"
 	http2 "github.com/marcbran/versource/internal/http/server"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
-func (c *Client) GetApply(ctx context.Context, req internal.GetApplyRequest) (*internal.GetApplyResponse, error) {
+func (c *Client) GetApply(ctx context.Context, req versource.GetApplyRequest) (*versource.GetApplyResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/applies/%d", c.baseURL, req.ApplyID)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -32,7 +32,7 @@ func (c *Client) GetApply(ctx context.Context, req internal.GetApplyRequest) (*i
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var applyResp internal.GetApplyResponse
+	var applyResp versource.GetApplyResponse
 	err = json.NewDecoder(resp.Body).Decode(&applyResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -41,7 +41,7 @@ func (c *Client) GetApply(ctx context.Context, req internal.GetApplyRequest) (*i
 	return &applyResp, nil
 }
 
-func (c *Client) GetApplyLog(ctx context.Context, req internal.GetApplyLogRequest) (*internal.GetApplyLogResponse, error) {
+func (c *Client) GetApplyLog(ctx context.Context, req versource.GetApplyLogRequest) (*versource.GetApplyLogResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/applies/%d/logs", c.baseURL, req.ApplyID)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -63,12 +63,12 @@ func (c *Client) GetApplyLog(ctx context.Context, req internal.GetApplyLogReques
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	return &internal.GetApplyLogResponse{
+	return &versource.GetApplyLogResponse{
 		Content: resp.Body,
 	}, nil
 }
 
-func (c *Client) ListApplies(ctx context.Context, req internal.ListAppliesRequest) (*internal.ListAppliesResponse, error) {
+func (c *Client) ListApplies(ctx context.Context, req versource.ListAppliesRequest) (*versource.ListAppliesResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/applies", c.baseURL)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -90,7 +90,7 @@ func (c *Client) ListApplies(ctx context.Context, req internal.ListAppliesReques
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var appliesResp internal.ListAppliesResponse
+	var appliesResp versource.ListAppliesResponse
 	err = json.NewDecoder(resp.Body).Decode(&appliesResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)

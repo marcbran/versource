@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type VersionDetailData struct {
-	facade          internal.Facade
+	facade          versource.Facade
 	moduleVersionID string
 }
 
@@ -25,17 +25,17 @@ type VersionDetailViewModel struct {
 	} `yaml:"module"`
 }
 
-func NewVersionDetail(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewVersionDetail(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewViewDataViewport(NewVersionDetailData(facade, params["moduleVersionID"]))
 	}
 }
 
-func NewVersionDetailData(facade internal.Facade, moduleVersionID string) *VersionDetailData {
+func NewVersionDetailData(facade versource.Facade, moduleVersionID string) *VersionDetailData {
 	return &VersionDetailData{facade: facade, moduleVersionID: moduleVersionID}
 }
 
-func (p *VersionDetailData) LoadData() (*internal.GetModuleVersionResponse, error) {
+func (p *VersionDetailData) LoadData() (*versource.GetModuleVersionResponse, error) {
 	ctx := context.Background()
 
 	moduleVersionIDUint, err := strconv.ParseUint(p.moduleVersionID, 10, 32)
@@ -43,7 +43,7 @@ func (p *VersionDetailData) LoadData() (*internal.GetModuleVersionResponse, erro
 		return nil, err
 	}
 
-	moduleVersionResp, err := p.facade.GetModuleVersion(ctx, internal.GetModuleVersionRequest{ModuleVersionID: uint(moduleVersionIDUint)})
+	moduleVersionResp, err := p.facade.GetModuleVersion(ctx, versource.GetModuleVersionRequest{ModuleVersionID: uint(moduleVersionIDUint)})
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (p *VersionDetailData) LoadData() (*internal.GetModuleVersionResponse, erro
 	return moduleVersionResp, nil
 }
 
-func (p *VersionDetailData) ResolveData(data internal.GetModuleVersionResponse) VersionDetailViewModel {
+func (p *VersionDetailData) ResolveData(data versource.GetModuleVersionResponse) VersionDetailViewModel {
 	return VersionDetailViewModel{
 		ID:      data.ModuleVersion.ID,
 		Version: data.ModuleVersion.Version,
@@ -69,7 +69,7 @@ func (p *VersionDetailData) ResolveData(data internal.GetModuleVersionResponse) 
 	}
 }
 
-func (p *VersionDetailData) KeyBindings(elem internal.GetModuleVersionResponse) platform.KeyBindings {
+func (p *VersionDetailData) KeyBindings(elem versource.GetModuleVersionResponse) platform.KeyBindings {
 	moduleVersionIDUint, err := strconv.ParseUint(p.moduleVersionID, 10, 32)
 	if err != nil {
 		return platform.KeyBindings{}

@@ -5,26 +5,18 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/marcbran/versource/pkg/versource"
 	log "github.com/sirupsen/logrus"
 )
 
-type Rebase struct {
-	ID          uint      `gorm:"primarykey" json:"id" yaml:"id"`
-	Changeset   Changeset `gorm:"foreignKey:ChangesetID" json:"changeset" yaml:"changeset"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	MergeBase   string    `gorm:"column:merge_base" json:"mergeBase" yaml:"mergeBase"`
-	Head        string    `gorm:"column:head" json:"head" yaml:"head"`
-	State       TaskState `gorm:"default:Queued" json:"state" yaml:"state"`
-}
-
 type RebaseRepo interface {
-	GetRebase(ctx context.Context, rebaseID uint) (*Rebase, error)
+	GetRebase(ctx context.Context, rebaseID uint) (*versource.Rebase, error)
 	GetQueuedRebases(ctx context.Context) ([]uint, error)
 	GetQueuedRebasesByChangeset(ctx context.Context, changesetID uint) ([]uint, error)
-	ListRebases(ctx context.Context) ([]Rebase, error)
-	ListRebasesByChangesetName(ctx context.Context, changesetName string) ([]Rebase, error)
-	CreateRebase(ctx context.Context, rebase *Rebase) error
-	UpdateRebaseState(ctx context.Context, rebaseID uint, state TaskState) error
+	ListRebases(ctx context.Context) ([]versource.Rebase, error)
+	ListRebasesByChangesetName(ctx context.Context, changesetName string) ([]versource.Rebase, error)
+	CreateRebase(ctx context.Context, rebase *versource.Rebase) error
+	UpdateRebaseState(ctx context.Context, rebaseID uint, state versource.TaskState) error
 }
 
 type GetRebase struct {
@@ -39,39 +31,26 @@ func NewGetRebase(rebaseRepo RebaseRepo, tx TransactionManager) *GetRebase {
 	}
 }
 
-type GetRebaseRequest struct {
-	RebaseID      uint   `json:"rebaseId" yaml:"rebaseId"`
-	ChangesetName string `json:"changesetName" yaml:"changesetName"`
-}
-
-type GetRebaseResponse struct {
-	ID          uint      `json:"id" yaml:"id"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	MergeBase   string    `json:"mergeBase" yaml:"mergeBase"`
-	Head        string    `json:"head" yaml:"head"`
-	State       TaskState `json:"state" yaml:"state"`
-}
-
-func (g *GetRebase) Exec(ctx context.Context, req GetRebaseRequest) (*GetRebaseResponse, error) {
+func (g *GetRebase) Exec(ctx context.Context, req versource.GetRebaseRequest) (*versource.GetRebaseResponse, error) {
 	if req.ChangesetName == "" {
-		return nil, UserErr("changeset name is required")
+		return nil, versource.UserErr("changeset name is required")
 	}
 
-	var rebase *Rebase
+	var rebase *versource.Rebase
 	err := g.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		rebase, err = g.rebaseRepo.GetRebase(ctx, req.RebaseID)
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to get rebase", err)
+		return nil, versource.InternalErrE("failed to get rebase", err)
 	}
 
 	if rebase == nil {
-		return nil, UserErr("rebase not found")
+		return nil, versource.UserErr("rebase not found")
 	}
 
-	return &GetRebaseResponse{
+	return &versource.GetRebaseResponse{
 		ID:          rebase.ID,
 		ChangesetID: rebase.ChangesetID,
 		MergeBase:   rebase.MergeBase,
@@ -92,16 +71,8 @@ func NewListRebases(rebaseRepo RebaseRepo, tx TransactionManager) *ListRebases {
 	}
 }
 
-type ListRebasesRequest struct {
-	ChangesetName string `json:"changesetName" yaml:"changesetName"`
-}
-
-type ListRebasesResponse struct {
-	Rebases []Rebase `json:"rebases" yaml:"rebases"`
-}
-
-func (l *ListRebases) Exec(ctx context.Context, req ListRebasesRequest) (*ListRebasesResponse, error) {
-	var rebases []Rebase
+func (l *ListRebases) Exec(ctx context.Context, req versource.ListRebasesRequest) (*versource.ListRebasesResponse, error) {
+	var rebases []versource.Rebase
 	err := l.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		if req.ChangesetName == "" {
@@ -112,10 +83,10 @@ func (l *ListRebases) Exec(ctx context.Context, req ListRebasesRequest) (*ListRe
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to list rebases", err)
+		return nil, versource.InternalErrE("failed to list rebases", err)
 	}
 
-	return &ListRebasesResponse{
+	return &versource.ListRebasesResponse{
 		Rebases: rebases,
 	}, nil
 }
@@ -136,21 +107,9 @@ func NewCreateRebase(changesetRepo ChangesetRepo, rebaseRepo RebaseRepo, tx Tran
 	}
 }
 
-type CreateRebaseRequest struct {
-	ChangesetName string `json:"changesetName" yaml:"changesetName"`
-}
-
-type CreateRebaseResponse struct {
-	ID          uint      `json:"id" yaml:"id"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	MergeBase   string    `json:"mergeBase" yaml:"mergeBase"`
-	Head        string    `json:"head" yaml:"head"`
-	State       TaskState `json:"state" yaml:"state"`
-}
-
-func (c *CreateRebase) Exec(ctx context.Context, req CreateRebaseRequest) (*CreateRebaseResponse, error) {
+func (c *CreateRebase) Exec(ctx context.Context, req versource.CreateRebaseRequest) (*versource.CreateRebaseResponse, error) {
 	if req.ChangesetName == "" {
-		return nil, UserErr("changeset name is required")
+		return nil, versource.UserErr("changeset name is required")
 	}
 
 	var mergeBase string
@@ -160,12 +119,12 @@ func (c *CreateRebase) Exec(ctx context.Context, req CreateRebaseRequest) (*Crea
 		var err error
 		mergeBase, err = c.tx.GetMergeBase(ctx, MainBranch, req.ChangesetName)
 		if err != nil {
-			return InternalErrE("failed to get merge base", err)
+			return versource.InternalErrE("failed to get merge base", err)
 		}
 
 		head, err = c.tx.GetHead(ctx)
 		if err != nil {
-			return InternalErrE("failed to get head", err)
+			return versource.InternalErrE("failed to get head", err)
 		}
 
 		return nil
@@ -174,14 +133,14 @@ func (c *CreateRebase) Exec(ctx context.Context, req CreateRebaseRequest) (*Crea
 		return nil, err
 	}
 
-	var response *CreateRebaseResponse
+	var response *versource.CreateRebaseResponse
 	err = c.tx.Do(ctx, AdminBranch, "create rebase", func(ctx context.Context) error {
 		changeset, err := c.changesetRepo.GetChangesetByName(ctx, req.ChangesetName)
 		if err != nil {
-			return UserErrE("changeset not found", err)
+			return versource.UserErrE("changeset not found", err)
 		}
 
-		rebase := &Rebase{
+		rebase := &versource.Rebase{
 			ChangesetID: changeset.ID,
 			Changeset:   *changeset,
 			MergeBase:   mergeBase,
@@ -190,10 +149,10 @@ func (c *CreateRebase) Exec(ctx context.Context, req CreateRebaseRequest) (*Crea
 
 		err = c.rebaseRepo.CreateRebase(ctx, rebase)
 		if err != nil {
-			return InternalErrE("failed to create rebase", err)
+			return versource.InternalErrE("failed to create rebase", err)
 		}
 
-		response = &CreateRebaseResponse{
+		response = &versource.CreateRebaseResponse{
 			ID:          rebase.ID,
 			ChangesetID: rebase.ChangesetID,
 			MergeBase:   rebase.MergeBase,
@@ -291,7 +250,7 @@ func (rw *RebaseWorker) processQueuedRebases(ctx context.Context) {
 }
 
 type RunRebase struct {
-	config               *Config
+	config               *versource.Config
 	rebaseRepo           RebaseRepo
 	changesetRepo        ChangesetRepo
 	tx                   TransactionManager
@@ -299,7 +258,7 @@ type RunRebase struct {
 	createPlan           *CreatePlan
 }
 
-func NewRunRebase(config *Config, rebaseRepo RebaseRepo, changesetRepo ChangesetRepo, tx TransactionManager, listComponentChanges *ListComponentChanges, createPlan *CreatePlan) *RunRebase {
+func NewRunRebase(config *versource.Config, rebaseRepo RebaseRepo, changesetRepo ChangesetRepo, tx TransactionManager, listComponentChanges *ListComponentChanges, createPlan *CreatePlan) *RunRebase {
 	return &RunRebase{
 		config:               config,
 		rebaseRepo:           rebaseRepo,
@@ -311,7 +270,7 @@ func NewRunRebase(config *Config, rebaseRepo RebaseRepo, changesetRepo Changeset
 }
 
 func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
-	var rebase *Rebase
+	var rebase *versource.Rebase
 
 	err := r.tx.Do(ctx, AdminBranch, "start rebase", func(ctx context.Context) error {
 		var err error
@@ -324,7 +283,7 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 			return fmt.Errorf("rebase ID mismatch")
 		}
 
-		err = r.rebaseRepo.UpdateRebaseState(ctx, rebaseID, TaskStateStarted)
+		err = r.rebaseRepo.UpdateRebaseState(ctx, rebaseID, versource.TaskStateStarted)
 		if err != nil {
 			return fmt.Errorf("failed to update rebase state: %w", err)
 		}
@@ -337,14 +296,14 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 
 	log.Info("Starting rebase operation")
 
-	var changesResp *ListComponentChangesResponse
+	var changesResp *versource.ListComponentChangesResponse
 	err = r.tx.Checkout(ctx, rebase.Changeset.Name, func(ctx context.Context) error {
 		err = r.tx.RebaseBranch(ctx, MainBranch)
 		if err != nil {
 			return err
 		}
 
-		changesResp, err = r.listComponentChanges.Exec(ctx, ListComponentChangesRequest{
+		changesResp, err = r.listComponentChanges.Exec(ctx, versource.ListComponentChangesRequest{
 			ChangesetName: rebase.Changeset.Name,
 		})
 		if err != nil {
@@ -355,7 +314,7 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 	})
 	if err != nil {
 		stateErr := r.tx.Do(ctx, AdminBranch, "fail rebase", func(ctx context.Context) error {
-			return r.rebaseRepo.UpdateRebaseState(ctx, rebaseID, TaskStateFailed)
+			return r.rebaseRepo.UpdateRebaseState(ctx, rebaseID, versource.TaskStateFailed)
 		})
 		if stateErr != nil {
 			return fmt.Errorf("rebase failed: %w, and failed to update rebase state: %w", err, stateErr)
@@ -369,7 +328,7 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 				continue
 			}
 
-			_, err := r.createPlan.Exec(ctx, CreatePlanRequest{
+			_, err := r.createPlan.Exec(ctx, versource.CreatePlanRequest{
 				ComponentID:   change.ToComponent.ID,
 				ChangesetName: rebase.Changeset.Name,
 			})
@@ -382,7 +341,7 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 	}
 
 	err = r.tx.Do(ctx, AdminBranch, "complete rebase", func(ctx context.Context) error {
-		err = r.rebaseRepo.UpdateRebaseState(ctx, rebaseID, TaskStateSucceeded)
+		err = r.rebaseRepo.UpdateRebaseState(ctx, rebaseID, versource.TaskStateSucceeded)
 		if err != nil {
 			return fmt.Errorf("failed to update rebase state: %w", err)
 		}
@@ -393,7 +352,7 @@ func (r *RunRebase) Exec(ctx context.Context, rebaseID uint) error {
 	})
 	if err != nil {
 		stateErr := r.tx.Do(ctx, AdminBranch, "fail rebase completion", func(ctx context.Context) error {
-			return r.rebaseRepo.UpdateRebaseState(ctx, rebaseID, TaskStateFailed)
+			return r.rebaseRepo.UpdateRebaseState(ctx, rebaseID, versource.TaskStateFailed)
 		})
 		if stateErr != nil {
 			return fmt.Errorf("rebase completion failed: %w, and failed to update rebase state: %w", err, stateErr)

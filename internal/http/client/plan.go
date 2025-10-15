@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/marcbran/versource/internal"
 	http2 "github.com/marcbran/versource/internal/http/server"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
-func (c *Client) GetPlan(ctx context.Context, req internal.GetPlanRequest) (*internal.GetPlanResponse, error) {
+func (c *Client) GetPlan(ctx context.Context, req versource.GetPlanRequest) (*versource.GetPlanResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/plans/%d", c.baseURL, req.PlanID)
 	if req.ChangesetName != nil {
 		url = fmt.Sprintf("%s/api/v1/changesets/%s/plans/%d", c.baseURL, *req.ChangesetName, req.PlanID)
@@ -36,7 +36,7 @@ func (c *Client) GetPlan(ctx context.Context, req internal.GetPlanRequest) (*int
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var planResp internal.GetPlanResponse
+	var planResp versource.GetPlanResponse
 	err = json.NewDecoder(resp.Body).Decode(&planResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -45,7 +45,7 @@ func (c *Client) GetPlan(ctx context.Context, req internal.GetPlanRequest) (*int
 	return &planResp, nil
 }
 
-func (c *Client) GetPlanLog(ctx context.Context, req internal.GetPlanLogRequest) (*internal.GetPlanLogResponse, error) {
+func (c *Client) GetPlanLog(ctx context.Context, req versource.GetPlanLogRequest) (*versource.GetPlanLogResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/plans/%d/logs", c.baseURL, req.PlanID)
 	if req.ChangesetName != nil {
 		url = fmt.Sprintf("%s/api/v1/changesets/%s/plans/%d/logs", c.baseURL, *req.ChangesetName, req.PlanID)
@@ -70,12 +70,12 @@ func (c *Client) GetPlanLog(ctx context.Context, req internal.GetPlanLogRequest)
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	return &internal.GetPlanLogResponse{
+	return &versource.GetPlanLogResponse{
 		Content: resp.Body,
 	}, nil
 }
 
-func (c *Client) ListPlans(ctx context.Context, req internal.ListPlansRequest) (*internal.ListPlansResponse, error) {
+func (c *Client) ListPlans(ctx context.Context, req versource.ListPlansRequest) (*versource.ListPlansResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/plans", c.baseURL)
 	if req.ChangesetName != "" {
 		url = fmt.Sprintf("%s/api/v1/changesets/%s/plans", c.baseURL, req.ChangesetName)
@@ -100,7 +100,7 @@ func (c *Client) ListPlans(ctx context.Context, req internal.ListPlansRequest) (
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var plansResp internal.ListPlansResponse
+	var plansResp versource.ListPlansResponse
 	err = json.NewDecoder(resp.Body).Decode(&plansResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -109,7 +109,7 @@ func (c *Client) ListPlans(ctx context.Context, req internal.ListPlansRequest) (
 	return &plansResp, nil
 }
 
-func (c *Client) CreatePlan(ctx context.Context, req internal.CreatePlanRequest) (*internal.CreatePlanResponse, error) {
+func (c *Client) CreatePlan(ctx context.Context, req versource.CreatePlanRequest) (*versource.CreatePlanResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d/plans", c.baseURL, req.ChangesetName, req.ComponentID)
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 	if err != nil {
@@ -133,7 +133,7 @@ func (c *Client) CreatePlan(ctx context.Context, req internal.CreatePlanRequest)
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var planResp internal.CreatePlanResponse
+	var planResp versource.CreatePlanResponse
 	err = json.NewDecoder(resp.Body).Decode(&planResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)

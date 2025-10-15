@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/marcbran/versource/internal"
 	http2 "github.com/marcbran/versource/internal/http/server"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
-func (c *Client) GetComponent(ctx context.Context, req internal.GetComponentRequest) (*internal.GetComponentResponse, error) {
+func (c *Client) GetComponent(ctx context.Context, req versource.GetComponentRequest) (*versource.GetComponentResponse, error) {
 	var url string
 	if req.ChangesetName != nil {
 		url = fmt.Sprintf("%s/api/v1/changesets/%s/components/%d", c.baseURL, *req.ChangesetName, req.ComponentID)
@@ -40,7 +40,7 @@ func (c *Client) GetComponent(ctx context.Context, req internal.GetComponentRequ
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var componentResp internal.GetComponentResponse
+	var componentResp versource.GetComponentResponse
 	err = json.NewDecoder(resp.Body).Decode(&componentResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -49,7 +49,7 @@ func (c *Client) GetComponent(ctx context.Context, req internal.GetComponentRequ
 	return &componentResp, nil
 }
 
-func (c *Client) ListComponents(ctx context.Context, req internal.ListComponentsRequest) (*internal.ListComponentsResponse, error) {
+func (c *Client) ListComponents(ctx context.Context, req versource.ListComponentsRequest) (*versource.ListComponentsResponse, error) {
 	var url string
 	if req.ChangesetName != nil {
 		url = fmt.Sprintf("%s/api/v1/changesets/%s/components", c.baseURL, *req.ChangesetName)
@@ -89,7 +89,7 @@ func (c *Client) ListComponents(ctx context.Context, req internal.ListComponents
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var componentsResp internal.ListComponentsResponse
+	var componentsResp versource.ListComponentsResponse
 	err = json.NewDecoder(resp.Body).Decode(&componentsResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -98,7 +98,7 @@ func (c *Client) ListComponents(ctx context.Context, req internal.ListComponents
 	return &componentsResp, nil
 }
 
-func (c *Client) GetComponentChange(ctx context.Context, req internal.GetComponentChangeRequest) (*internal.GetComponentChangeResponse, error) {
+func (c *Client) GetComponentChange(ctx context.Context, req versource.GetComponentChangeRequest) (*versource.GetComponentChangeResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d/change", c.baseURL, req.ChangesetName, req.ComponentID)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -121,7 +121,7 @@ func (c *Client) GetComponentChange(ctx context.Context, req internal.GetCompone
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var changeResp internal.GetComponentChangeResponse
+	var changeResp versource.GetComponentChangeResponse
 	err = json.NewDecoder(resp.Body).Decode(&changeResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -130,7 +130,7 @@ func (c *Client) GetComponentChange(ctx context.Context, req internal.GetCompone
 	return &changeResp, nil
 }
 
-func (c *Client) ListComponentChanges(ctx context.Context, req internal.ListComponentChangesRequest) (*internal.ListComponentChangesResponse, error) {
+func (c *Client) ListComponentChanges(ctx context.Context, req versource.ListComponentChangesRequest) (*versource.ListComponentChangesResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/changes", c.baseURL, req.ChangesetName)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -153,7 +153,7 @@ func (c *Client) ListComponentChanges(ctx context.Context, req internal.ListComp
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var changesResp internal.ListComponentChangesResponse
+	var changesResp versource.ListComponentChangesResponse
 	err = json.NewDecoder(resp.Body).Decode(&changesResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -162,7 +162,7 @@ func (c *Client) ListComponentChanges(ctx context.Context, req internal.ListComp
 	return &changesResp, nil
 }
 
-func (c *Client) CreateComponent(ctx context.Context, req internal.CreateComponentRequest) (*internal.CreateComponentResponse, error) {
+func (c *Client) CreateComponent(ctx context.Context, req versource.CreateComponentRequest) (*versource.CreateComponentResponse, error) {
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -191,7 +191,7 @@ func (c *Client) CreateComponent(ctx context.Context, req internal.CreateCompone
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var componentResp internal.CreateComponentResponse
+	var componentResp versource.CreateComponentResponse
 	err = json.NewDecoder(resp.Body).Decode(&componentResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -200,7 +200,7 @@ func (c *Client) CreateComponent(ctx context.Context, req internal.CreateCompone
 	return &componentResp, nil
 }
 
-func (c *Client) UpdateComponent(ctx context.Context, req internal.UpdateComponentRequest) (*internal.UpdateComponentResponse, error) {
+func (c *Client) UpdateComponent(ctx context.Context, req versource.UpdateComponentRequest) (*versource.UpdateComponentResponse, error) {
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -229,7 +229,7 @@ func (c *Client) UpdateComponent(ctx context.Context, req internal.UpdateCompone
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var componentResp internal.UpdateComponentResponse
+	var componentResp versource.UpdateComponentResponse
 	err = json.NewDecoder(resp.Body).Decode(&componentResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -238,7 +238,7 @@ func (c *Client) UpdateComponent(ctx context.Context, req internal.UpdateCompone
 	return &componentResp, nil
 }
 
-func (c *Client) DeleteComponent(ctx context.Context, req internal.DeleteComponentRequest) (*internal.DeleteComponentResponse, error) {
+func (c *Client) DeleteComponent(ctx context.Context, req versource.DeleteComponentRequest) (*versource.DeleteComponentResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d", c.baseURL, req.ChangesetName, req.ComponentID)
 	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
 	if err != nil {
@@ -260,7 +260,7 @@ func (c *Client) DeleteComponent(ctx context.Context, req internal.DeleteCompone
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var componentResp internal.DeleteComponentResponse
+	var componentResp versource.DeleteComponentResponse
 	err = json.NewDecoder(resp.Body).Decode(&componentResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -269,7 +269,7 @@ func (c *Client) DeleteComponent(ctx context.Context, req internal.DeleteCompone
 	return &componentResp, nil
 }
 
-func (c *Client) RestoreComponent(ctx context.Context, req internal.RestoreComponentRequest) (*internal.RestoreComponentResponse, error) {
+func (c *Client) RestoreComponent(ctx context.Context, req versource.RestoreComponentRequest) (*versource.RestoreComponentResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/changesets/%s/components/%d/restore", c.baseURL, req.ChangesetName, req.ComponentID)
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 	if err != nil {
@@ -291,7 +291,7 @@ func (c *Client) RestoreComponent(ctx context.Context, req internal.RestoreCompo
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var componentResp internal.RestoreComponentResponse
+	var componentResp versource.RestoreComponentResponse
 	err = json.NewDecoder(resp.Body).Decode(&componentResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)

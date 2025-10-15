@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/component"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +32,7 @@ var componentGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		detailData := component.NewDetailData(httpClient, args[0], changeset)
 		return renderViewportViewData(detailData)
 	},
@@ -62,7 +62,7 @@ var componentListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := component.NewTableData(httpClient, moduleIDStr, moduleVersionIDStr, changeset)
 		return renderTableData(tableData)
 	},
@@ -117,9 +117,9 @@ var componentCreateCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
-		req := internal.CreateComponentRequest{
+		req := versource.CreateComponentRequest{
 			ModuleID:      uint(moduleID),
 			ChangesetName: changeset,
 			Name:          name,
@@ -174,9 +174,9 @@ var componentUpdateCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
-		req := internal.UpdateComponentRequest{
+		req := versource.UpdateComponentRequest{
 			ComponentID:   uint(componentID),
 			ChangesetName: changeset,
 		}
@@ -232,9 +232,9 @@ var componentDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
-		req := internal.DeleteComponentRequest{
+		req := versource.DeleteComponentRequest{
 			ComponentID:   uint(componentID),
 			ChangesetName: changeset,
 		}
@@ -274,9 +274,9 @@ var componentPlanCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
-		req := internal.CreatePlanRequest{
+		req := versource.CreatePlanRequest{
 			ComponentID:   uint(componentID),
 			ChangesetName: changeset,
 		}
@@ -316,9 +316,9 @@ var componentRestoreCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
-		req := internal.RestoreComponentRequest{
+		req := versource.RestoreComponentRequest{
 			ComponentID:   uint(componentID),
 			ChangesetName: changeset,
 		}

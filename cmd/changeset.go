@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/changeset"
 	"github.com/marcbran/versource/internal/tui/component"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/spf13/cobra"
 )
 
@@ -35,9 +35,9 @@ var changesetCreateCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
-		req := internal.CreateChangesetRequest{
+		req := versource.CreateChangesetRequest{
 			Name: name,
 		}
 
@@ -59,7 +59,7 @@ var changesetListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := changeset.NewTableData(httpClient)
 		return renderTableData(tableData)
 	},
@@ -81,9 +81,9 @@ var changesetMergeCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
-		req := internal.CreateMergeRequest{
+		req := versource.CreateMergeRequest{
 			ChangesetName: changesetName,
 		}
 
@@ -112,9 +112,9 @@ var changesetRebaseCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
-		req := internal.CreateRebaseRequest{
+		req := versource.CreateRebaseRequest{
 			ChangesetName: changesetName,
 		}
 
@@ -143,9 +143,9 @@ var changesetDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
-		req := internal.DeleteChangesetRequest{
+		req := versource.DeleteChangesetRequest{
 			ChangesetName: changesetName,
 		}
 
@@ -181,7 +181,7 @@ var changesetChangeListCmd = &cobra.Command{
 		if changesetName == "" {
 			return fmt.Errorf("changeset is required")
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := component.NewChangesetChangesTableData(httpClient, changesetName)
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
@@ -198,12 +198,12 @@ var changesetChangeListCmd = &cobra.Command{
 	},
 }
 
-func allPlansCompleted(changes []internal.ComponentChange) bool {
+func allPlansCompleted(changes []versource.ComponentChange) bool {
 	for _, change := range changes {
 		if change.Plan == nil {
 			return false
 		}
-		if !internal.IsTaskCompleted(change.Plan.State) {
+		if !versource.IsTaskCompleted(change.Plan.State) {
 			return false
 		}
 	}

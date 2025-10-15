@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 func (s *Server) handleGetComponent(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +18,7 @@ func (s *Server) handleGetComponent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.GetComponentRequest{
+	req := versource.GetComponentRequest{
 		ComponentID: uint(componentID),
 	}
 
@@ -36,7 +36,7 @@ func (s *Server) handleGetComponent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListComponents(w http.ResponseWriter, r *http.Request) {
-	req := internal.ListComponentsRequest{}
+	req := versource.ListComponentsRequest{}
 
 	if changesetName := chi.URLParam(r, "changesetName"); changesetName != "" {
 		req.ChangesetName = &changesetName
@@ -85,7 +85,7 @@ func (s *Server) handleGetComponentChange(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	req := internal.GetComponentChangeRequest{
+	req := versource.GetComponentChangeRequest{
 		ComponentID:   uint(componentID),
 		ChangesetName: changesetName,
 	}
@@ -106,7 +106,7 @@ func (s *Server) handleListComponentChanges(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	req := internal.ListComponentChangesRequest{
+	req := versource.ListComponentChangesRequest{
 		ChangesetName: changeset,
 	}
 
@@ -126,7 +126,7 @@ func (s *Server) handleCreateComponent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req internal.CreateComponentRequest
+	var req versource.CreateComponentRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		returnBadRequest(w, fmt.Errorf("invalid request body"))
@@ -158,7 +158,7 @@ func (s *Server) handleUpdateComponent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req internal.UpdateComponentRequest
+	var req versource.UpdateComponentRequest
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		returnBadRequest(w, fmt.Errorf("invalid request body"))
@@ -191,7 +191,7 @@ func (s *Server) handleDeleteComponent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.DeleteComponentRequest{
+	req := versource.DeleteComponentRequest{
 		ComponentID:   uint(componentID),
 		ChangesetName: changesetName,
 	}
@@ -219,7 +219,7 @@ func (s *Server) handleRestoreComponent(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	req := internal.RestoreComponentRequest{
+	req := versource.RestoreComponentRequest{
 		ComponentID:   uint(componentID),
 		ChangesetName: changesetName,
 	}

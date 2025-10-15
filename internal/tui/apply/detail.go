@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type DetailData struct {
-	facade  internal.Facade
+	facade  versource.Facade
 	applyID string
 }
 
@@ -44,7 +44,7 @@ type DetailViewModel struct {
 	} `yaml:"changeset,omitempty"`
 }
 
-func NewDetail(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewDetail(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewViewDataViewport(NewDetailData(
 			facade,
@@ -53,14 +53,14 @@ func NewDetail(facade internal.Facade) func(params map[string]string) platform.P
 	}
 }
 
-func NewDetailData(facade internal.Facade, applyID string) *DetailData {
+func NewDetailData(facade versource.Facade, applyID string) *DetailData {
 	return &DetailData{
 		facade:  facade,
 		applyID: applyID,
 	}
 }
 
-func (p *DetailData) LoadData() (*internal.GetApplyResponse, error) {
+func (p *DetailData) LoadData() (*versource.GetApplyResponse, error) {
 	ctx := context.Background()
 
 	applyIDUint, err := strconv.ParseUint(p.applyID, 10, 32)
@@ -68,7 +68,7 @@ func (p *DetailData) LoadData() (*internal.GetApplyResponse, error) {
 		return nil, err
 	}
 
-	req := internal.GetApplyRequest{ApplyID: uint(applyIDUint)}
+	req := versource.GetApplyRequest{ApplyID: uint(applyIDUint)}
 
 	applyResp, err := p.facade.GetApply(ctx, req)
 	if err != nil {
@@ -78,7 +78,7 @@ func (p *DetailData) LoadData() (*internal.GetApplyResponse, error) {
 	return applyResp, nil
 }
 
-func (p *DetailData) ResolveData(data internal.GetApplyResponse) DetailViewModel {
+func (p *DetailData) ResolveData(data versource.GetApplyResponse) DetailViewModel {
 	var plan *struct {
 		ID          uint   `yaml:"id"`
 		State       string `yaml:"state"`
@@ -184,7 +184,7 @@ func (p *DetailData) ResolveData(data internal.GetApplyResponse) DetailViewModel
 	}
 }
 
-func (p *DetailData) KeyBindings(elem internal.GetApplyResponse) platform.KeyBindings {
+func (p *DetailData) KeyBindings(elem versource.GetApplyResponse) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "esc", Help: "View applies", Command: "applies"},
 		{Key: "l", Help: "View logs", Command: fmt.Sprintf("applies/%s/logs", p.applyID)},

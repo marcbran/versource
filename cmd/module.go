@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/module"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +26,7 @@ var moduleGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		detailData := module.NewDetailData(httpClient, args[0])
 		return renderViewportViewData(detailData)
 	},
@@ -41,7 +41,7 @@ var moduleListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := module.NewTableData(httpClient)
 		return renderTableData(tableData)
 	},
@@ -85,9 +85,9 @@ var moduleCreateCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
-		req := internal.CreateModuleRequest{
+		req := versource.CreateModuleRequest{
 			Name:         name,
 			Source:       source,
 			Version:      version,
@@ -132,9 +132,9 @@ var moduleUpdateCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
-		req := internal.UpdateModuleRequest{
+		req := versource.UpdateModuleRequest{
 			ModuleID: uint(moduleID),
 			Version:  version,
 		}
@@ -165,9 +165,9 @@ var moduleDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
-		_, err = client.DeleteModule(cmd.Context(), internal.DeleteModuleRequest{ModuleID: uint(moduleID)})
+		_, err = client.DeleteModule(cmd.Context(), versource.DeleteModuleRequest{ModuleID: uint(moduleID)})
 		if err != nil {
 			return err
 		}
@@ -192,7 +192,7 @@ var moduleVersionGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		detailData := module.NewVersionDetailData(httpClient, args[0])
 		return renderViewportViewData(detailData)
 	},
@@ -214,7 +214,7 @@ var moduleVersionListCmd = &cobra.Command{
 			moduleID = &moduleIDStr
 		}
 
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := module.NewVersionsTableData(httpClient, moduleID)
 		return renderTableData(tableData)
 	},

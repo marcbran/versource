@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func LoadConfig(cmd *cobra.Command) (*internal.Config, error) {
+func LoadConfig(cmd *cobra.Command) (*versource.Config, error) {
 	v := viper.New()
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")
@@ -51,14 +51,14 @@ func LoadConfig(cmd *cobra.Command) (*internal.Config, error) {
 	}
 	httpConfig := LoadHttpConfig(v)
 
-	return &internal.Config{
+	return &versource.Config{
 		Database:  dbConfig,
 		Terraform: tfConfig,
 		HTTP:      httpConfig,
 	}, nil
 }
 
-func LoadDatabaseConfig(v *viper.Viper) *internal.DatabaseConfig {
+func LoadDatabaseConfig(v *viper.Viper) *versource.DatabaseConfig {
 	v.SetDefault("database.host", "localhost")
 	v.SetDefault("database.port", "3306")
 	v.SetDefault("database.user", "versource")
@@ -66,7 +66,7 @@ func LoadDatabaseConfig(v *viper.Viper) *internal.DatabaseConfig {
 	v.SetDefault("database.dbname", "versource")
 	v.SetDefault("database.sslmode", "false")
 
-	return &internal.DatabaseConfig{
+	return &versource.DatabaseConfig{
 		Host:     v.GetString("database.host"),
 		Port:     v.GetString("database.port"),
 		User:     v.GetString("database.user"),
@@ -76,7 +76,7 @@ func LoadDatabaseConfig(v *viper.Viper) *internal.DatabaseConfig {
 	}
 }
 
-func LoadTerraformConfig(v *viper.Viper) (*internal.TerraformConfig, error) {
+func LoadTerraformConfig(v *viper.Viper) (*versource.TerraformConfig, error) {
 	v.SetDefault("terraform.workdir", "terraform")
 
 	workDir := v.GetString("terraform.workdir")
@@ -85,17 +85,17 @@ func LoadTerraformConfig(v *viper.Viper) (*internal.TerraformConfig, error) {
 		return nil, err
 	}
 
-	return &internal.TerraformConfig{
+	return &versource.TerraformConfig{
 		WorkDir: absWorkDir,
 	}, nil
 }
 
-func LoadHttpConfig(v *viper.Viper) *internal.HttpConfig {
+func LoadHttpConfig(v *viper.Viper) *versource.HttpConfig {
 	v.SetDefault("http.scheme", "http")
 	v.SetDefault("http.hostname", "localhost")
 	v.SetDefault("http.port", "8080")
 
-	return &internal.HttpConfig{
+	return &versource.HttpConfig{
 		Scheme:   v.GetString("http.scheme"),
 		Hostname: v.GetString("http.hostname"),
 		Port:     v.GetString("http.port"),

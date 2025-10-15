@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/apply"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +24,7 @@ var applyGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		detailData := apply.NewDetailData(httpClient, args[0])
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
@@ -36,8 +36,8 @@ var applyGetCmd = &cobra.Command{
 			ctx,
 			waitForCompletion,
 			detailData,
-			func(resp internal.GetApplyResponse) bool {
-				return internal.IsTaskCompleted(resp.State)
+			func(resp versource.GetApplyResponse) bool {
+				return versource.IsTaskCompleted(resp.State)
 			},
 		)
 	},
@@ -53,7 +53,7 @@ var applyListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := apply.NewTableData(httpClient)
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
@@ -65,9 +65,9 @@ var applyListCmd = &cobra.Command{
 			ctx,
 			waitForCompletion,
 			tableData,
-			func(applies []internal.Apply) bool {
+			func(applies []versource.Apply) bool {
 				for _, apply := range applies {
-					if !internal.IsTaskCompleted(apply.State) {
+					if !versource.IsTaskCompleted(apply.State) {
 						return false
 					}
 				}

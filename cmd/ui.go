@@ -50,7 +50,7 @@ var uiCmd = &cobra.Command{
 			return err
 		}
 
-		client := client.NewClient(config)
+		client := client.New(config)
 
 		return tui.RunApp(client)
 	},

@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/marcbran/versource/pkg/versource"
 	"gorm.io/gorm"
-
-	"github.com/marcbran/versource/internal"
 )
 
 type GormApplyRepo struct {
@@ -17,9 +16,9 @@ func NewGormApplyRepo(db *gorm.DB) *GormApplyRepo {
 	return &GormApplyRepo{db: db}
 }
 
-func (r *GormApplyRepo) GetApply(ctx context.Context, applyID uint) (*internal.Apply, error) {
+func (r *GormApplyRepo) GetApply(ctx context.Context, applyID uint) (*versource.Apply, error) {
 	db := getTxOrDb(ctx, r.db)
-	var apply internal.Apply
+	var apply versource.Apply
 	err := db.WithContext(ctx).
 		Preload("Plan.Changeset").
 		Preload("Changeset").
@@ -32,8 +31,8 @@ func (r *GormApplyRepo) GetApply(ctx context.Context, applyID uint) (*internal.A
 
 func (r *GormApplyRepo) GetQueuedApplies(ctx context.Context) ([]uint, error) {
 	db := getTxOrDb(ctx, r.db)
-	var applies []internal.Apply
-	err := db.WithContext(ctx).Where("state = ?", internal.TaskStateQueued).Find(&applies).Error
+	var applies []versource.Apply
+	err := db.WithContext(ctx).Where("state = ?", versource.TaskStateQueued).Find(&applies).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queued applies: %w", err)
 	}
@@ -47,8 +46,8 @@ func (r *GormApplyRepo) GetQueuedApplies(ctx context.Context) ([]uint, error) {
 
 func (r *GormApplyRepo) GetQueuedAppliesByChangeset(ctx context.Context, changesetID uint) ([]uint, error) {
 	db := getTxOrDb(ctx, r.db)
-	var applies []internal.Apply
-	err := db.WithContext(ctx).Where("state = ? AND changeset_id = ?", internal.TaskStateQueued, changesetID).Find(&applies).Error
+	var applies []versource.Apply
+	err := db.WithContext(ctx).Where("state = ? AND changeset_id = ?", versource.TaskStateQueued, changesetID).Find(&applies).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queued applies for changeset: %w", err)
 	}
@@ -60,9 +59,9 @@ func (r *GormApplyRepo) GetQueuedAppliesByChangeset(ctx context.Context, changes
 	return applyIDs, nil
 }
 
-func (r *GormApplyRepo) ListApplies(ctx context.Context) ([]internal.Apply, error) {
+func (r *GormApplyRepo) ListApplies(ctx context.Context) ([]versource.Apply, error) {
 	db := getTxOrDb(ctx, r.db)
-	var applies []internal.Apply
+	var applies []versource.Apply
 	err := db.WithContext(ctx).
 		Preload("Plan.Changeset").
 		Preload("Changeset").
@@ -73,9 +72,9 @@ func (r *GormApplyRepo) ListApplies(ctx context.Context) ([]internal.Apply, erro
 	return applies, nil
 }
 
-func (r *GormApplyRepo) ListAppliesByChangeset(ctx context.Context, changesetID uint) ([]internal.Apply, error) {
+func (r *GormApplyRepo) ListAppliesByChangeset(ctx context.Context, changesetID uint) ([]versource.Apply, error) {
 	db := getTxOrDb(ctx, r.db)
-	var applies []internal.Apply
+	var applies []versource.Apply
 	err := db.WithContext(ctx).
 		Preload("Plan.Changeset").
 		Preload("Changeset").
@@ -87,7 +86,7 @@ func (r *GormApplyRepo) ListAppliesByChangeset(ctx context.Context, changesetID 
 	return applies, nil
 }
 
-func (r *GormApplyRepo) CreateApply(ctx context.Context, apply *internal.Apply) error {
+func (r *GormApplyRepo) CreateApply(ctx context.Context, apply *versource.Apply) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(apply).Error
 	if err != nil {
@@ -96,9 +95,9 @@ func (r *GormApplyRepo) CreateApply(ctx context.Context, apply *internal.Apply) 
 	return nil
 }
 
-func (r *GormApplyRepo) UpdateApplyState(ctx context.Context, applyID uint, state internal.TaskState) error {
+func (r *GormApplyRepo) UpdateApplyState(ctx context.Context, applyID uint, state versource.TaskState) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Model(&internal.Apply{}).Where("id = ?", applyID).Update("state", state).Error
+	err := db.WithContext(ctx).Model(&versource.Apply{}).Where("id = ?", applyID).Update("state", state).Error
 	if err != nil {
 		return fmt.Errorf("failed to update apply state: %w", err)
 	}

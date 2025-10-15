@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type TerraformModule struct {
@@ -66,7 +66,7 @@ type TerraformBackendLocal struct {
 
 type TerraformStack []any
 
-func newTerraformStackFromComponent(component *internal.Component, workDir string) (TerraformStack, error) {
+func newTerraformStackFromComponent(component *versource.Component, workDir string) (TerraformStack, error) {
 	terraformModule, err := buildTerraformModule(component)
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func newTerraformStackFromComponent(component *internal.Component, workDir strin
 	return terraformStack, nil
 }
 
-func buildTerraformModule(component *internal.Component) (TerraformModule, error) {
+func buildTerraformModule(component *versource.Component) (TerraformModule, error) {
 	source := component.ModuleVersion.Module.Source
 	version := component.ModuleVersion.Version
 

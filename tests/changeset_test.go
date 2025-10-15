@@ -5,7 +5,7 @@ package tests
 import (
 	"testing"
 
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 func TestCreateChangeset(t *testing.T) {
@@ -147,7 +147,7 @@ func TestListCreatedChangesInChangesetWithComponent(t *testing.T) {
 		the_changeset_changes_are_listed()
 
 	then.
-		the_changeset_nth_change_is_set_to(0, internal.ChangeTypeCreated)
+		the_changeset_nth_change_is_set_to(0, versource.ChangeTypeCreated)
 }
 
 func TestMergeChangesetWithComponent(t *testing.T) {

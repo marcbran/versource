@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/merge"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +28,7 @@ var mergeGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		detailData := merge.NewDetailData(httpClient, changeset, args[0])
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
@@ -40,8 +40,8 @@ var mergeGetCmd = &cobra.Command{
 			ctx,
 			waitForCompletion,
 			detailData,
-			func(resp internal.GetMergeResponse) bool {
-				return internal.IsTaskCompleted(resp.State)
+			func(resp versource.GetMergeResponse) bool {
+				return versource.IsTaskCompleted(resp.State)
 			},
 		)
 	},
@@ -62,7 +62,7 @@ var mergeListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := merge.NewTableData(httpClient, changeset)
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
@@ -74,9 +74,9 @@ var mergeListCmd = &cobra.Command{
 			ctx,
 			waitForCompletion,
 			tableData,
-			func(merges []internal.Merge) bool {
+			func(merges []versource.Merge) bool {
 				for _, merge := range merges {
-					if !internal.IsTaskCompleted(merge.State) {
+					if !versource.IsTaskCompleted(merge.State) {
 						return false
 					}
 				}

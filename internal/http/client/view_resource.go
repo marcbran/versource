@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/marcbran/versource/internal"
 	http2 "github.com/marcbran/versource/internal/http/server"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
-func (c *Client) GetViewResource(ctx context.Context, req internal.GetViewResourceRequest) (*internal.GetViewResourceResponse, error) {
+func (c *Client) GetViewResource(ctx context.Context, req versource.GetViewResourceRequest) (*versource.GetViewResourceResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/view-resources/%d", c.baseURL, req.ViewResourceID)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -33,7 +33,7 @@ func (c *Client) GetViewResource(ctx context.Context, req internal.GetViewResour
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var viewResourceResp internal.GetViewResourceResponse
+	var viewResourceResp versource.GetViewResourceResponse
 	err = json.NewDecoder(resp.Body).Decode(&viewResourceResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -42,7 +42,7 @@ func (c *Client) GetViewResource(ctx context.Context, req internal.GetViewResour
 	return &viewResourceResp, nil
 }
 
-func (c *Client) ListViewResources(ctx context.Context, req internal.ListViewResourcesRequest) (*internal.ListViewResourcesResponse, error) {
+func (c *Client) ListViewResources(ctx context.Context, req versource.ListViewResourcesRequest) (*versource.ListViewResourcesResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/view-resources", c.baseURL)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -64,7 +64,7 @@ func (c *Client) ListViewResources(ctx context.Context, req internal.ListViewRes
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var viewResourcesResp internal.ListViewResourcesResponse
+	var viewResourcesResp versource.ListViewResourcesResponse
 	err = json.NewDecoder(resp.Body).Decode(&viewResourcesResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -73,7 +73,7 @@ func (c *Client) ListViewResources(ctx context.Context, req internal.ListViewRes
 	return &viewResourcesResp, nil
 }
 
-func (c *Client) SaveViewResource(ctx context.Context, req internal.SaveViewResourceRequest) (*internal.SaveViewResourceResponse, error) {
+func (c *Client) SaveViewResource(ctx context.Context, req versource.SaveViewResourceRequest) (*versource.SaveViewResourceResponse, error) {
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -102,7 +102,7 @@ func (c *Client) SaveViewResource(ctx context.Context, req internal.SaveViewReso
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var viewResourceResp internal.SaveViewResourceResponse
+	var viewResourceResp versource.SaveViewResourceResponse
 	err = json.NewDecoder(resp.Body).Decode(&viewResourceResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -111,7 +111,7 @@ func (c *Client) SaveViewResource(ctx context.Context, req internal.SaveViewReso
 	return &viewResourceResp, nil
 }
 
-func (c *Client) DeleteViewResource(ctx context.Context, req internal.DeleteViewResourceRequest) (*internal.DeleteViewResourceResponse, error) {
+func (c *Client) DeleteViewResource(ctx context.Context, req versource.DeleteViewResourceRequest) (*versource.DeleteViewResourceResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/view-resources/%d", c.baseURL, req.ViewResourceID)
 	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
 	if err != nil {
@@ -133,7 +133,7 @@ func (c *Client) DeleteViewResource(ctx context.Context, req internal.DeleteView
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var viewResourceResp internal.DeleteViewResourceResponse
+	var viewResourceResp versource.DeleteViewResourceResponse
 	err = json.NewDecoder(resp.Body).Decode(&viewResourceResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)

@@ -6,31 +6,31 @@ import (
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type ChangesetChangesTableData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	changesetName string
 }
 
-func NewChangesetChangesTable(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewChangesetChangesTable(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewDataTable(NewChangesetChangesTableData(facade, params["changesetName"]))
 	}
 }
 
-func NewChangesetChangesTableData(facade internal.Facade, changesetName string) *ChangesetChangesTableData {
+func NewChangesetChangesTableData(facade versource.Facade, changesetName string) *ChangesetChangesTableData {
 	return &ChangesetChangesTableData{
 		facade:        facade,
 		changesetName: changesetName,
 	}
 }
 
-func (p *ChangesetChangesTableData) LoadData() ([]internal.ComponentChange, error) {
+func (p *ChangesetChangesTableData) LoadData() ([]versource.ComponentChange, error) {
 	ctx := context.Background()
-	req := internal.ListComponentChangesRequest{
+	req := versource.ListComponentChangesRequest{
 		ChangesetName: p.changesetName,
 	}
 	resp, err := p.facade.ListComponentChanges(ctx, req)
@@ -40,7 +40,7 @@ func (p *ChangesetChangesTableData) LoadData() ([]internal.ComponentChange, erro
 	return resp.Changes, nil
 }
 
-func (p *ChangesetChangesTableData) ResolveData(data []internal.ComponentChange) ([]table.Column, []table.Row, []internal.ComponentChange) {
+func (p *ChangesetChangesTableData) ResolveData(data []versource.ComponentChange) ([]table.Column, []table.Row, []versource.ComponentChange) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Name", Width: 10},
@@ -52,7 +52,7 @@ func (p *ChangesetChangesTableData) ResolveData(data []internal.ComponentChange)
 	}
 
 	var rows []table.Row
-	var elems []internal.ComponentChange
+	var elems []versource.ComponentChange
 	for _, change := range data {
 		toID := "N/A"
 		if change.ToComponent != nil && change.ToComponent.ID != 0 {
@@ -119,7 +119,7 @@ func (p *ChangesetChangesTableData) KeyBindings() platform.KeyBindings {
 	}
 }
 
-func (p *ChangesetChangesTableData) ElemKeyBindings(elem internal.ComponentChange) platform.KeyBindings {
+func (p *ChangesetChangesTableData) ElemKeyBindings(elem versource.ComponentChange) platform.KeyBindings {
 	if elem.ToComponent == nil {
 		return platform.KeyBindings{}
 	}

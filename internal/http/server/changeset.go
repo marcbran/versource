@@ -6,11 +6,11 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 func (s *Server) handleListChangesets(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.facade.ListChangesets(r.Context(), internal.ListChangesetsRequest{})
+	resp, err := s.facade.ListChangesets(r.Context(), versource.ListChangesetsRequest{})
 	if err != nil {
 		returnError(w, err)
 		return
@@ -20,7 +20,7 @@ func (s *Server) handleListChangesets(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleCreateChangeset(w http.ResponseWriter, r *http.Request) {
-	var req internal.CreateChangesetRequest
+	var req versource.CreateChangesetRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		returnBadRequest(w, fmt.Errorf("invalid request body"))
@@ -43,7 +43,7 @@ func (s *Server) handleMergeChangeset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.CreateMergeRequest{
+	req := versource.CreateMergeRequest{
 		ChangesetName: changesetName,
 	}
 
@@ -63,7 +63,7 @@ func (s *Server) handleDeleteChangeset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.DeleteChangesetRequest{
+	req := versource.DeleteChangesetRequest{
 		ChangesetName: changesetName,
 	}
 

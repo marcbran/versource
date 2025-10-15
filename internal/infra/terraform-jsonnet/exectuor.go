@@ -14,16 +14,17 @@ import (
 	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/infra/terraform-jsonnet/lib/imports"
 	"github.com/marcbran/versource/internal/infra/tfexec"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type Executor struct {
-	component *internal.Component
+	component *versource.Component
 	delegate  internal.Executor
 	workDir   string
 	tempDir   string
 }
 
-func NewExecutor(component *internal.Component, workdir string, logs io.Writer) (internal.Executor, error) {
+func NewExecutor(component *versource.Component, workdir string, logs io.Writer) (internal.Executor, error) {
 	err := os.Chdir(os.TempDir())
 	if err != nil {
 		return nil, fmt.Errorf("could not change to temporary directory: %w", err)
@@ -93,7 +94,7 @@ func (e Executor) Plan(ctx context.Context) (internal.PlanPath, internal.PlanRes
 	return e.delegate.Plan(ctx)
 }
 
-func (e Executor) Apply(ctx context.Context, planPath internal.PlanPath) (internal.State, []internal.StateResource, error) {
+func (e Executor) Apply(ctx context.Context, planPath internal.PlanPath) (versource.State, []versource.StateResource, error) {
 	return e.delegate.Apply(ctx, planPath)
 }
 

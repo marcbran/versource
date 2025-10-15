@@ -6,31 +6,31 @@ import (
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type TableData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	changesetName string
 }
 
-func NewTable(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewTable(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewDataTable(NewTableData(facade, params["changesetName"]))
 	}
 }
 
-func NewTableData(facade internal.Facade, changesetName string) *TableData {
+func NewTableData(facade versource.Facade, changesetName string) *TableData {
 	return &TableData{
 		facade:        facade,
 		changesetName: changesetName,
 	}
 }
 
-func (p *TableData) LoadData() ([]internal.Rebase, error) {
+func (p *TableData) LoadData() ([]versource.Rebase, error) {
 	ctx := context.Background()
-	req := internal.ListRebasesRequest{
+	req := versource.ListRebasesRequest{
 		ChangesetName: p.changesetName,
 	}
 	resp, err := p.facade.ListRebases(ctx, req)
@@ -40,7 +40,7 @@ func (p *TableData) LoadData() ([]internal.Rebase, error) {
 	return resp.Rebases, nil
 }
 
-func (p *TableData) ResolveData(data []internal.Rebase) ([]table.Column, []table.Row, []internal.Rebase) {
+func (p *TableData) ResolveData(data []versource.Rebase) ([]table.Column, []table.Row, []versource.Rebase) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Changeset", Width: 6},
@@ -50,7 +50,7 @@ func (p *TableData) ResolveData(data []internal.Rebase) ([]table.Column, []table
 	}
 
 	var rows []table.Row
-	var elems []internal.Rebase
+	var elems []versource.Rebase
 	for _, rebase := range data {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(rebase.ID), 10),
@@ -69,7 +69,7 @@ func (p *TableData) KeyBindings() platform.KeyBindings {
 	return platform.KeyBindings{}
 }
 
-func (p *TableData) ElemKeyBindings(elem internal.Rebase) platform.KeyBindings {
+func (p *TableData) ElemKeyBindings(elem versource.Rebase) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "enter", Help: "View rebase detail", Command: fmt.Sprintf("changesets/%s/rebases/%d", p.changesetName, elem.ID)},
 	}

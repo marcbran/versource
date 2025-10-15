@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/rebase"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +28,7 @@ var rebaseGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		detailData := rebase.NewDetailData(httpClient, changeset, args[0])
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
@@ -40,8 +40,8 @@ var rebaseGetCmd = &cobra.Command{
 			ctx,
 			waitForCompletion,
 			detailData,
-			func(resp internal.GetRebaseResponse) bool {
-				return internal.IsTaskCompleted(resp.State)
+			func(resp versource.GetRebaseResponse) bool {
+				return versource.IsTaskCompleted(resp.State)
 			},
 		)
 	},
@@ -62,7 +62,7 @@ var rebaseListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		httpClient := client.NewClient(config)
+		httpClient := client.New(config)
 		tableData := rebase.NewTableData(httpClient, changeset)
 
 		waitForCompletion, err := cmd.Flags().GetBool("wait-for-completion")
@@ -74,9 +74,9 @@ var rebaseListCmd = &cobra.Command{
 			ctx,
 			waitForCompletion,
 			tableData,
-			func(rebases []internal.Rebase) bool {
+			func(rebases []versource.Rebase) bool {
 				for _, rebase := range rebases {
-					if !internal.IsTaskCompleted(rebase.State) {
+					if !versource.IsTaskCompleted(rebase.State) {
 						return false
 					}
 				}

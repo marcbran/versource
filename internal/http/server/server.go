@@ -17,10 +17,11 @@ import (
 	"github.com/marcbran/versource/internal/database/parser"
 	"github.com/marcbran/versource/internal/infra"
 	"github.com/marcbran/versource/internal/store/file"
+	"github.com/marcbran/versource/pkg/versource"
 	log "github.com/sirupsen/logrus"
 )
 
-func Serve(ctx context.Context, config *internal.Config) error {
+func Serve(ctx context.Context, config *versource.Config) error {
 	server, err := NewServer(config)
 	if err != nil {
 		return err
@@ -59,12 +60,12 @@ func Serve(ctx context.Context, config *internal.Config) error {
 }
 
 type Server struct {
-	config *internal.Config
+	config *versource.Config
 	router *chi.Mux
-	facade internal.Facade
+	facade versource.Facade
 }
 
-func NewServer(config *internal.Config) (*Server, error) {
+func NewServer(config *versource.Config) (*Server, error) {
 	db, err := database.NewGormDb(config.Database)
 	if err != nil {
 		return nil, err
@@ -234,7 +235,7 @@ func returnInternalServerError(w http.ResponseWriter, err error) {
 }
 
 func returnError(w http.ResponseWriter, err error) {
-	if internal.IsUserError(err) {
+	if versource.IsUserError(err) {
 		returnBadRequest(w, err)
 		return
 	}

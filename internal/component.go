@@ -5,57 +5,25 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/marcbran/versource/pkg/versource"
 	"gorm.io/datatypes"
 )
 
-type Component struct {
-	ID              uint            `gorm:"primarykey" json:"id" yaml:"id"`
-	Name            string          `gorm:"not null;default:'';uniqueIndex" json:"name" yaml:"name"`
-	ModuleVersion   ModuleVersion   `gorm:"foreignKey:ModuleVersionID" json:"moduleVersion" yaml:"moduleVersion"`
-	ModuleVersionID uint            `json:"moduleVersionId" yaml:"moduleVersionId"`
-	Variables       datatypes.JSON  `gorm:"type:jsonb" json:"variables" yaml:"variables"`
-	Status          ComponentStatus `gorm:"default:Ready" json:"status" yaml:"status"`
-}
-
-type ComponentStatus string
-
-const (
-	ComponentStatusReady   ComponentStatus = "Ready"
-	ComponentStatusDeleted ComponentStatus = "Deleted"
-)
-
-type ComponentChange struct {
-	FromComponent *Component `json:"fromComponent,omitempty" yaml:"fromComponent,omitempty"`
-	ToComponent   *Component `json:"toComponent,omitempty" yaml:"toComponent,omitempty"`
-	ChangeType    ChangeType `json:"changeType" yaml:"changeType"`
-	Plan          *Plan      `json:"plan,omitempty" yaml:"plan,omitempty"`
-	FromCommit    string     `json:"fromCommit,omitempty" yaml:"fromCommit,omitempty"`
-	ToCommit      string     `json:"toCommit,omitempty" yaml:"toCommit,omitempty"`
-}
-
-type ChangeType string
-
-const (
-	ChangeTypeCreated  ChangeType = "Created"
-	ChangeTypeDeleted  ChangeType = "Deleted"
-	ChangeTypeModified ChangeType = "Modified"
-)
-
 type ComponentRepo interface {
-	GetComponent(ctx context.Context, componentID uint) (*Component, error)
-	GetComponentAtCommit(ctx context.Context, componentID uint, commit string) (*Component, error)
+	GetComponent(ctx context.Context, componentID uint) (*versource.Component, error)
+	GetComponentAtCommit(ctx context.Context, componentID uint, commit string) (*versource.Component, error)
 	GetLastCommitOfComponent(ctx context.Context, componentID uint) (string, error)
 	HasComponent(ctx context.Context, componentID uint) (bool, error)
-	ListComponents(ctx context.Context) ([]Component, error)
-	ListComponentsByModule(ctx context.Context, moduleID uint) ([]Component, error)
-	ListComponentsByModuleVersion(ctx context.Context, moduleVersionID uint) ([]Component, error)
-	CreateComponent(ctx context.Context, component *Component) error
-	UpdateComponent(ctx context.Context, component *Component) error
+	ListComponents(ctx context.Context) ([]versource.Component, error)
+	ListComponentsByModule(ctx context.Context, moduleID uint) ([]versource.Component, error)
+	ListComponentsByModuleVersion(ctx context.Context, moduleVersionID uint) ([]versource.Component, error)
+	CreateComponent(ctx context.Context, component *versource.Component) error
+	UpdateComponent(ctx context.Context, component *versource.Component) error
 }
 
 type ComponentChangeRepo interface {
-	ListComponentChanges(ctx context.Context) ([]ComponentChange, error)
-	GetComponentChange(ctx context.Context, componentID uint) (*ComponentChange, error)
+	ListComponentChanges(ctx context.Context) ([]versource.ComponentChange, error)
+	GetComponentChange(ctx context.Context, componentID uint) (*versource.ComponentChange, error)
 	HasComponentConflicts(ctx context.Context, changesetName string) (bool, error)
 }
 
@@ -71,17 +39,8 @@ func NewGetComponent(componentRepo ComponentRepo, tx TransactionManager) *GetCom
 	}
 }
 
-type GetComponentRequest struct {
-	ComponentID   uint    `json:"componentId" yaml:"componentId"`
-	ChangesetName *string `json:"changesetName,omitempty" yaml:"changesetName,omitempty"`
-}
-
-type GetComponentResponse struct {
-	Component Component `json:"component" yaml:"component"`
-}
-
-func (g *GetComponent) Exec(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error) {
-	var component *Component
+func (g *GetComponent) Exec(ctx context.Context, req versource.GetComponentRequest) (*versource.GetComponentResponse, error) {
+	var component *versource.Component
 	var err error
 
 	if req.ChangesetName != nil {
@@ -94,10 +53,10 @@ func (g *GetComponent) Exec(ctx context.Context, req GetComponentRequest) (*GetC
 	}
 
 	if err != nil {
-		return nil, InternalErrE("failed to get component", err)
+		return nil, versource.InternalErrE("failed to get component", err)
 	}
 
-	return &GetComponentResponse{
+	return &versource.GetComponentResponse{
 		Component: *component,
 	}, nil
 }
@@ -114,18 +73,8 @@ func NewListComponents(componentRepo ComponentRepo, tx TransactionManager) *List
 	}
 }
 
-type ListComponentsRequest struct {
-	ModuleID        *uint   `json:"moduleId,omitempty" yaml:"moduleId,omitempty"`
-	ModuleVersionID *uint   `json:"moduleVersionId,omitempty" yaml:"moduleVersionId,omitempty"`
-	ChangesetName   *string `json:"changesetName,omitempty" yaml:"changesetName,omitempty"`
-}
-
-type ListComponentsResponse struct {
-	Components []Component `json:"components" yaml:"components"`
-}
-
-func (l *ListComponents) Exec(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error) {
-	var components []Component
+func (l *ListComponents) Exec(ctx context.Context, req versource.ListComponentsRequest) (*versource.ListComponentsResponse, error) {
+	var components []versource.Component
 
 	branch := MainBranch
 	if req.ChangesetName != nil {
@@ -146,10 +95,10 @@ func (l *ListComponents) Exec(ctx context.Context, req ListComponentsRequest) (*
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to list components", err)
+		return nil, versource.InternalErrE("failed to list components", err)
 	}
 
-	return &ListComponentsResponse{
+	return &versource.ListComponentsResponse{
 		Components: components,
 	}, nil
 }
@@ -166,31 +115,22 @@ func NewGetComponentChange(componentChangeRepo ComponentChangeRepo, tx Transacti
 	}
 }
 
-type GetComponentChangeRequest struct {
-	ComponentID   uint   `json:"componentId" yaml:"componentId"`
-	ChangesetName string `json:"changesetName" yaml:"changesetName"`
-}
-
-type GetComponentChangeResponse struct {
-	Change ComponentChange `json:"change" yaml:"change"`
-}
-
-func (g *GetComponentChange) Exec(ctx context.Context, req GetComponentChangeRequest) (*GetComponentChangeResponse, error) {
+func (g *GetComponentChange) Exec(ctx context.Context, req versource.GetComponentChangeRequest) (*versource.GetComponentChangeResponse, error) {
 	if req.ChangesetName == "" {
-		return nil, UserErr("changeset is required")
+		return nil, versource.UserErr("changeset is required")
 	}
 
-	var change *ComponentChange
+	var change *versource.ComponentChange
 	err := g.tx.Checkout(ctx, req.ChangesetName, func(ctx context.Context) error {
 		var err error
 		change, err = g.componentChangeRepo.GetComponentChange(ctx, req.ComponentID)
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to get component change", err)
+		return nil, versource.InternalErrE("failed to get component change", err)
 	}
 
-	return &GetComponentChangeResponse{
+	return &versource.GetComponentChangeResponse{
 		Change: *change,
 	}, nil
 }
@@ -207,30 +147,22 @@ func NewListComponentChanges(componentChangeRepo ComponentChangeRepo, tx Transac
 	}
 }
 
-type ListComponentChangesRequest struct {
-	ChangesetName string `json:"changesetName" yaml:"changesetName"`
-}
-
-type ListComponentChangesResponse struct {
-	Changes []ComponentChange `json:"changes" yaml:"changes"`
-}
-
-func (l *ListComponentChanges) Exec(ctx context.Context, req ListComponentChangesRequest) (*ListComponentChangesResponse, error) {
+func (l *ListComponentChanges) Exec(ctx context.Context, req versource.ListComponentChangesRequest) (*versource.ListComponentChangesResponse, error) {
 	if req.ChangesetName == "" {
-		return nil, UserErr("changeset is required")
+		return nil, versource.UserErr("changeset is required")
 	}
 
-	var changes []ComponentChange
+	var changes []versource.ComponentChange
 	err := l.tx.Checkout(ctx, req.ChangesetName, func(ctx context.Context) error {
 		var err error
 		changes, err = l.componentChangeRepo.ListComponentChanges(ctx)
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to list component changes", err)
+		return nil, versource.InternalErrE("failed to list component changes", err)
 	}
 
-	return &ListComponentChangesResponse{
+	return &versource.ListComponentChangesResponse{
 		Changes: changes,
 	}, nil
 }
@@ -255,70 +187,54 @@ func NewCreateComponent(componentRepo ComponentRepo, moduleRepo ModuleRepo, modu
 	}
 }
 
-type CreateComponentRequest struct {
-	ChangesetName string         `json:"changesetName" yaml:"changesetName"`
-	ModuleID      uint           `json:"moduleId" yaml:"moduleId"`
-	Name          string         `json:"name" yaml:"name"`
-	Variables     map[string]any `json:"variables" yaml:"variables"`
-}
-
-type CreateComponentResponse struct {
-	ID        uint           `json:"id" yaml:"id"`
-	Name      string         `json:"name" yaml:"name"`
-	Source    string         `json:"source" yaml:"source"`
-	Version   string         `json:"version" yaml:"version"`
-	Variables map[string]any `json:"variables" yaml:"variables"`
-	PlanID    uint           `json:"planId" yaml:"planId"`
-}
-
-func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) (*CreateComponentResponse, error) {
+func (c *CreateComponent) Exec(ctx context.Context, req versource.CreateComponentRequest) (*versource.CreateComponentResponse, error) {
 	if req.ChangesetName == "" {
-		return nil, UserErr("changeset is required")
+		return nil, versource.UserErr("changeset is required")
 	}
 
-	ensureChangesetReq := EnsureChangesetRequest{
+	ensureChangesetReq := versource.EnsureChangesetRequest{
 		Name: req.ChangesetName,
 	}
 
 	_, err := c.ensureChangeset.Exec(ctx, ensureChangesetReq)
 	if err != nil {
-		return nil, InternalErrE("failed to ensure changeset", err)
+		return nil, versource.InternalErrE("failed to ensure changeset", err)
 	}
 
-	var response *CreateComponentResponse
+	var response *versource.CreateComponentResponse
 	err = c.tx.Do(ctx, req.ChangesetName, "create component", func(ctx context.Context) error {
 		latestVersion, err := c.moduleVersionRepo.GetLatestModuleVersion(ctx, req.ModuleID)
 		if err != nil {
-			return InternalErrE("failed to get latest module version", err)
+			return versource.InternalErrE("failed to get latest module version", err)
 		}
 		if latestVersion == nil {
-			return UserErr("module has no versions")
+			return versource.UserErr("module has no versions")
 		}
 
 		variablesJSON, err := json.Marshal(req.Variables)
 		if err != nil {
-			return UserErrE("invalid variables format", err)
+			return versource.UserErrE("invalid variables format", err)
 		}
 
-		component := &Component{
+		component := &versource.Component{
 			Name:            req.Name,
 			ModuleVersionID: latestVersion.ID,
 			Variables:       datatypes.JSON(variablesJSON),
-			Status:          ComponentStatusReady,
+			Status:          versource.ComponentStatusReady,
 		}
 
 		err = c.componentRepo.CreateComponent(ctx, component)
 		if err != nil {
-			return InternalErrE("failed to create component", err)
+			return versource.InternalErrE("failed to create component", err)
 		}
 
 		var variables map[string]any
 		err = json.Unmarshal(component.Variables, &variables)
 		if err != nil {
-			return InternalErrE("failed to unmarshal variables", err)
+			return versource.InternalErrE("failed to unmarshal variables", err)
 		}
 
-		response = &CreateComponentResponse{
+		response = &versource.CreateComponentResponse{
 			ID:        component.ID,
 			Name:      component.Name,
 			Source:    latestVersion.Module.Source,
@@ -331,14 +247,14 @@ func (c *CreateComponent) Exec(ctx context.Context, req CreateComponentRequest) 
 		return nil, fmt.Errorf("failed to create component: %w", err)
 	}
 
-	planReq := CreatePlanRequest{
+	planReq := versource.CreatePlanRequest{
 		ComponentID:   response.ID,
 		ChangesetName: req.ChangesetName,
 	}
 
 	planResp, err := c.createPlan.Exec(ctx, planReq)
 	if err != nil {
-		return nil, InternalErrE("failed to create plan after component creation", err)
+		return nil, versource.InternalErrE("failed to create plan after component creation", err)
 	}
 
 	response.PlanID = planResp.ID
@@ -366,25 +282,9 @@ func NewUpdateComponent(componentRepo ComponentRepo, moduleVersionRepo ModuleVer
 	}
 }
 
-type UpdateComponentRequest struct {
-	ComponentID   uint            `json:"componentId" yaml:"componentId"`
-	ChangesetName string          `json:"changesetName" yaml:"changesetName"`
-	ModuleID      *uint           `json:"moduleId,omitempty" yaml:"moduleId,omitempty"`
-	Variables     *map[string]any `json:"variables,omitempty" yaml:"variables,omitempty"`
-}
-
-type UpdateComponentResponse struct {
-	ID        uint           `json:"id" yaml:"id"`
-	Name      string         `json:"name" yaml:"name"`
-	Source    string         `json:"source" yaml:"source"`
-	Version   string         `json:"version" yaml:"version"`
-	Variables map[string]any `json:"variables" yaml:"variables"`
-	PlanID    uint           `json:"planId" yaml:"planId"`
-}
-
-func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) (*UpdateComponentResponse, error) {
+func (u *UpdateComponent) Exec(ctx context.Context, req versource.UpdateComponentRequest) (*versource.UpdateComponentResponse, error) {
 	if req.ChangesetName == "" {
-		return nil, UserErr("changeset is required")
+		return nil, versource.UserErr("changeset is required")
 	}
 
 	var hasChangeset bool
@@ -392,7 +292,7 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 		var err error
 		hasChangeset, err = u.changesetRepo.HasChangesetWithName(ctx, req.ChangesetName)
 		if err != nil {
-			return InternalErrE("failed to check changeset existence", err)
+			return versource.InternalErrE("failed to check changeset existence", err)
 		}
 		return nil
 	})
@@ -410,10 +310,10 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 	err = u.tx.Checkout(ctx, branch, func(ctx context.Context) error {
 		exists, err := u.componentRepo.HasComponent(ctx, req.ComponentID)
 		if err != nil {
-			return InternalErrE("failed to check component existence", err)
+			return versource.InternalErrE("failed to check component existence", err)
 		}
 		if !exists {
-			return UserErr("component not found")
+			return versource.UserErr("component not found")
 		}
 		return nil
 	})
@@ -421,56 +321,56 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 		return nil, err
 	}
 
-	ensureChangesetReq := EnsureChangesetRequest{
+	ensureChangesetReq := versource.EnsureChangesetRequest{
 		Name: req.ChangesetName,
 	}
 
 	_, err = u.ensureChangeset.Exec(ctx, ensureChangesetReq)
 	if err != nil {
-		return nil, InternalErrE("failed to ensure changeset", err)
+		return nil, versource.InternalErrE("failed to ensure changeset", err)
 	}
 
-	var response *UpdateComponentResponse
+	var response *versource.UpdateComponentResponse
 	err = u.tx.Do(ctx, req.ChangesetName, "update component", func(ctx context.Context) error {
 		component, err := u.componentRepo.GetComponent(ctx, req.ComponentID)
 		if err != nil {
-			return UserErrE("component not found", err)
+			return versource.UserErrE("component not found", err)
 		}
 
-		if component.Status == ComponentStatusDeleted {
-			return UserErr("component is deleted")
+		if component.Status == versource.ComponentStatusDeleted {
+			return versource.UserErr("component is deleted")
 		}
 
 		if req.ModuleID != nil {
 			latestVersion, err := u.moduleVersionRepo.GetLatestModuleVersion(ctx, *req.ModuleID)
 			if err != nil {
-				return InternalErrE("failed to get latest module version", err)
+				return versource.InternalErrE("failed to get latest module version", err)
 			}
 			if latestVersion == nil {
-				return UserErr("module has no versions")
+				return versource.UserErr("module has no versions")
 			}
 			component.ModuleVersionID = latestVersion.ID
 		}
 		if req.Variables != nil {
 			variablesJSON, err := json.Marshal(*req.Variables)
 			if err != nil {
-				return UserErrE("invalid variables format", err)
+				return versource.UserErrE("invalid variables format", err)
 			}
 			component.Variables = datatypes.JSON(variablesJSON)
 		}
 
 		err = u.componentRepo.UpdateComponent(ctx, component)
 		if err != nil {
-			return InternalErrE("failed to update component", err)
+			return versource.InternalErrE("failed to update component", err)
 		}
 
 		var variables map[string]any
 		err = json.Unmarshal(component.Variables, &variables)
 		if err != nil {
-			return InternalErrE("failed to unmarshal variables", err)
+			return versource.InternalErrE("failed to unmarshal variables", err)
 		}
 
-		response = &UpdateComponentResponse{
+		response = &versource.UpdateComponentResponse{
 			ID:        component.ID,
 			Name:      component.Name,
 			Source:    component.ModuleVersion.Module.Source,
@@ -484,14 +384,14 @@ func (u *UpdateComponent) Exec(ctx context.Context, req UpdateComponentRequest) 
 		return nil, fmt.Errorf("failed to update component: %w", err)
 	}
 
-	planReq := CreatePlanRequest{
+	planReq := versource.CreatePlanRequest{
 		ComponentID:   response.ID,
 		ChangesetName: req.ChangesetName,
 	}
 
 	planResp, err := u.createPlan.Exec(ctx, planReq)
 	if err != nil {
-		return nil, InternalErrE("failed to create plan after component creation", err)
+		return nil, versource.InternalErrE("failed to create plan after component creation", err)
 	}
 
 	response.PlanID = planResp.ID
@@ -519,24 +419,9 @@ func NewDeleteComponent(componentRepo ComponentRepo, componentChangeRepo Compone
 	}
 }
 
-type DeleteComponentRequest struct {
-	ComponentID   uint   `json:"componentId" yaml:"componentId"`
-	ChangesetName string `json:"changesetName" yaml:"changesetName"`
-}
-
-type DeleteComponentResponse struct {
-	ID        uint            `json:"id" yaml:"id"`
-	Name      string          `json:"name" yaml:"name"`
-	Source    string          `json:"source" yaml:"source"`
-	Version   string          `json:"version" yaml:"version"`
-	Variables map[string]any  `json:"variables" yaml:"variables"`
-	Status    ComponentStatus `json:"status" yaml:"status"`
-	PlanID    uint            `json:"planId" yaml:"planId"`
-}
-
-func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) (*DeleteComponentResponse, error) {
+func (d *DeleteComponent) Exec(ctx context.Context, req versource.DeleteComponentRequest) (*versource.DeleteComponentResponse, error) {
 	if req.ChangesetName == "" {
-		return nil, UserErr("changeset is required")
+		return nil, versource.UserErr("changeset is required")
 	}
 
 	var hasChangeset bool
@@ -544,7 +429,7 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 		var err error
 		hasChangeset, err = d.changesetRepo.HasChangesetWithName(ctx, req.ChangesetName)
 		if err != nil {
-			return InternalErrE("failed to check changeset existence", err)
+			return versource.InternalErrE("failed to check changeset existence", err)
 		}
 		return nil
 	})
@@ -562,10 +447,10 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 	err = d.tx.Checkout(ctx, branch, func(ctx context.Context) error {
 		exists, err := d.componentRepo.HasComponent(ctx, req.ComponentID)
 		if err != nil {
-			return InternalErrE("failed to check component existence", err)
+			return versource.InternalErrE("failed to check component existence", err)
 		}
 		if !exists {
-			return UserErr("component not found")
+			return versource.UserErr("component not found")
 		}
 		return nil
 	})
@@ -573,29 +458,29 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 		return nil, err
 	}
 
-	ensureChangesetReq := EnsureChangesetRequest{
+	ensureChangesetReq := versource.EnsureChangesetRequest{
 		Name: req.ChangesetName,
 	}
 
 	_, err = d.ensureChangeset.Exec(ctx, ensureChangesetReq)
 	if err != nil {
-		return nil, InternalErrE("failed to ensure changeset", err)
+		return nil, versource.InternalErrE("failed to ensure changeset", err)
 	}
 
-	var response *DeleteComponentResponse
+	var response *versource.DeleteComponentResponse
 	err = d.tx.Do(ctx, req.ChangesetName, "delete component", func(ctx context.Context) error {
 		component, err := d.componentRepo.GetComponent(ctx, req.ComponentID)
 		if err != nil {
-			return UserErrE("component not found", err)
+			return versource.UserErrE("component not found", err)
 		}
 
-		if component.Status == ComponentStatusDeleted {
-			return UserErr("component is already deleted")
+		if component.Status == versource.ComponentStatusDeleted {
+			return versource.UserErr("component is already deleted")
 		}
 
 		componentChange, err := d.componentChangeRepo.GetComponentChange(ctx, req.ComponentID)
 		if err != nil {
-			return InternalErrE("failed to get component change", err)
+			return versource.InternalErrE("failed to get component change", err)
 		}
 
 		if componentChange.FromComponent != nil {
@@ -607,20 +492,20 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 			}
 		}
 
-		component.Status = ComponentStatusDeleted
+		component.Status = versource.ComponentStatusDeleted
 
 		err = d.componentRepo.UpdateComponent(ctx, component)
 		if err != nil {
-			return InternalErrE("failed to update component", err)
+			return versource.InternalErrE("failed to update component", err)
 		}
 
 		var variables map[string]any
 		err = json.Unmarshal(component.Variables, &variables)
 		if err != nil {
-			return InternalErrE("failed to unmarshal variables", err)
+			return versource.InternalErrE("failed to unmarshal variables", err)
 		}
 
-		response = &DeleteComponentResponse{
+		response = &versource.DeleteComponentResponse{
 			ID:        component.ID,
 			Name:      component.Name,
 			Source:    component.ModuleVersion.Module.Source,
@@ -635,14 +520,14 @@ func (d *DeleteComponent) Exec(ctx context.Context, req DeleteComponentRequest) 
 		return nil, fmt.Errorf("failed to delete component: %w", err)
 	}
 
-	planReq := CreatePlanRequest{
+	planReq := versource.CreatePlanRequest{
 		ComponentID:   response.ID,
 		ChangesetName: req.ChangesetName,
 	}
 
 	planResp, err := d.createPlan.Exec(ctx, planReq)
 	if err != nil {
-		return nil, InternalErrE("failed to create plan after component deletion", err)
+		return nil, versource.InternalErrE("failed to create plan after component deletion", err)
 	}
 
 	response.PlanID = planResp.ID
@@ -670,24 +555,9 @@ func NewRestoreComponent(componentRepo ComponentRepo, componentChangeRepo Compon
 	}
 }
 
-type RestoreComponentRequest struct {
-	ComponentID   uint   `json:"componentId" yaml:"componentId"`
-	ChangesetName string `json:"changesetName" yaml:"changesetName"`
-}
-
-type RestoreComponentResponse struct {
-	ID        uint            `json:"id" yaml:"id"`
-	Name      string          `json:"name" yaml:"name"`
-	Source    string          `json:"source" yaml:"source"`
-	Version   string          `json:"version" yaml:"version"`
-	Variables map[string]any  `json:"variables" yaml:"variables"`
-	Status    ComponentStatus `json:"status" yaml:"status"`
-	PlanID    uint            `json:"planId" yaml:"planId"`
-}
-
-func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest) (*RestoreComponentResponse, error) {
+func (r *RestoreComponent) Exec(ctx context.Context, req versource.RestoreComponentRequest) (*versource.RestoreComponentResponse, error) {
 	if req.ChangesetName == "" {
-		return nil, UserErr("changeset is required")
+		return nil, versource.UserErr("changeset is required")
 	}
 
 	var hasChangeset bool
@@ -695,7 +565,7 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 		var err error
 		hasChangeset, err = r.changesetRepo.HasChangesetWithName(ctx, req.ChangesetName)
 		if err != nil {
-			return InternalErrE("failed to check changeset existence", err)
+			return versource.InternalErrE("failed to check changeset existence", err)
 		}
 		return nil
 	})
@@ -713,10 +583,10 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 	err = r.tx.Checkout(ctx, branch, func(ctx context.Context) error {
 		exists, err := r.componentRepo.HasComponent(ctx, req.ComponentID)
 		if err != nil {
-			return InternalErrE("failed to check component existence", err)
+			return versource.InternalErrE("failed to check component existence", err)
 		}
 		if !exists {
-			return UserErr("component not found")
+			return versource.UserErr("component not found")
 		}
 		return nil
 	})
@@ -724,29 +594,29 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 		return nil, err
 	}
 
-	ensureChangesetReq := EnsureChangesetRequest{
+	ensureChangesetReq := versource.EnsureChangesetRequest{
 		Name: req.ChangesetName,
 	}
 
 	_, err = r.ensureChangeset.Exec(ctx, ensureChangesetReq)
 	if err != nil {
-		return nil, InternalErrE("failed to ensure changeset", err)
+		return nil, versource.InternalErrE("failed to ensure changeset", err)
 	}
 
-	var response *RestoreComponentResponse
+	var response *versource.RestoreComponentResponse
 	err = r.tx.Do(ctx, req.ChangesetName, "restore component", func(ctx context.Context) error {
 		component, err := r.componentRepo.GetComponent(ctx, req.ComponentID)
 		if err != nil {
-			return UserErrE("component not found", err)
+			return versource.UserErrE("component not found", err)
 		}
 
-		if component.Status != ComponentStatusDeleted {
-			return UserErr("component is not deleted")
+		if component.Status != versource.ComponentStatusDeleted {
+			return versource.UserErr("component is not deleted")
 		}
 
 		componentChange, err := r.componentChangeRepo.GetComponentChange(ctx, req.ComponentID)
 		if err != nil {
-			return InternalErrE("failed to get component change", err)
+			return versource.InternalErrE("failed to get component change", err)
 		}
 
 		if componentChange.FromComponent != nil {
@@ -758,20 +628,20 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 			}
 		}
 
-		component.Status = ComponentStatusReady
+		component.Status = versource.ComponentStatusReady
 
 		err = r.componentRepo.UpdateComponent(ctx, component)
 		if err != nil {
-			return InternalErrE("failed to update component", err)
+			return versource.InternalErrE("failed to update component", err)
 		}
 
 		var variables map[string]any
 		err = json.Unmarshal(component.Variables, &variables)
 		if err != nil {
-			return InternalErrE("failed to unmarshal variables", err)
+			return versource.InternalErrE("failed to unmarshal variables", err)
 		}
 
-		response = &RestoreComponentResponse{
+		response = &versource.RestoreComponentResponse{
 			ID:        component.ID,
 			Name:      component.Name,
 			Source:    component.ModuleVersion.Module.Source,
@@ -786,14 +656,14 @@ func (r *RestoreComponent) Exec(ctx context.Context, req RestoreComponentRequest
 		return nil, fmt.Errorf("failed to restore component: %w", err)
 	}
 
-	planReq := CreatePlanRequest{
+	planReq := versource.CreatePlanRequest{
 		ComponentID:   response.ID,
 		ChangesetName: req.ChangesetName,
 	}
 
 	planResp, err := r.createPlan.Exec(ctx, planReq)
 	if err != nil {
-		return nil, InternalErrE("failed to create plan after component restoration", err)
+		return nil, versource.InternalErrE("failed to create plan after component restoration", err)
 	}
 
 	response.PlanID = planResp.ID

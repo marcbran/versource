@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/apply"
 	"github.com/marcbran/versource/internal/tui/changeset"
 	"github.com/marcbran/versource/internal/tui/component"
@@ -14,9 +13,10 @@ import (
 	"github.com/marcbran/versource/internal/tui/platform"
 	"github.com/marcbran/versource/internal/tui/rebase"
 	"github.com/marcbran/versource/internal/tui/resource"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
-func RunApp(facade internal.Facade) error {
+func RunApp(facade versource.Facade) error {
 	router := platform.NewRouter("components").
 		KeyBinding("", func(params map[string]string, currentPath string) platform.KeyBindings {
 			return platform.KeyBindings{

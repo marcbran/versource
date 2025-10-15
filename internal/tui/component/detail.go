@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type DetailData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	componentID   string
 	changesetName string
 }
@@ -31,7 +31,7 @@ type DetailViewModel struct {
 	Variables map[string]any `yaml:"variables,omitempty"`
 }
 
-func NewDetail(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewDetail(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewViewDataViewport(NewDetailData(
 			facade,
@@ -41,7 +41,7 @@ func NewDetail(facade internal.Facade) func(params map[string]string) platform.P
 	}
 }
 
-func NewDetailData(facade internal.Facade, componentID string, changesetName string) *DetailData {
+func NewDetailData(facade versource.Facade, componentID string, changesetName string) *DetailData {
 	return &DetailData{
 		facade:        facade,
 		componentID:   componentID,
@@ -49,7 +49,7 @@ func NewDetailData(facade internal.Facade, componentID string, changesetName str
 	}
 }
 
-func (p *DetailData) LoadData() (*internal.GetComponentResponse, error) {
+func (p *DetailData) LoadData() (*versource.GetComponentResponse, error) {
 	ctx := context.Background()
 
 	componentIDUint, err := strconv.ParseUint(p.componentID, 10, 32)
@@ -57,7 +57,7 @@ func (p *DetailData) LoadData() (*internal.GetComponentResponse, error) {
 		return nil, err
 	}
 
-	componentResp, err := p.facade.GetComponent(ctx, internal.GetComponentRequest{ComponentID: uint(componentIDUint), ChangesetName: &p.changesetName})
+	componentResp, err := p.facade.GetComponent(ctx, versource.GetComponentRequest{ComponentID: uint(componentIDUint), ChangesetName: &p.changesetName})
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (p *DetailData) LoadData() (*internal.GetComponentResponse, error) {
 	return componentResp, nil
 }
 
-func (p *DetailData) ResolveData(data internal.GetComponentResponse) DetailViewModel {
+func (p *DetailData) ResolveData(data versource.GetComponentResponse) DetailViewModel {
 	var module *struct {
 		ID      uint   `yaml:"id"`
 		Source  string `yaml:"source"`
@@ -120,7 +120,7 @@ func (p *DetailData) ResolveData(data internal.GetComponentResponse) DetailViewM
 	}
 }
 
-func (p *DetailData) KeyBindings(elem internal.GetComponentResponse) platform.KeyBindings {
+func (p *DetailData) KeyBindings(elem versource.GetComponentResponse) platform.KeyBindings {
 	changesetPrefix := ""
 	if p.changesetName != "" {
 		changesetPrefix = fmt.Sprintf("changesets/%s", p.changesetName)

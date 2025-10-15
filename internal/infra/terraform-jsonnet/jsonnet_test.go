@@ -12,16 +12,16 @@ import (
 func TestNewJsonnetBundlerFromComponent(t *testing.T) {
 	tests := []struct {
 		name            string
-		component       *internal.Component
+		component       *versource.Component
 		expectedGit     *deps.Git
 		expectedLocal   *deps.Local
 		expectedVersion string
 	}{
 		{
 			name: "HTTPS git source with subdir",
-			component: &internal.Component{
-				ModuleVersion: internal.ModuleVersion{
-					Module: internal.Module{
+			component: &versource.Component{
+				ModuleVersion: versource.ModuleVersion{
+					Module: versource.Module{
 						Source: "https://git.brndn.live/marcbran/raspi/tf/modules/github-repository",
 					},
 					Version: "73cfe497e69a8d89c00f3cbf49d69b94afe7049c",
@@ -40,9 +40,9 @@ func TestNewJsonnetBundlerFromComponent(t *testing.T) {
 		},
 		{
 			name: "SSH git source without subdir",
-			component: &internal.Component{
-				ModuleVersion: internal.ModuleVersion{
-					Module: internal.Module{
+			component: &versource.Component{
+				ModuleVersion: versource.ModuleVersion{
+					Module: versource.Module{
 						Source: "ssh://git@github.com/owner/repo.git",
 					},
 					Version: "v1.0.0",
@@ -61,9 +61,9 @@ func TestNewJsonnetBundlerFromComponent(t *testing.T) {
 		},
 		{
 			name: "Local source",
-			component: &internal.Component{
-				ModuleVersion: internal.ModuleVersion{
-					Module: internal.Module{
+			component: &versource.Component{
+				ModuleVersion: versource.ModuleVersion{
+					Module: versource.Module{
 						Source: "./local/module",
 					},
 					Version: "1.0.0",
@@ -78,9 +78,9 @@ func TestNewJsonnetBundlerFromComponent(t *testing.T) {
 		},
 		{
 			name: "Relative local source",
-			component: &internal.Component{
-				ModuleVersion: internal.ModuleVersion{
-					Module: internal.Module{
+			component: &versource.Component{
+				ModuleVersion: versource.ModuleVersion{
+					Module: versource.Module{
 						Source: "../parent/module",
 					},
 					Version: "2.0.0",
@@ -95,9 +95,9 @@ func TestNewJsonnetBundlerFromComponent(t *testing.T) {
 		},
 		{
 			name: "HTTPS git source with .git suffix",
-			component: &internal.Component{
-				ModuleVersion: internal.ModuleVersion{
-					Module: internal.Module{
+			component: &versource.Component{
+				ModuleVersion: versource.ModuleVersion{
+					Module: versource.Module{
 						Source: "https://github.com/terraform-aws-modules/terraform-aws-vpc.git",
 					},
 					Version: "v5.0.0",

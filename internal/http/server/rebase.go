@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 func (s *Server) handleGetRebase(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +19,7 @@ func (s *Server) handleGetRebase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.GetRebaseRequest{
+	req := versource.GetRebaseRequest{
 		RebaseID:      uint(rebaseID),
 		ChangesetName: changesetName,
 	}
@@ -36,7 +36,7 @@ func (s *Server) handleGetRebase(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleListRebases(w http.ResponseWriter, r *http.Request) {
 	changesetName := chi.URLParam(r, "changesetName")
 
-	req := internal.ListRebasesRequest{
+	req := versource.ListRebasesRequest{
 		ChangesetName: changesetName,
 	}
 
@@ -52,7 +52,7 @@ func (s *Server) handleListRebases(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleCreateRebase(w http.ResponseWriter, r *http.Request) {
 	changesetName := chi.URLParam(r, "changesetName")
 
-	req := internal.CreateRebaseRequest{
+	req := versource.CreateRebaseRequest{
 		ChangesetName: changesetName,
 	}
 

@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type CreatePlanData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	changesetName string
 	componentID   string
 }
 
-func NewCreatePlan(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewCreatePlan(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewConfirmationPage(&CreatePlanData{
 			facade:        facade,
@@ -40,7 +40,7 @@ func (c *CreatePlanData) OnConfirm(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	req := internal.CreatePlanRequest{
+	req := versource.CreatePlanRequest{
 		ComponentID:   uint(componentIDUint),
 		ChangesetName: c.changesetName,
 	}

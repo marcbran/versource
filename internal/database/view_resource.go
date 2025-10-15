@@ -2,11 +2,11 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/marcbran/versource/pkg/versource"
 	"gorm.io/gorm"
-
-	"github.com/marcbran/versource/internal"
 )
 
 type GormViewResourceRepo struct {
@@ -17,9 +17,9 @@ func NewGormViewResourceRepo(db *gorm.DB) *GormViewResourceRepo {
 	return &GormViewResourceRepo{db: db}
 }
 
-func (r *GormViewResourceRepo) GetViewResource(ctx context.Context, viewResourceID uint) (*internal.ViewResource, error) {
+func (r *GormViewResourceRepo) GetViewResource(ctx context.Context, viewResourceID uint) (*versource.ViewResource, error) {
 	db := getTxOrDb(ctx, r.db)
-	var viewResource internal.ViewResource
+	var viewResource versource.ViewResource
 	err := db.WithContext(ctx).Where("id = ?", viewResourceID).First(&viewResource).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get view resource: %w", err)
@@ -27,12 +27,12 @@ func (r *GormViewResourceRepo) GetViewResource(ctx context.Context, viewResource
 	return &viewResource, nil
 }
 
-func (r *GormViewResourceRepo) GetViewResourceByName(ctx context.Context, name string) (*internal.ViewResource, error) {
+func (r *GormViewResourceRepo) GetViewResourceByName(ctx context.Context, name string) (*versource.ViewResource, error) {
 	db := getTxOrDb(ctx, r.db)
-	var viewResource internal.ViewResource
+	var viewResource versource.ViewResource
 	err := db.WithContext(ctx).Where("name = ?", name).First(&viewResource).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get view resource by name: %w", err)
@@ -40,9 +40,9 @@ func (r *GormViewResourceRepo) GetViewResourceByName(ctx context.Context, name s
 	return &viewResource, nil
 }
 
-func (r *GormViewResourceRepo) ListViewResources(ctx context.Context) ([]internal.ViewResource, error) {
+func (r *GormViewResourceRepo) ListViewResources(ctx context.Context) ([]versource.ViewResource, error) {
 	db := getTxOrDb(ctx, r.db)
-	var viewResources []internal.ViewResource
+	var viewResources []versource.ViewResource
 	err := db.WithContext(ctx).Find(&viewResources).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to list view resources: %w", err)
@@ -50,7 +50,7 @@ func (r *GormViewResourceRepo) ListViewResources(ctx context.Context) ([]interna
 	return viewResources, nil
 }
 
-func (r *GormViewResourceRepo) CreateViewResource(ctx context.Context, viewResource *internal.ViewResource) error {
+func (r *GormViewResourceRepo) CreateViewResource(ctx context.Context, viewResource *versource.ViewResource) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(viewResource).Error
 	if err != nil {
@@ -59,9 +59,9 @@ func (r *GormViewResourceRepo) CreateViewResource(ctx context.Context, viewResou
 	return nil
 }
 
-func (r *GormViewResourceRepo) UpdateViewResource(ctx context.Context, viewResource *internal.ViewResource) error {
+func (r *GormViewResourceRepo) UpdateViewResource(ctx context.Context, viewResource *versource.ViewResource) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Model(&internal.ViewResource{}).Where("id = ?", viewResource.ID).Updates(viewResource).Error
+	err := db.WithContext(ctx).Model(&versource.ViewResource{}).Where("id = ?", viewResource.ID).Updates(viewResource).Error
 	if err != nil {
 		return fmt.Errorf("failed to update view resource: %w", err)
 	}
@@ -70,7 +70,7 @@ func (r *GormViewResourceRepo) UpdateViewResource(ctx context.Context, viewResou
 
 func (r *GormViewResourceRepo) DeleteViewResource(ctx context.Context, viewResourceID uint) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Where("id = ?", viewResourceID).Delete(&internal.ViewResource{}).Error
+	err := db.WithContext(ctx).Where("id = ?", viewResourceID).Delete(&versource.ViewResource{}).Error
 	if err != nil {
 		return fmt.Errorf("failed to delete view resource: %w", err)
 	}

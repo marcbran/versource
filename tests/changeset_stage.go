@@ -5,7 +5,7 @@ package tests
 import (
 	"fmt"
 
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/stretchr/testify/require"
 )
 
@@ -181,7 +181,7 @@ func (s *Stage) there_are_changes(expectedCount int) *Stage {
 	return s
 }
 
-func (s *Stage) the_changeset_nth_change_is_set_to(index int, changeType internal.ChangeType) *Stage {
+func (s *Stage) the_changeset_nth_change_is_set_to(index int, changeType versource.ChangeType) *Stage {
 	require.NotNil(s.t, s.LastOutputArray, "No command output to check")
 	require.True(s.t, index < len(s.LastOutputArray), "Index %d is out of bounds for changes array of length %d", index, len(s.LastOutputArray))
 

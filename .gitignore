@@ -2,7 +2,7 @@
 .DS_Store
 gen
 data/db
-versource
+/versource
 data/tf/*
 dist
 .terraform

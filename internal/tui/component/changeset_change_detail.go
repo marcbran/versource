@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 	"gopkg.in/yaml.v3"
 )
 
 type ChangesetChangeDetailData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	componentID   string
 	changesetName string
 }
 
-func NewChangesetChangeDetail(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewChangesetChangeDetail(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewDiffView(NewChangesetChangeDetailData(
 			facade,
@@ -27,7 +27,7 @@ func NewChangesetChangeDetail(facade internal.Facade) func(params map[string]str
 	}
 }
 
-func NewChangesetChangeDetailData(facade internal.Facade, componentID string, changesetName string) *ChangesetChangeDetailData {
+func NewChangesetChangeDetailData(facade versource.Facade, componentID string, changesetName string) *ChangesetChangeDetailData {
 	return &ChangesetChangeDetailData{
 		facade:        facade,
 		componentID:   componentID,
@@ -35,7 +35,7 @@ func NewChangesetChangeDetailData(facade internal.Facade, componentID string, ch
 	}
 }
 
-func (p *ChangesetChangeDetailData) LoadData() (*internal.GetComponentChangeResponse, error) {
+func (p *ChangesetChangeDetailData) LoadData() (*versource.GetComponentChangeResponse, error) {
 	ctx := context.Background()
 
 	componentIDUint, err := strconv.ParseUint(p.componentID, 10, 32)
@@ -43,7 +43,7 @@ func (p *ChangesetChangeDetailData) LoadData() (*internal.GetComponentChangeResp
 		return nil, err
 	}
 
-	changeResp, err := p.facade.GetComponentChange(ctx, internal.GetComponentChangeRequest{
+	changeResp, err := p.facade.GetComponentChange(ctx, versource.GetComponentChangeRequest{
 		ComponentID:   uint(componentIDUint),
 		ChangesetName: p.changesetName,
 	})
@@ -54,7 +54,7 @@ func (p *ChangesetChangeDetailData) LoadData() (*internal.GetComponentChangeResp
 	return changeResp, nil
 }
 
-func (p *ChangesetChangeDetailData) ResolveData(data internal.GetComponentChangeResponse) platform.Diff {
+func (p *ChangesetChangeDetailData) ResolveData(data versource.GetComponentChangeResponse) platform.Diff {
 	var leftYAML, rightYAML string
 
 	if data.Change.FromComponent != nil {
@@ -85,7 +85,7 @@ func (p *ChangesetChangeDetailData) ResolveData(data internal.GetComponentChange
 	}
 }
 
-func (p *ChangesetChangeDetailData) componentToYAML(component *internal.Component) (string, error) {
+func (p *ChangesetChangeDetailData) componentToYAML(component *versource.Component) (string, error) {
 	viewModel := struct {
 		ID     uint   `yaml:"id"`
 		Name   string `yaml:"name"`
@@ -149,7 +149,7 @@ func (p *ChangesetChangeDetailData) componentToYAML(component *internal.Componen
 	return string(yamlData), nil
 }
 
-func (p *ChangesetChangeDetailData) KeyBindings(elem internal.GetComponentChangeResponse) platform.KeyBindings {
+func (p *ChangesetChangeDetailData) KeyBindings(elem versource.GetComponentChangeResponse) platform.KeyBindings {
 	if elem.Change.ToComponent == nil {
 		return platform.KeyBindings{}
 	}

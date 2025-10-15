@@ -3,15 +3,17 @@ package internal
 import (
 	"context"
 	"io"
+
+	"github.com/marcbran/versource/pkg/versource"
 )
 
-type NewExecutor func(component *Component, workdir string, logs io.Writer) (Executor, error)
+type NewExecutor func(component *versource.Component, workdir string, logs io.Writer) (Executor, error)
 
 type Executor interface {
 	io.Closer
 	Init(ctx context.Context) error
 	Plan(ctx context.Context) (PlanPath, PlanResourceCounts, error)
-	Apply(ctx context.Context, planPath PlanPath) (State, []StateResource, error)
+	Apply(ctx context.Context, planPath PlanPath) (versource.State, []versource.StateResource, error)
 }
 
 type PlanPath string

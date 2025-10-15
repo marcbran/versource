@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/marcbran/versource/internal"
 	http2 "github.com/marcbran/versource/internal/http/server"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
-func (c *Client) GetRebase(ctx context.Context, req internal.GetRebaseRequest) (*internal.GetRebaseResponse, error) {
+func (c *Client) GetRebase(ctx context.Context, req versource.GetRebaseRequest) (*versource.GetRebaseResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/changesets/%s/rebases/%d", c.baseURL, req.ChangesetName, req.RebaseID)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -32,7 +32,7 @@ func (c *Client) GetRebase(ctx context.Context, req internal.GetRebaseRequest) (
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var rebaseResp internal.GetRebaseResponse
+	var rebaseResp versource.GetRebaseResponse
 	err = json.NewDecoder(resp.Body).Decode(&rebaseResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -41,7 +41,7 @@ func (c *Client) GetRebase(ctx context.Context, req internal.GetRebaseRequest) (
 	return &rebaseResp, nil
 }
 
-func (c *Client) ListRebases(ctx context.Context, req internal.ListRebasesRequest) (*internal.ListRebasesResponse, error) {
+func (c *Client) ListRebases(ctx context.Context, req versource.ListRebasesRequest) (*versource.ListRebasesResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/changesets/%s/rebases", c.baseURL, req.ChangesetName)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -63,7 +63,7 @@ func (c *Client) ListRebases(ctx context.Context, req internal.ListRebasesReques
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var rebasesResp internal.ListRebasesResponse
+	var rebasesResp versource.ListRebasesResponse
 	err = json.NewDecoder(resp.Body).Decode(&rebasesResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -72,7 +72,7 @@ func (c *Client) ListRebases(ctx context.Context, req internal.ListRebasesReques
 	return &rebasesResp, nil
 }
 
-func (c *Client) CreateRebase(ctx context.Context, req internal.CreateRebaseRequest) (*internal.CreateRebaseResponse, error) {
+func (c *Client) CreateRebase(ctx context.Context, req versource.CreateRebaseRequest) (*versource.CreateRebaseResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/changesets/%s/rebases", c.baseURL, req.ChangesetName)
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 	if err != nil {
@@ -94,7 +94,7 @@ func (c *Client) CreateRebase(ctx context.Context, req internal.CreateRebaseRequ
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var rebaseResp internal.CreateRebaseResponse
+	var rebaseResp versource.CreateRebaseResponse
 	err = json.NewDecoder(resp.Body).Decode(&rebaseResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)

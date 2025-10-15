@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/marcbran/versource/pkg/versource"
 	"gorm.io/gorm"
-
-	"github.com/marcbran/versource/internal"
 )
 
 type GormMergeRepo struct {
@@ -17,9 +16,9 @@ func NewGormMergeRepo(db *gorm.DB) *GormMergeRepo {
 	return &GormMergeRepo{db: db}
 }
 
-func (r *GormMergeRepo) GetMerge(ctx context.Context, mergeID uint) (*internal.Merge, error) {
+func (r *GormMergeRepo) GetMerge(ctx context.Context, mergeID uint) (*versource.Merge, error) {
 	db := getTxOrDb(ctx, r.db)
-	var merge internal.Merge
+	var merge versource.Merge
 	err := db.WithContext(ctx).
 		Preload("Changeset").
 		Where("id = ?", mergeID).First(&merge).Error
@@ -31,8 +30,8 @@ func (r *GormMergeRepo) GetMerge(ctx context.Context, mergeID uint) (*internal.M
 
 func (r *GormMergeRepo) GetQueuedMerges(ctx context.Context) ([]uint, error) {
 	db := getTxOrDb(ctx, r.db)
-	var merges []internal.Merge
-	err := db.WithContext(ctx).Where("state = ?", internal.TaskStateQueued).Find(&merges).Error
+	var merges []versource.Merge
+	err := db.WithContext(ctx).Where("state = ?", versource.TaskStateQueued).Find(&merges).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queued merges: %w", err)
 	}
@@ -46,8 +45,8 @@ func (r *GormMergeRepo) GetQueuedMerges(ctx context.Context) ([]uint, error) {
 
 func (r *GormMergeRepo) GetQueuedMergesByChangeset(ctx context.Context, changesetID uint) ([]uint, error) {
 	db := getTxOrDb(ctx, r.db)
-	var merges []internal.Merge
-	err := db.WithContext(ctx).Where("state = ? AND changeset_id = ?", internal.TaskStateQueued, changesetID).Find(&merges).Error
+	var merges []versource.Merge
+	err := db.WithContext(ctx).Where("state = ? AND changeset_id = ?", versource.TaskStateQueued, changesetID).Find(&merges).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queued merges by changeset: %w", err)
 	}
@@ -59,9 +58,9 @@ func (r *GormMergeRepo) GetQueuedMergesByChangeset(ctx context.Context, changese
 	return mergeIDs, nil
 }
 
-func (r *GormMergeRepo) ListMerges(ctx context.Context) ([]internal.Merge, error) {
+func (r *GormMergeRepo) ListMerges(ctx context.Context) ([]versource.Merge, error) {
 	db := getTxOrDb(ctx, r.db)
-	var merges []internal.Merge
+	var merges []versource.Merge
 	err := db.WithContext(ctx).
 		Preload("Changeset").
 		Order("id DESC").
@@ -72,9 +71,9 @@ func (r *GormMergeRepo) ListMerges(ctx context.Context) ([]internal.Merge, error
 	return merges, nil
 }
 
-func (r *GormMergeRepo) ListMergesByChangesetName(ctx context.Context, changesetName string) ([]internal.Merge, error) {
+func (r *GormMergeRepo) ListMergesByChangesetName(ctx context.Context, changesetName string) ([]versource.Merge, error) {
 	db := getTxOrDb(ctx, r.db)
-	var merges []internal.Merge
+	var merges []versource.Merge
 	err := db.WithContext(ctx).
 		Preload("Changeset").
 		Joins("JOIN changesets ON merges.changeset_id = changesets.id").
@@ -87,7 +86,7 @@ func (r *GormMergeRepo) ListMergesByChangesetName(ctx context.Context, changeset
 	return merges, nil
 }
 
-func (r *GormMergeRepo) CreateMerge(ctx context.Context, merge *internal.Merge) error {
+func (r *GormMergeRepo) CreateMerge(ctx context.Context, merge *versource.Merge) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(merge).Error
 	if err != nil {
@@ -96,9 +95,9 @@ func (r *GormMergeRepo) CreateMerge(ctx context.Context, merge *internal.Merge) 
 	return nil
 }
 
-func (r *GormMergeRepo) UpdateMergeState(ctx context.Context, mergeID uint, state internal.TaskState) error {
+func (r *GormMergeRepo) UpdateMergeState(ctx context.Context, mergeID uint, state versource.TaskState) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Model(&internal.Merge{}).Where("id = ?", mergeID).Update("state", state).Error
+	err := db.WithContext(ctx).Model(&versource.Merge{}).Where("id = ?", mergeID).Update("state", state).Error
 	if err != nil {
 		return fmt.Errorf("failed to update merge state: %w", err)
 	}

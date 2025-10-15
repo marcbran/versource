@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +34,7 @@ var viewResourceGetCmd = &cobra.Command{
 
 		client := client.NewClient(config)
 
-		req := internal.GetViewResourceRequest{
+		req := versource.GetViewResourceRequest{
 			ViewResourceID: uint(viewResourceID),
 		}
 
@@ -59,7 +59,7 @@ var viewResourceListCmd = &cobra.Command{
 
 		client := client.NewClient(config)
 
-		req := internal.ListViewResourcesRequest{}
+		req := versource.ListViewResourcesRequest{}
 
 		viewResources, err := client.ListViewResources(cmd.Context(), req)
 		if err != nil {
@@ -91,7 +91,7 @@ var viewResourceSaveCmd = &cobra.Command{
 
 		client := client.NewClient(config)
 
-		req := internal.SaveViewResourceRequest{
+		req := versource.SaveViewResourceRequest{
 			Query: query,
 		}
 
@@ -123,7 +123,7 @@ var viewResourceDeleteCmd = &cobra.Command{
 
 		client := client.NewClient(config)
 
-		req := internal.DeleteViewResourceRequest{
+		req := versource.DeleteViewResourceRequest{
 			ViewResourceID: uint(viewResourceID),
 		}
 

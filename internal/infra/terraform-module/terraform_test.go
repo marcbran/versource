@@ -370,9 +370,9 @@ func TestBuildTerraformModule(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			component := &internal.Component{
-				ModuleVersion: internal.ModuleVersion{
-					Module: internal.Module{
+			component := &versource.Component{
+				ModuleVersion: versource.ModuleVersion{
+					Module: versource.Module{
 						Source: tt.source,
 					},
 					Version: tt.version,

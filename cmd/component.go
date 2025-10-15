@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/component"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/spf13/cobra"
 )
 
@@ -119,7 +119,7 @@ var componentCreateCmd = &cobra.Command{
 
 		client := client.NewClient(config)
 
-		req := internal.CreateComponentRequest{
+		req := versource.CreateComponentRequest{
 			ModuleID:      uint(moduleID),
 			ChangesetName: changeset,
 			Name:          name,
@@ -176,7 +176,7 @@ var componentUpdateCmd = &cobra.Command{
 
 		client := client.NewClient(config)
 
-		req := internal.UpdateComponentRequest{
+		req := versource.UpdateComponentRequest{
 			ComponentID:   uint(componentID),
 			ChangesetName: changeset,
 		}
@@ -234,7 +234,7 @@ var componentDeleteCmd = &cobra.Command{
 
 		client := client.NewClient(config)
 
-		req := internal.DeleteComponentRequest{
+		req := versource.DeleteComponentRequest{
 			ComponentID:   uint(componentID),
 			ChangesetName: changeset,
 		}
@@ -276,7 +276,7 @@ var componentPlanCmd = &cobra.Command{
 
 		client := client.NewClient(config)
 
-		req := internal.CreatePlanRequest{
+		req := versource.CreatePlanRequest{
 			ComponentID:   uint(componentID),
 			ChangesetName: changeset,
 		}
@@ -318,7 +318,7 @@ var componentRestoreCmd = &cobra.Command{
 
 		client := client.NewClient(config)
 
-		req := internal.RestoreComponentRequest{
+		req := versource.RestoreComponentRequest{
 			ComponentID:   uint(componentID),
 			ChangesetName: changeset,
 		}

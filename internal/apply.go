@@ -4,45 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"time"
 
+	"github.com/marcbran/versource/pkg/versource"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/datatypes"
 )
 
-type TaskState string
-
-const (
-	TaskStateQueued    TaskState = "Queued"
-	TaskStateStarted   TaskState = "Started"
-	TaskStateAborted   TaskState = "Aborted"
-	TaskStateSucceeded TaskState = "Succeeded"
-	TaskStateFailed    TaskState = "Failed"
-	TaskStateCancelled TaskState = "Cancelled"
-)
-
-func IsTaskCompleted(task TaskState) bool {
-	return task == TaskStateSucceeded || task == TaskStateFailed || task == TaskStateCancelled
-}
-
-type Apply struct {
-	ID          uint      `gorm:"primarykey" json:"id" yaml:"id"`
-	Plan        Plan      `gorm:"foreignKey:PlanID" json:"plan" yaml:"plan"`
-	PlanID      uint      `gorm:"uniqueIndex" json:"planId" yaml:"planId"`
-	Changeset   Changeset `gorm:"foreignKey:ChangesetID" json:"changeset" yaml:"changeset"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	State       TaskState `gorm:"default:Queued" json:"state" yaml:"state"`
-}
-
 type ApplyRepo interface {
-	GetApply(ctx context.Context, applyID uint) (*Apply, error)
+	GetApply(ctx context.Context, applyID uint) (*versource.Apply, error)
 	GetQueuedApplies(ctx context.Context) ([]uint, error)
 	GetQueuedAppliesByChangeset(ctx context.Context, changesetID uint) ([]uint, error)
-	ListApplies(ctx context.Context) ([]Apply, error)
-	ListAppliesByChangeset(ctx context.Context, changesetID uint) ([]Apply, error)
-	CreateApply(ctx context.Context, apply *Apply) error
-	UpdateApplyState(ctx context.Context, applyID uint, state TaskState) error
+	ListApplies(ctx context.Context) ([]versource.Apply, error)
+	ListAppliesByChangeset(ctx context.Context, changesetID uint) ([]versource.Apply, error)
+	CreateApply(ctx context.Context, apply *versource.Apply) error
+	UpdateApplyState(ctx context.Context, applyID uint, state versource.TaskState) error
 }
 
 type GetApply struct {
@@ -59,58 +35,24 @@ func NewGetApply(applyRepo ApplyRepo, componentRepo ComponentRepo, tx Transactio
 	}
 }
 
-type GetApplyRequest struct {
-	ApplyID uint `json:"applyId" yaml:"applyId"`
-}
-
-type GetApplyResponse struct {
-	ID          uint      `json:"id" yaml:"id"`
-	PlanID      uint      `json:"planId" yaml:"planId"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	State       TaskState `json:"state" yaml:"state"`
-	Plan        struct {
-		ID          uint      `json:"id" yaml:"id"`
-		State       TaskState `json:"state" yaml:"state"`
-		From        string    `json:"from" yaml:"from"`
-		To          string    `json:"to" yaml:"to"`
-		Add         *int      `json:"add,omitempty" yaml:"add,omitempty"`
-		Change      *int      `json:"change,omitempty" yaml:"change,omitempty"`
-		Destroy     *int      `json:"destroy,omitempty" yaml:"destroy,omitempty"`
-		ComponentID uint      `json:"componentId" yaml:"componentId"`
-		Component   struct {
-			ID   uint   `json:"id" yaml:"id"`
-			Name string `json:"name" yaml:"name"`
-		} `json:"component" yaml:"component"`
-		ChangesetID uint `json:"changesetId" yaml:"changesetId"`
-		Changeset   struct {
-			ID   uint   `json:"id" yaml:"id"`
-			Name string `json:"name" yaml:"name"`
-		} `json:"changeset" yaml:"changeset"`
-	} `json:"plan" yaml:"plan"`
-	Changeset struct {
-		ID   uint   `json:"id" yaml:"id"`
-		Name string `json:"name" yaml:"name"`
-	} `json:"changeset" yaml:"changeset"`
-}
-
-func (g *GetApply) Exec(ctx context.Context, req GetApplyRequest) (*GetApplyResponse, error) {
+func (g *GetApply) Exec(ctx context.Context, req versource.GetApplyRequest) (*versource.GetApplyResponse, error) {
 	if req.ApplyID == 0 {
-		return nil, UserErr("apply ID is required")
+		return nil, versource.UserErr("apply ID is required")
 	}
 
-	var apply *Apply
+	var apply *versource.Apply
 	err := g.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		apply, err = g.applyRepo.GetApply(ctx, req.ApplyID)
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to get apply", err)
+		return nil, versource.InternalErrE("failed to get apply", err)
 	}
 
-	var component *Component
+	var component *versource.Component
 	branch := apply.Plan.Changeset.Name
-	if apply.Plan.Changeset.State == ChangesetStateMerged {
+	if apply.Plan.Changeset.State == versource.ChangesetStateMerged {
 		branch = MainBranch
 	}
 
@@ -120,23 +62,23 @@ func (g *GetApply) Exec(ctx context.Context, req GetApplyRequest) (*GetApplyResp
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to get component at commit", err)
+		return nil, versource.InternalErrE("failed to get component at commit", err)
 	}
 
-	response := &GetApplyResponse{
+	response := &versource.GetApplyResponse{
 		ID:          apply.ID,
 		PlanID:      apply.PlanID,
 		ChangesetID: apply.ChangesetID,
 		State:       apply.State,
 		Plan: struct {
-			ID          uint      `json:"id" yaml:"id"`
-			State       TaskState `json:"state" yaml:"state"`
-			From        string    `json:"from" yaml:"from"`
-			To          string    `json:"to" yaml:"to"`
-			Add         *int      `json:"add,omitempty" yaml:"add,omitempty"`
-			Change      *int      `json:"change,omitempty" yaml:"change,omitempty"`
-			Destroy     *int      `json:"destroy,omitempty" yaml:"destroy,omitempty"`
-			ComponentID uint      `json:"componentId" yaml:"componentId"`
+			ID          uint                `json:"id" yaml:"id"`
+			State       versource.TaskState `json:"state" yaml:"state"`
+			From        string              `json:"from" yaml:"from"`
+			To          string              `json:"to" yaml:"to"`
+			Add         *int                `json:"add,omitempty" yaml:"add,omitempty"`
+			Change      *int                `json:"change,omitempty" yaml:"change,omitempty"`
+			Destroy     *int                `json:"destroy,omitempty" yaml:"destroy,omitempty"`
+			ComponentID uint                `json:"componentId" yaml:"componentId"`
 			Component   struct {
 				ID   uint   `json:"id" yaml:"id"`
 				Name string `json:"name" yaml:"name"`
@@ -193,25 +135,17 @@ func NewGetApplyLog(logStore LogStore) *GetApplyLog {
 	}
 }
 
-type GetApplyLogRequest struct {
-	ApplyID uint `json:"applyId" yaml:"applyId"`
-}
-
-type GetApplyLogResponse struct {
-	Content io.ReadCloser `json:"content" yaml:"content"`
-}
-
-func (g *GetApplyLog) Exec(ctx context.Context, req GetApplyLogRequest) (*GetApplyLogResponse, error) {
+func (g *GetApplyLog) Exec(ctx context.Context, req versource.GetApplyLogRequest) (*versource.GetApplyLogResponse, error) {
 	if req.ApplyID == 0 {
-		return nil, UserErr("apply ID is required")
+		return nil, versource.UserErr("apply ID is required")
 	}
 
 	reader, err := g.logStore.LoadLog(ctx, "apply", req.ApplyID)
 	if err != nil {
-		return nil, InternalErrE("failed to load apply log", err)
+		return nil, versource.InternalErrE("failed to load apply log", err)
 	}
 
-	return &GetApplyLogResponse{
+	return &versource.GetApplyLogResponse{
 		Content: reader,
 	}, nil
 }
@@ -228,24 +162,18 @@ func NewListApplies(applyRepo ApplyRepo, tx TransactionManager) *ListApplies {
 	}
 }
 
-type ListAppliesRequest struct{}
-
-type ListAppliesResponse struct {
-	Applies []Apply `json:"applies" yaml:"applies"`
-}
-
-func (l *ListApplies) Exec(ctx context.Context, req ListAppliesRequest) (*ListAppliesResponse, error) {
-	var applies []Apply
+func (l *ListApplies) Exec(ctx context.Context, req versource.ListAppliesRequest) (*versource.ListAppliesResponse, error) {
+	var applies []versource.Apply
 	err := l.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		applies, err = l.applyRepo.ListApplies(ctx)
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to list applies", err)
+		return nil, versource.InternalErrE("failed to list applies", err)
 	}
 
-	return &ListAppliesResponse{
+	return &versource.ListAppliesResponse{
 		Applies: applies,
 	}, nil
 }
@@ -303,7 +231,7 @@ func (aw *ApplyWorker) runApplyInBackground(ctx context.Context, applyID uint) {
 		err := aw.runApply.Exec(workerCtx, applyID)
 		if err != nil {
 			stateErr := aw.tx.Do(ctx, AdminBranch, "fail apply", func(ctx context.Context) error {
-				return aw.applyRepo.UpdateApplyState(ctx, applyID, TaskStateFailed)
+				return aw.applyRepo.UpdateApplyState(ctx, applyID, versource.TaskStateFailed)
 			})
 			if stateErr != nil {
 				log.WithError(err).
@@ -338,7 +266,7 @@ func (aw *ApplyWorker) processQueuedApplies(ctx context.Context) {
 }
 
 type RunApply struct {
-	config            *Config
+	config            *versource.Config
 	applyRepo         ApplyRepo
 	stateRepo         StateRepo
 	stateResourceRepo StateResourceRepo
@@ -350,7 +278,7 @@ type RunApply struct {
 	componentRepo     ComponentRepo
 }
 
-func NewRunApply(config *Config, applyRepo ApplyRepo, stateRepo StateRepo, stateResourceRepo StateResourceRepo, resourceRepo ResourceRepo, planStore PlanStore, logStore LogStore, tx TransactionManager, newExecutor NewExecutor, componentRepo ComponentRepo) *RunApply {
+func NewRunApply(config *versource.Config, applyRepo ApplyRepo, stateRepo StateRepo, stateResourceRepo StateResourceRepo, resourceRepo ResourceRepo, planStore PlanStore, logStore LogStore, tx TransactionManager, newExecutor NewExecutor, componentRepo ComponentRepo) *RunApply {
 	return &RunApply{
 		config:            config,
 		applyRepo:         applyRepo,
@@ -366,7 +294,7 @@ func NewRunApply(config *Config, applyRepo ApplyRepo, stateRepo StateRepo, state
 }
 
 func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
-	var apply *Apply
+	var apply *versource.Apply
 
 	err := a.tx.Do(ctx, AdminBranch, "start apply", func(ctx context.Context) error {
 		var err error
@@ -379,7 +307,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 			return fmt.Errorf("apply ID mismatch")
 		}
 
-		err = a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateStarted)
+		err = a.applyRepo.UpdateApplyState(ctx, applyID, versource.TaskStateStarted)
 		if err != nil {
 			return fmt.Errorf("failed to update apply state: %w", err)
 		}
@@ -396,7 +324,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	}
 	defer logWriter.Close()
 
-	var component *Component
+	var component *versource.Component
 	err = a.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		component, err = a.componentRepo.GetComponentAtCommit(ctx, apply.Plan.ComponentID, apply.Plan.To)
@@ -473,7 +401,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 		insertResources, updateResources, deleteResources := a.compareResources(currentStateResources, stateResources)
 
 		if len(insertResources) > 0 {
-			var resourcesToInsert []Resource
+			var resourcesToInsert []versource.Resource
 			for _, sr := range insertResources {
 				resourcesToInsert = append(resourcesToInsert, sr.Resource)
 			}
@@ -489,7 +417,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 		}
 
 		if len(updateResources) > 0 {
-			var resourcesToUpdate []Resource
+			var resourcesToUpdate []versource.Resource
 			for _, sr := range updateResources {
 				resourcesToUpdate = append(resourcesToUpdate, sr.Resource)
 			}
@@ -529,7 +457,7 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	}
 
 	err = a.tx.Do(ctx, AdminBranch, "succeed apply", func(ctx context.Context) error {
-		err = a.applyRepo.UpdateApplyState(ctx, applyID, TaskStateSucceeded)
+		err = a.applyRepo.UpdateApplyState(ctx, applyID, versource.TaskStateSucceeded)
 		if err != nil {
 			return fmt.Errorf("failed to update apply state: %w", err)
 		}
@@ -542,20 +470,20 @@ func (a *RunApply) Exec(ctx context.Context, applyID uint) error {
 	return err
 }
 
-func (a *RunApply) compareResources(currentStateResources, newStateResources []StateResource) ([]StateResource, []StateResource, []StateResource) {
-	currentMap := make(map[string]StateResource)
+func (a *RunApply) compareResources(currentStateResources, newStateResources []versource.StateResource) ([]versource.StateResource, []versource.StateResource, []versource.StateResource) {
+	currentMap := make(map[string]versource.StateResource)
 	for _, sr := range currentStateResources {
 		currentMap[sr.ResourceID] = sr
 	}
 
-	newMap := make(map[string]StateResource)
+	newMap := make(map[string]versource.StateResource)
 	for _, sr := range newStateResources {
 		newMap[sr.ResourceID] = sr
 	}
 
-	var insertResources []StateResource
-	var updateResources []StateResource
-	var deleteResources []StateResource
+	var insertResources []versource.StateResource
+	var updateResources []versource.StateResource
+	var deleteResources []versource.StateResource
 
 	for resourceUUID, newSR := range newMap {
 		if currentSR, exists := currentMap[resourceUUID]; exists {
@@ -575,27 +503,27 @@ func (a *RunApply) compareResources(currentStateResources, newStateResources []S
 	return insertResources, updateResources, deleteResources
 }
 
-func extractResourceMapping(output datatypes.JSON) (ResourceMapping, error) {
+func extractResourceMapping(output datatypes.JSON) (versource.ResourceMapping, error) {
 	var outputMap map[string]any
 	err := json.Unmarshal(output, &outputMap)
 	if err != nil {
-		return ResourceMapping{}, fmt.Errorf("failed to unmarshal output: %w", err)
+		return versource.ResourceMapping{}, fmt.Errorf("failed to unmarshal output: %w", err)
 	}
 
 	versourceOutput, exists := outputMap["versource"]
 	if !exists {
-		return ResourceMapping{}, nil
+		return versource.ResourceMapping{}, nil
 	}
 
 	versourceBytes, err := json.Marshal(versourceOutput)
 	if err != nil {
-		return ResourceMapping{}, fmt.Errorf("failed to marshal versource output: %w", err)
+		return versource.ResourceMapping{}, fmt.Errorf("failed to marshal versource output: %w", err)
 	}
 
-	var resourceMapping ResourceMapping
+	var resourceMapping versource.ResourceMapping
 	err = json.Unmarshal(versourceBytes, &resourceMapping)
 	if err != nil {
-		return ResourceMapping{}, fmt.Errorf("failed to unmarshal resource mapping: %w", err)
+		return versource.ResourceMapping{}, fmt.Errorf("failed to unmarshal resource mapping: %w", err)
 	}
 
 	return resourceMapping, nil

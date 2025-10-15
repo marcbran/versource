@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/marcbran/versource/pkg/versource"
 	"gorm.io/gorm"
 
 	"github.com/marcbran/versource/internal"
@@ -18,9 +19,9 @@ func NewGormComponentRepo(db *gorm.DB) *GormComponentRepo {
 	return &GormComponentRepo{db: db}
 }
 
-func (r *GormComponentRepo) GetComponent(ctx context.Context, componentID uint) (*internal.Component, error) {
+func (r *GormComponentRepo) GetComponent(ctx context.Context, componentID uint) (*versource.Component, error) {
 	db := getTxOrDb(ctx, r.db)
-	var component internal.Component
+	var component versource.Component
 	err := db.WithContext(ctx).Preload("ModuleVersion.Module").Where("id = ?", componentID).First(&component).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get component: %w", err)
@@ -28,23 +29,23 @@ func (r *GormComponentRepo) GetComponent(ctx context.Context, componentID uint) 
 	return &component, nil
 }
 
-func (r *GormComponentRepo) GetComponentAtCommit(ctx context.Context, componentID uint, commit string) (*internal.Component, error) {
+func (r *GormComponentRepo) GetComponentAtCommit(ctx context.Context, componentID uint, commit string) (*versource.Component, error) {
 	db := getTxOrDb(ctx, r.db)
-	var component internal.Component
+	var component versource.Component
 	query := fmt.Sprintf("SELECT * FROM components AS OF '%s' WHERE id = ?", commit)
 	err := db.WithContext(ctx).Raw(query, componentID).Scan(&component).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get component at commit: %w", err)
 	}
 
-	var moduleVersion internal.ModuleVersion
+	var moduleVersion versource.ModuleVersion
 	moduleVersionQuery := fmt.Sprintf("SELECT * FROM module_versions AS OF '%s' WHERE id = ?", commit)
 	err = db.WithContext(ctx).Raw(moduleVersionQuery, component.ModuleVersionID).Scan(&moduleVersion).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get module version at commit: %w", err)
 	}
 
-	var module internal.Module
+	var module versource.Module
 	moduleQuery := fmt.Sprintf("SELECT * FROM modules AS OF '%s' WHERE id = ?", commit)
 	err = db.WithContext(ctx).Raw(moduleQuery, moduleVersion.ModuleID).Scan(&module).Error
 	if err != nil {
@@ -80,16 +81,16 @@ func (r *GormComponentRepo) GetLastCommitOfComponent(ctx context.Context, compon
 func (r *GormComponentRepo) HasComponent(ctx context.Context, componentID uint) (bool, error) {
 	db := getTxOrDb(ctx, r.db)
 	var count int64
-	err := db.WithContext(ctx).Model(&internal.Component{}).Where("id = ?", componentID).Count(&count).Error
+	err := db.WithContext(ctx).Model(&versource.Component{}).Where("id = ?", componentID).Count(&count).Error
 	if err != nil {
 		return false, fmt.Errorf("failed to check component existence: %w", err)
 	}
 	return count > 0, nil
 }
 
-func (r *GormComponentRepo) ListComponents(ctx context.Context) ([]internal.Component, error) {
+func (r *GormComponentRepo) ListComponents(ctx context.Context) ([]versource.Component, error) {
 	db := getTxOrDb(ctx, r.db)
-	var components []internal.Component
+	var components []versource.Component
 	err := db.WithContext(ctx).Preload("ModuleVersion.Module").Find(&components).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to list components: %w", err)
@@ -97,9 +98,9 @@ func (r *GormComponentRepo) ListComponents(ctx context.Context) ([]internal.Comp
 	return components, nil
 }
 
-func (r *GormComponentRepo) ListComponentsByModule(ctx context.Context, moduleID uint) ([]internal.Component, error) {
+func (r *GormComponentRepo) ListComponentsByModule(ctx context.Context, moduleID uint) ([]versource.Component, error) {
 	db := getTxOrDb(ctx, r.db)
-	var components []internal.Component
+	var components []versource.Component
 	err := db.WithContext(ctx).
 		Preload("ModuleVersion.Module").
 		Joins("JOIN module_versions ON components.module_version_id = module_versions.id").
@@ -111,9 +112,9 @@ func (r *GormComponentRepo) ListComponentsByModule(ctx context.Context, moduleID
 	return components, nil
 }
 
-func (r *GormComponentRepo) ListComponentsByModuleVersion(ctx context.Context, moduleVersionID uint) ([]internal.Component, error) {
+func (r *GormComponentRepo) ListComponentsByModuleVersion(ctx context.Context, moduleVersionID uint) ([]versource.Component, error) {
 	db := getTxOrDb(ctx, r.db)
-	var components []internal.Component
+	var components []versource.Component
 	err := db.WithContext(ctx).
 		Preload("ModuleVersion.Module").
 		Where("module_version_id = ?", moduleVersionID).
@@ -124,7 +125,7 @@ func (r *GormComponentRepo) ListComponentsByModuleVersion(ctx context.Context, m
 	return components, nil
 }
 
-func (r *GormComponentRepo) CreateComponent(ctx context.Context, component *internal.Component) error {
+func (r *GormComponentRepo) CreateComponent(ctx context.Context, component *versource.Component) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(component).Error
 	if err != nil {
@@ -133,7 +134,7 @@ func (r *GormComponentRepo) CreateComponent(ctx context.Context, component *inte
 	return nil
 }
 
-func (r *GormComponentRepo) UpdateComponent(ctx context.Context, component *internal.Component) error {
+func (r *GormComponentRepo) UpdateComponent(ctx context.Context, component *versource.Component) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Save(component).Error
 	if err != nil {
@@ -150,7 +151,7 @@ func NewGormComponentChangeRepo(db *gorm.DB) *GormComponentChangeRepo {
 	return &GormComponentChangeRepo{db: db}
 }
 
-func (r *GormComponentChangeRepo) ListComponentChanges(ctx context.Context) ([]internal.ComponentChange, error) {
+func (r *GormComponentChangeRepo) ListComponentChanges(ctx context.Context) ([]versource.ComponentChange, error) {
 	db := getTxOrDb(ctx, r.db)
 
 	query := `
@@ -208,7 +209,7 @@ func (r *GormComponentChangeRepo) ListComponentChanges(ctx context.Context) ([]i
 		return nil, fmt.Errorf("failed to list component changes: %w", err)
 	}
 
-	changes := make([]internal.ComponentChange, len(rawDiffs))
+	changes := make([]versource.ComponentChange, len(rawDiffs))
 	for i, raw := range rawDiffs {
 		changes[i] = convertRawDiffToComponentChange(raw)
 	}
@@ -216,7 +217,7 @@ func (r *GormComponentChangeRepo) ListComponentChanges(ctx context.Context) ([]i
 	return changes, nil
 }
 
-func (r *GormComponentChangeRepo) GetComponentChange(ctx context.Context, componentID uint) (*internal.ComponentChange, error) {
+func (r *GormComponentChangeRepo) GetComponentChange(ctx context.Context, componentID uint) (*versource.ComponentChange, error) {
 	db := getTxOrDb(ctx, r.db)
 
 	query := `
@@ -323,11 +324,11 @@ type rawDiff struct {
 	PlanDestroy         *int           `json:"planDestroy"`
 }
 
-func convertRawDiffToComponentChange(raw rawDiff) internal.ComponentChange {
-	var fromComponent, toComponent *internal.Component
+func convertRawDiffToComponentChange(raw rawDiff) versource.ComponentChange {
+	var fromComponent, toComponent *versource.Component
 
 	if raw.FromID != nil {
-		fromComponent = &internal.Component{}
+		fromComponent = &versource.Component{}
 		fromComponent.ID = *raw.FromID
 		if raw.FromModuleVersionID != nil {
 			fromComponent.ModuleVersionID = *raw.FromModuleVersionID
@@ -337,12 +338,12 @@ func convertRawDiffToComponentChange(raw rawDiff) internal.ComponentChange {
 		}
 		fromComponent.Variables = raw.FromVariables
 		if raw.FromStatus != nil {
-			fromComponent.Status = internal.ComponentStatus(*raw.FromStatus)
+			fromComponent.Status = versource.ComponentStatus(*raw.FromStatus)
 		}
 	}
 
 	if raw.ToID != nil {
-		toComponent = &internal.Component{}
+		toComponent = &versource.Component{}
 		toComponent.ID = *raw.ToID
 		if raw.ToModuleVersionID != nil {
 			toComponent.ModuleVersionID = *raw.ToModuleVersionID
@@ -352,33 +353,33 @@ func convertRawDiffToComponentChange(raw rawDiff) internal.ComponentChange {
 		}
 		toComponent.Variables = raw.ToVariables
 		if raw.ToStatus != nil {
-			toComponent.Status = internal.ComponentStatus(*raw.ToStatus)
+			toComponent.Status = versource.ComponentStatus(*raw.ToStatus)
 		}
 	}
 
-	changeType := internal.ChangeTypeModified
+	changeType := versource.ChangeTypeModified
 	if raw.FromID == nil {
-		changeType = internal.ChangeTypeCreated
-	} else if raw.ToStatus != nil && *raw.ToStatus == string(internal.ComponentStatusDeleted) {
-		changeType = internal.ChangeTypeDeleted
+		changeType = versource.ChangeTypeCreated
+	} else if raw.ToStatus != nil && *raw.ToStatus == string(versource.ComponentStatusDeleted) {
+		changeType = versource.ChangeTypeDeleted
 	}
 
-	var plan *internal.Plan
+	var plan *versource.Plan
 	if raw.PlanID != nil {
-		plan = &internal.Plan{
+		plan = &versource.Plan{
 			ID:          *raw.PlanID,
 			ComponentID: *raw.PlanComponentID,
 			ChangesetID: *raw.PlanChangesetID,
 			From:        *raw.PlanFrom,
 			To:          *raw.PlanTo,
-			State:       internal.TaskState(*raw.PlanState),
+			State:       versource.TaskState(*raw.PlanState),
 			Add:         raw.PlanAdd,
 			Change:      raw.PlanChange,
 			Destroy:     raw.PlanDestroy,
 		}
 	}
 
-	return internal.ComponentChange{
+	return versource.ComponentChange{
 		FromComponent: fromComponent,
 		ToComponent:   toComponent,
 		ChangeType:    changeType,

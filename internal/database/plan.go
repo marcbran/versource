@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/marcbran/versource/pkg/versource"
 	"gorm.io/gorm"
 
 	"github.com/marcbran/versource/internal"
@@ -17,9 +18,9 @@ func NewGormPlanRepo(db *gorm.DB) *GormPlanRepo {
 	return &GormPlanRepo{db: db}
 }
 
-func (r *GormPlanRepo) GetPlan(ctx context.Context, planID uint) (*internal.Plan, error) {
+func (r *GormPlanRepo) GetPlan(ctx context.Context, planID uint) (*versource.Plan, error) {
 	db := getTxOrDb(ctx, r.db)
-	var plan internal.Plan
+	var plan versource.Plan
 	err := db.WithContext(ctx).
 		Preload("Changeset").
 		Where("id = ?", planID).First(&plan).Error
@@ -31,8 +32,8 @@ func (r *GormPlanRepo) GetPlan(ctx context.Context, planID uint) (*internal.Plan
 
 func (r *GormPlanRepo) GetQueuedPlans(ctx context.Context) ([]uint, error) {
 	db := getTxOrDb(ctx, r.db)
-	var plans []internal.Plan
-	err := db.WithContext(ctx).Preload("Changeset").Where("state = ?", internal.TaskStateQueued).Find(&plans).Error
+	var plans []versource.Plan
+	err := db.WithContext(ctx).Preload("Changeset").Where("state = ?", versource.TaskStateQueued).Find(&plans).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queued plans: %w", err)
 	}
@@ -44,9 +45,9 @@ func (r *GormPlanRepo) GetQueuedPlans(ctx context.Context) ([]uint, error) {
 	return planIDs, nil
 }
 
-func (r *GormPlanRepo) ListPlans(ctx context.Context) ([]internal.Plan, error) {
+func (r *GormPlanRepo) ListPlans(ctx context.Context) ([]versource.Plan, error) {
 	db := getTxOrDb(ctx, r.db)
-	var plans []internal.Plan
+	var plans []versource.Plan
 	err := db.WithContext(ctx).
 		Preload("Changeset").
 		Find(&plans).Error
@@ -56,9 +57,9 @@ func (r *GormPlanRepo) ListPlans(ctx context.Context) ([]internal.Plan, error) {
 	return plans, nil
 }
 
-func (r *GormPlanRepo) ListPlansByChangeset(ctx context.Context, changesetID uint) ([]internal.Plan, error) {
+func (r *GormPlanRepo) ListPlansByChangeset(ctx context.Context, changesetID uint) ([]versource.Plan, error) {
 	db := getTxOrDb(ctx, r.db)
-	var plans []internal.Plan
+	var plans []versource.Plan
 	err := db.WithContext(ctx).
 		Preload("Changeset").
 		Where("changeset_id = ?", changesetID).
@@ -69,9 +70,9 @@ func (r *GormPlanRepo) ListPlansByChangeset(ctx context.Context, changesetID uin
 	return plans, nil
 }
 
-func (r *GormPlanRepo) ListPlansByChangesetName(ctx context.Context, changesetName string) ([]internal.Plan, error) {
+func (r *GormPlanRepo) ListPlansByChangesetName(ctx context.Context, changesetName string) ([]versource.Plan, error) {
 	db := getTxOrDb(ctx, r.db)
-	var plans []internal.Plan
+	var plans []versource.Plan
 	err := db.WithContext(ctx).
 		Preload("Changeset").
 		Joins("JOIN changesets ON plans.changeset_id = changesets.id").
@@ -83,7 +84,7 @@ func (r *GormPlanRepo) ListPlansByChangesetName(ctx context.Context, changesetNa
 	return plans, nil
 }
 
-func (r *GormPlanRepo) CreatePlan(ctx context.Context, plan *internal.Plan) error {
+func (r *GormPlanRepo) CreatePlan(ctx context.Context, plan *versource.Plan) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(plan).Error
 	if err != nil {
@@ -92,9 +93,9 @@ func (r *GormPlanRepo) CreatePlan(ctx context.Context, plan *internal.Plan) erro
 	return nil
 }
 
-func (r *GormPlanRepo) UpdatePlanState(ctx context.Context, planID uint, state internal.TaskState) error {
+func (r *GormPlanRepo) UpdatePlanState(ctx context.Context, planID uint, state versource.TaskState) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Model(&internal.Plan{}).Where("id = ?", planID).Update("state", state).Error
+	err := db.WithContext(ctx).Model(&versource.Plan{}).Where("id = ?", planID).Update("state", state).Error
 	if err != nil {
 		return fmt.Errorf("failed to update plan state: %w", err)
 	}
@@ -103,7 +104,7 @@ func (r *GormPlanRepo) UpdatePlanState(ctx context.Context, planID uint, state i
 
 func (r *GormPlanRepo) UpdatePlanResourceCounts(ctx context.Context, planID uint, counts internal.PlanResourceCounts) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Model(&internal.Plan{}).Where("id = ?", planID).Updates(map[string]any{
+	err := db.WithContext(ctx).Model(&versource.Plan{}).Where("id = ?", planID).Updates(map[string]any{
 		"add":     counts.AddCount,
 		"change":  counts.ChangeCount,
 		"destroy": counts.DestroyCount,
@@ -116,7 +117,7 @@ func (r *GormPlanRepo) UpdatePlanResourceCounts(ctx context.Context, planID uint
 
 func (r *GormPlanRepo) DeletePlan(ctx context.Context, planID uint) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Delete(&internal.Plan{}, planID).Error
+	err := db.WithContext(ctx).Delete(&versource.Plan{}, planID).Error
 	if err != nil {
 		return fmt.Errorf("failed to delete plan: %w", err)
 	}

@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/marcbran/versource/internal"
 	http2 "github.com/marcbran/versource/internal/http/server"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
-func (c *Client) GetModule(ctx context.Context, req internal.GetModuleRequest) (*internal.GetModuleResponse, error) {
+func (c *Client) GetModule(ctx context.Context, req versource.GetModuleRequest) (*versource.GetModuleResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/modules/%d", c.baseURL, req.ModuleID)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -33,7 +33,7 @@ func (c *Client) GetModule(ctx context.Context, req internal.GetModuleRequest) (
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var moduleResp internal.GetModuleResponse
+	var moduleResp versource.GetModuleResponse
 	err = json.NewDecoder(resp.Body).Decode(&moduleResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -42,7 +42,7 @@ func (c *Client) GetModule(ctx context.Context, req internal.GetModuleRequest) (
 	return &moduleResp, nil
 }
 
-func (c *Client) ListModules(ctx context.Context, req internal.ListModulesRequest) (*internal.ListModulesResponse, error) {
+func (c *Client) ListModules(ctx context.Context, req versource.ListModulesRequest) (*versource.ListModulesResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/modules", c.baseURL)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -64,7 +64,7 @@ func (c *Client) ListModules(ctx context.Context, req internal.ListModulesReques
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var modulesResp internal.ListModulesResponse
+	var modulesResp versource.ListModulesResponse
 	err = json.NewDecoder(resp.Body).Decode(&modulesResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -73,7 +73,7 @@ func (c *Client) ListModules(ctx context.Context, req internal.ListModulesReques
 	return &modulesResp, nil
 }
 
-func (c *Client) CreateModule(ctx context.Context, req internal.CreateModuleRequest) (*internal.CreateModuleResponse, error) {
+func (c *Client) CreateModule(ctx context.Context, req versource.CreateModuleRequest) (*versource.CreateModuleResponse, error) {
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -102,7 +102,7 @@ func (c *Client) CreateModule(ctx context.Context, req internal.CreateModuleRequ
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var moduleResp internal.CreateModuleResponse
+	var moduleResp versource.CreateModuleResponse
 	err = json.NewDecoder(resp.Body).Decode(&moduleResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -111,7 +111,7 @@ func (c *Client) CreateModule(ctx context.Context, req internal.CreateModuleRequ
 	return &moduleResp, nil
 }
 
-func (c *Client) UpdateModule(ctx context.Context, req internal.UpdateModuleRequest) (*internal.UpdateModuleResponse, error) {
+func (c *Client) UpdateModule(ctx context.Context, req versource.UpdateModuleRequest) (*versource.UpdateModuleResponse, error) {
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -140,7 +140,7 @@ func (c *Client) UpdateModule(ctx context.Context, req internal.UpdateModuleRequ
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var moduleResp internal.UpdateModuleResponse
+	var moduleResp versource.UpdateModuleResponse
 	err = json.NewDecoder(resp.Body).Decode(&moduleResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -149,7 +149,7 @@ func (c *Client) UpdateModule(ctx context.Context, req internal.UpdateModuleRequ
 	return &moduleResp, nil
 }
 
-func (c *Client) DeleteModule(ctx context.Context, req internal.DeleteModuleRequest) (*internal.DeleteModuleResponse, error) {
+func (c *Client) DeleteModule(ctx context.Context, req versource.DeleteModuleRequest) (*versource.DeleteModuleResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/modules/%d", c.baseURL, req.ModuleID)
 	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
 	if err != nil {
@@ -171,7 +171,7 @@ func (c *Client) DeleteModule(ctx context.Context, req internal.DeleteModuleRequ
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var moduleResp internal.DeleteModuleResponse
+	var moduleResp versource.DeleteModuleResponse
 	err = json.NewDecoder(resp.Body).Decode(&moduleResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -180,7 +180,7 @@ func (c *Client) DeleteModule(ctx context.Context, req internal.DeleteModuleRequ
 	return &moduleResp, nil
 }
 
-func (c *Client) GetModuleVersion(ctx context.Context, req internal.GetModuleVersionRequest) (*internal.GetModuleVersionResponse, error) {
+func (c *Client) GetModuleVersion(ctx context.Context, req versource.GetModuleVersionRequest) (*versource.GetModuleVersionResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/module-versions/%d", c.baseURL, req.ModuleVersionID)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -202,7 +202,7 @@ func (c *Client) GetModuleVersion(ctx context.Context, req internal.GetModuleVer
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var moduleVersionResp internal.GetModuleVersionResponse
+	var moduleVersionResp versource.GetModuleVersionResponse
 	err = json.NewDecoder(resp.Body).Decode(&moduleVersionResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
@@ -211,7 +211,7 @@ func (c *Client) GetModuleVersion(ctx context.Context, req internal.GetModuleVer
 	return &moduleVersionResp, nil
 }
 
-func (c *Client) ListModuleVersions(ctx context.Context, req internal.ListModuleVersionsRequest) (*internal.ListModuleVersionsResponse, error) {
+func (c *Client) ListModuleVersions(ctx context.Context, req versource.ListModuleVersionsRequest) (*versource.ListModuleVersionsResponse, error) {
 	var url string
 	if req.ModuleID != nil {
 		url = fmt.Sprintf("%s/api/v1/modules/%d/versions", c.baseURL, *req.ModuleID)
@@ -238,7 +238,7 @@ func (c *Client) ListModuleVersions(ctx context.Context, req internal.ListModule
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var moduleVersionsResp internal.ListModuleVersionsResponse
+	var moduleVersionsResp versource.ListModuleVersionsResponse
 	err = json.NewDecoder(resp.Body).Decode(&moduleVersionsResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)

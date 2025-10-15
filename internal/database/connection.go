@@ -4,13 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/marcbran/versource/pkg/versource"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-
-	"github.com/marcbran/versource/internal"
 )
 
-func NewDb(config *internal.DatabaseConfig) (*sql.DB, error) {
+func NewDb(config *versource.DatabaseConfig) (*sql.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
 		config.User, config.Password, config.Host, config.Port, config.DBName)
 
@@ -21,7 +20,7 @@ func NewDb(config *internal.DatabaseConfig) (*sql.DB, error) {
 	return db, nil
 }
 
-func NewGormDb(config *internal.DatabaseConfig) (*gorm.DB, error) {
+func NewGormDb(config *versource.DatabaseConfig) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
 		config.User, config.Password, config.Host, config.Port, config.DBName)
 

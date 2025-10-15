@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type DeleteChangesetData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	changesetName string
 }
 
-func NewDeleteChangeset(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewDeleteChangeset(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewConfirmationPage(&DeleteChangesetData{facade: facade, changesetName: params["changesetName"]})
 	}
@@ -29,7 +29,7 @@ func (d *DeleteChangesetData) GetConfirmationDialog() platform.ConfirmationDialo
 }
 
 func (d *DeleteChangesetData) OnConfirm(ctx context.Context) (string, error) {
-	_, err := d.facade.DeleteChangeset(ctx, internal.DeleteChangesetRequest{ChangesetName: d.changesetName})
+	_, err := d.facade.DeleteChangeset(ctx, versource.DeleteChangesetRequest{ChangesetName: d.changesetName})
 	if err != nil {
 		return "", err
 	}

@@ -5,10 +5,10 @@ import (
 
 	v1 "github.com/jsonnet-bundler/jsonnet-bundler/spec/v1"
 	"github.com/jsonnet-bundler/jsonnet-bundler/spec/v1/deps"
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
-func newJsonnetBundlerFromComponent(component *internal.Component) v1.JsonnetFile {
+func newJsonnetBundlerFromComponent(component *versource.Component) v1.JsonnetFile {
 	file := v1.New()
 	source := component.ModuleVersion.Module.Source
 	version := component.ModuleVersion.Version

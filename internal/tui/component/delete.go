@@ -5,23 +5,23 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type DeleteData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	componentID   string
 	changesetName string
 }
 
-func NewDelete(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewDelete(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewConfirmationPage(NewDeleteData(facade, params["componentID"], params["changesetName"]))
 	}
 }
 
-func NewDeleteData(facade internal.Facade, componentID, changesetName string) *DeleteData {
+func NewDeleteData(facade versource.Facade, componentID, changesetName string) *DeleteData {
 	return &DeleteData{
 		facade:        facade,
 		componentID:   componentID,
@@ -44,7 +44,7 @@ func (d *DeleteData) OnConfirm(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("invalid component ID: %w", err)
 	}
 
-	req := internal.DeleteComponentRequest{
+	req := versource.DeleteComponentRequest{
 		ComponentID:   uint(componentID),
 		ChangesetName: d.changesetName,
 	}

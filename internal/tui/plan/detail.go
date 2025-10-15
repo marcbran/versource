@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type DetailData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	changesetName string
 	planID        string
 }
@@ -33,7 +33,7 @@ type DetailViewModel struct {
 	} `yaml:"changeset,omitempty"`
 }
 
-func NewDetail(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewDetail(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewViewDataViewport(NewDetailData(
 			facade,
@@ -43,7 +43,7 @@ func NewDetail(facade internal.Facade) func(params map[string]string) platform.P
 	}
 }
 
-func NewDetailData(facade internal.Facade, changesetName string, planID string) *DetailData {
+func NewDetailData(facade versource.Facade, changesetName string, planID string) *DetailData {
 	return &DetailData{
 		facade:        facade,
 		changesetName: changesetName,
@@ -51,7 +51,7 @@ func NewDetailData(facade internal.Facade, changesetName string, planID string) 
 	}
 }
 
-func (p *DetailData) LoadData() (*internal.GetPlanResponse, error) {
+func (p *DetailData) LoadData() (*versource.GetPlanResponse, error) {
 	ctx := context.Background()
 
 	planIDUint, err := strconv.ParseUint(p.planID, 10, 32)
@@ -59,7 +59,7 @@ func (p *DetailData) LoadData() (*internal.GetPlanResponse, error) {
 		return nil, err
 	}
 
-	req := internal.GetPlanRequest{PlanID: uint(planIDUint)}
+	req := versource.GetPlanRequest{PlanID: uint(planIDUint)}
 	if p.changesetName != "" {
 		req.ChangesetName = &p.changesetName
 	}
@@ -72,7 +72,7 @@ func (p *DetailData) LoadData() (*internal.GetPlanResponse, error) {
 	return planResp, nil
 }
 
-func (p *DetailData) ResolveData(data internal.GetPlanResponse) DetailViewModel {
+func (p *DetailData) ResolveData(data versource.GetPlanResponse) DetailViewModel {
 	var component *struct {
 		ID   uint   `yaml:"id"`
 		Name string `yaml:"name"`
@@ -114,7 +114,7 @@ func (p *DetailData) ResolveData(data internal.GetPlanResponse) DetailViewModel 
 	}
 }
 
-func (p *DetailData) KeyBindings(elem internal.GetPlanResponse) platform.KeyBindings {
+func (p *DetailData) KeyBindings(elem versource.GetPlanResponse) platform.KeyBindings {
 	changesetPrefix := ""
 	if p.changesetName != "" {
 		changesetPrefix = fmt.Sprintf("changesets/%s", p.changesetName)

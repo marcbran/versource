@@ -7,17 +7,17 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type CreateComponentData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	moduleID      string
 	changesetName string
 }
 
-func NewCreateComponent(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewCreateComponent(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewEditor(&CreateComponentData{
 			facade:        facade,
@@ -27,12 +27,12 @@ func NewCreateComponent(facade internal.Facade) func(params map[string]string) p
 	}
 }
 
-func (c *CreateComponentData) GetInitialValue() (internal.CreateComponentRequest, error) {
+func (c *CreateComponentData) GetInitialValue() (versource.CreateComponentRequest, error) {
 	moduleID := uint(0)
 	if c.moduleID != "" {
 		id, err := strconv.ParseUint(c.moduleID, 10, 32)
 		if err != nil {
-			return internal.CreateComponentRequest{}, err
+			return versource.CreateComponentRequest{}, err
 		}
 		moduleID = uint(id)
 	}
@@ -42,7 +42,7 @@ func (c *CreateComponentData) GetInitialValue() (internal.CreateComponentRequest
 		changesetName = generateDefaultChangesetName("create")
 	}
 
-	return internal.CreateComponentRequest{
+	return versource.CreateComponentRequest{
 		ChangesetName: changesetName,
 		ModuleID:      moduleID,
 		Name:          "",
@@ -50,7 +50,7 @@ func (c *CreateComponentData) GetInitialValue() (internal.CreateComponentRequest
 	}, nil
 }
 
-func (c *CreateComponentData) SaveData(ctx context.Context, data internal.CreateComponentRequest) (string, error) {
+func (c *CreateComponentData) SaveData(ctx context.Context, data versource.CreateComponentRequest) (string, error) {
 	if data.ChangesetName == "" {
 		return "", fmt.Errorf("changeset is required")
 	}

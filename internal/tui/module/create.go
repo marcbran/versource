@@ -4,22 +4,22 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type CreateModuleData struct {
-	facade internal.Facade
+	facade versource.Facade
 }
 
-func NewCreateModule(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewCreateModule(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewEditor(&CreateModuleData{facade: facade})
 	}
 }
 
-func (c *CreateModuleData) GetInitialValue() (internal.CreateModuleRequest, error) {
-	return internal.CreateModuleRequest{
+func (c *CreateModuleData) GetInitialValue() (versource.CreateModuleRequest, error) {
+	return versource.CreateModuleRequest{
 		Name:         "",
 		Source:       "",
 		Version:      "",
@@ -27,7 +27,7 @@ func (c *CreateModuleData) GetInitialValue() (internal.CreateModuleRequest, erro
 	}, nil
 }
 
-func (c *CreateModuleData) SaveData(ctx context.Context, data internal.CreateModuleRequest) (string, error) {
+func (c *CreateModuleData) SaveData(ctx context.Context, data versource.CreateModuleRequest) (string, error) {
 	if data.Name == "" {
 		return "", fmt.Errorf("name is required")
 	}

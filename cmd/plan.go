@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/http/client"
 	"github.com/marcbran/versource/internal/tui/plan"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/spf13/cobra"
 )
 
@@ -40,8 +40,8 @@ var planGetCmd = &cobra.Command{
 			ctx,
 			waitForCompletion,
 			detailData,
-			func(resp internal.GetPlanResponse) bool {
-				return internal.IsTaskCompleted(resp.State)
+			func(resp versource.GetPlanResponse) bool {
+				return versource.IsTaskCompleted(resp.State)
 			},
 		)
 	},
@@ -73,9 +73,9 @@ var planListCmd = &cobra.Command{
 			ctx,
 			waitForCompletion,
 			tableData,
-			func(plans []internal.Plan) bool {
+			func(plans []versource.Plan) bool {
 				for _, plan := range plans {
-					if !internal.IsTaskCompleted(plan.State) {
+					if !versource.IsTaskCompleted(plan.State) {
 						return false
 					}
 				}

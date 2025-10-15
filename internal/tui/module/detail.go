@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type DetailData struct {
-	facade   internal.Facade
+	facade   versource.Facade
 	moduleID string
 }
 
@@ -25,17 +25,17 @@ type DetailViewModel struct {
 	} `yaml:"latestVersion,omitempty"`
 }
 
-func NewDetail(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewDetail(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewViewDataViewport(NewDetailData(facade, params["moduleID"]))
 	}
 }
 
-func NewDetailData(facade internal.Facade, moduleID string) *DetailData {
+func NewDetailData(facade versource.Facade, moduleID string) *DetailData {
 	return &DetailData{facade: facade, moduleID: moduleID}
 }
 
-func (p *DetailData) LoadData() (*internal.GetModuleResponse, error) {
+func (p *DetailData) LoadData() (*versource.GetModuleResponse, error) {
 	ctx := context.Background()
 
 	moduleIDUint, err := strconv.ParseUint(p.moduleID, 10, 32)
@@ -43,7 +43,7 @@ func (p *DetailData) LoadData() (*internal.GetModuleResponse, error) {
 		return nil, err
 	}
 
-	moduleResp, err := p.facade.GetModule(ctx, internal.GetModuleRequest{ModuleID: uint(moduleIDUint)})
+	moduleResp, err := p.facade.GetModule(ctx, versource.GetModuleRequest{ModuleID: uint(moduleIDUint)})
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (p *DetailData) LoadData() (*internal.GetModuleResponse, error) {
 	return moduleResp, nil
 }
 
-func (p *DetailData) ResolveData(data internal.GetModuleResponse) DetailViewModel {
+func (p *DetailData) ResolveData(data versource.GetModuleResponse) DetailViewModel {
 	var latestVersion *struct {
 		ID      uint   `yaml:"id"`
 		Version string `yaml:"version"`
@@ -75,7 +75,7 @@ func (p *DetailData) ResolveData(data internal.GetModuleResponse) DetailViewMode
 	}
 }
 
-func (p *DetailData) KeyBindings(elem internal.GetModuleResponse) platform.KeyBindings {
+func (p *DetailData) KeyBindings(elem versource.GetModuleResponse) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "v", Help: "View all versions", Command: fmt.Sprintf("modules/%s/moduleversions", p.moduleID)},
 		{Key: "c", Help: "View components", Command: fmt.Sprintf("components?module-id=%s", p.moduleID)},

@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 func (s *Server) handleGetViewResource(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +18,7 @@ func (s *Server) handleGetViewResource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.GetViewResourceRequest{
+	req := versource.GetViewResourceRequest{
 		ViewResourceID: uint(viewResourceID),
 	}
 
@@ -32,7 +32,7 @@ func (s *Server) handleGetViewResource(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListViewResources(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.facade.ListViewResources(r.Context(), internal.ListViewResourcesRequest{})
+	resp, err := s.facade.ListViewResources(r.Context(), versource.ListViewResourcesRequest{})
 	if err != nil {
 		returnError(w, err)
 		return
@@ -42,7 +42,7 @@ func (s *Server) handleListViewResources(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) handleSaveViewResource(w http.ResponseWriter, r *http.Request) {
-	var req internal.SaveViewResourceRequest
+	var req versource.SaveViewResourceRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		returnBadRequest(w, fmt.Errorf("invalid request body"))
@@ -66,7 +66,7 @@ func (s *Server) handleDeleteViewResource(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	req := internal.DeleteViewResourceRequest{
+	req := versource.DeleteViewResourceRequest{
 		ViewResourceID: uint(viewResourceID),
 	}
 

@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,7 +20,7 @@ func (s *Server) handleGetApply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.GetApplyRequest{
+	req := versource.GetApplyRequest{
 		ApplyID: uint(applyID),
 	}
 
@@ -42,7 +42,7 @@ func (s *Server) handleGetApplyLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.GetApplyLogRequest{
+	req := versource.GetApplyLogRequest{
 		ApplyID: uint(applyID),
 	}
 
@@ -66,7 +66,7 @@ func (s *Server) handleGetApplyLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListApplies(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.facade.ListApplies(r.Context(), internal.ListAppliesRequest{})
+	resp, err := s.facade.ListApplies(r.Context(), versource.ListAppliesRequest{})
 	if err != nil {
 		returnError(w, err)
 		return

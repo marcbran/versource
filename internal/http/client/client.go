@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type Client struct {
@@ -13,7 +13,7 @@ type Client struct {
 	client  *http.Client
 }
 
-func NewClient(config *internal.Config) internal.Facade {
+func NewClient(config *versource.Config) versource.Facade {
 	baseURL := fmt.Sprintf("%s://%s:%s", config.HTTP.Scheme, config.HTTP.Hostname, config.HTTP.Port)
 	if config.HTTP.Hostname == "" {
 		baseURL = fmt.Sprintf("%s://localhost:%s", config.HTTP.Scheme, config.HTTP.Port)

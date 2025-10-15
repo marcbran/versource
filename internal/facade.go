@@ -2,59 +2,9 @@ package internal
 
 import (
 	"context"
+
+	"github.com/marcbran/versource/pkg/versource"
 )
-
-type Facade interface {
-	Start(ctx context.Context)
-
-	GetModule(ctx context.Context, req GetModuleRequest) (*GetModuleResponse, error)
-	ListModules(ctx context.Context, req ListModulesRequest) (*ListModulesResponse, error)
-	CreateModule(ctx context.Context, req CreateModuleRequest) (*CreateModuleResponse, error)
-	UpdateModule(ctx context.Context, req UpdateModuleRequest) (*UpdateModuleResponse, error)
-	DeleteModule(ctx context.Context, req DeleteModuleRequest) (*DeleteModuleResponse, error)
-	GetModuleVersion(ctx context.Context, req GetModuleVersionRequest) (*GetModuleVersionResponse, error)
-	ListModuleVersions(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error)
-
-	ListChangesets(ctx context.Context, req ListChangesetsRequest) (*ListChangesetsResponse, error)
-	CreateChangeset(ctx context.Context, req CreateChangesetRequest) (*CreateChangesetResponse, error)
-	DeleteChangeset(ctx context.Context, req DeleteChangesetRequest) (*DeleteChangesetResponse, error)
-	EnsureChangeset(ctx context.Context, req EnsureChangesetRequest) (*EnsureChangesetResponse, error)
-
-	GetMerge(ctx context.Context, req GetMergeRequest) (*GetMergeResponse, error)
-	ListMerges(ctx context.Context, req ListMergesRequest) (*ListMergesResponse, error)
-	CreateMerge(ctx context.Context, req CreateMergeRequest) (*CreateMergeResponse, error)
-
-	GetRebase(ctx context.Context, req GetRebaseRequest) (*GetRebaseResponse, error)
-	ListRebases(ctx context.Context, req ListRebasesRequest) (*ListRebasesResponse, error)
-	CreateRebase(ctx context.Context, req CreateRebaseRequest) (*CreateRebaseResponse, error)
-
-	GetComponent(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error)
-	ListComponents(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error)
-	GetComponentChange(ctx context.Context, req GetComponentChangeRequest) (*GetComponentChangeResponse, error)
-	ListComponentChanges(ctx context.Context, req ListComponentChangesRequest) (*ListComponentChangesResponse, error)
-	CreateComponent(ctx context.Context, req CreateComponentRequest) (*CreateComponentResponse, error)
-	UpdateComponent(ctx context.Context, req UpdateComponentRequest) (*UpdateComponentResponse, error)
-	DeleteComponent(ctx context.Context, req DeleteComponentRequest) (*DeleteComponentResponse, error)
-	RestoreComponent(ctx context.Context, req RestoreComponentRequest) (*RestoreComponentResponse, error)
-
-	GetPlan(ctx context.Context, req GetPlanRequest) (*GetPlanResponse, error)
-	GetPlanLog(ctx context.Context, req GetPlanLogRequest) (*GetPlanLogResponse, error)
-	ListPlans(ctx context.Context, req ListPlansRequest) (*ListPlansResponse, error)
-	CreatePlan(ctx context.Context, req CreatePlanRequest) (*CreatePlanResponse, error)
-	RunPlan(ctx context.Context, planID uint) error
-
-	GetApply(ctx context.Context, req GetApplyRequest) (*GetApplyResponse, error)
-	GetApplyLog(ctx context.Context, req GetApplyLogRequest) (*GetApplyLogResponse, error)
-	ListApplies(ctx context.Context, req ListAppliesRequest) (*ListAppliesResponse, error)
-	RunApply(ctx context.Context, applyID uint) error
-
-	ListResources(ctx context.Context, req ListResourcesRequest) (*ListResourcesResponse, error)
-
-	GetViewResource(ctx context.Context, req GetViewResourceRequest) (*GetViewResourceResponse, error)
-	ListViewResources(ctx context.Context, req ListViewResourcesRequest) (*ListViewResourcesResponse, error)
-	SaveViewResource(ctx context.Context, req SaveViewResourceRequest) (*SaveViewResourceResponse, error)
-	DeleteViewResource(ctx context.Context, req DeleteViewResourceRequest) (*DeleteViewResourceResponse, error)
-}
 
 type facade struct {
 	getModule          *GetModule
@@ -112,7 +62,7 @@ type facade struct {
 }
 
 func NewFacade(
-	config *Config,
+	config *versource.Config,
 	componentRepo ComponentRepo,
 	componentChangeRepo ComponentChangeRepo,
 	stateRepo StateRepo,
@@ -131,7 +81,7 @@ func NewFacade(
 	queryParser ViewQueryParser,
 	transactionManager TransactionManager,
 	newExecutor NewExecutor,
-) Facade {
+) versource.Facade {
 	runApply := NewRunApply(config, applyRepo, stateRepo, stateResourceRepo, resourceRepo, planStore, logStore, transactionManager, newExecutor, componentRepo)
 	runPlan := NewRunPlan(config, planRepo, planStore, logStore, transactionManager, newExecutor, componentRepo)
 	listComponentChanges := NewListComponentChanges(componentChangeRepo, transactionManager)
@@ -201,119 +151,119 @@ func NewFacade(
 	}
 }
 
-func (f *facade) GetModule(ctx context.Context, req GetModuleRequest) (*GetModuleResponse, error) {
+func (f *facade) GetModule(ctx context.Context, req versource.GetModuleRequest) (*versource.GetModuleResponse, error) {
 	return f.getModule.Exec(ctx, req)
 }
 
-func (f *facade) ListModules(ctx context.Context, req ListModulesRequest) (*ListModulesResponse, error) {
+func (f *facade) ListModules(ctx context.Context, req versource.ListModulesRequest) (*versource.ListModulesResponse, error) {
 	return f.listModules.Exec(ctx, req)
 }
 
-func (f *facade) CreateModule(ctx context.Context, req CreateModuleRequest) (*CreateModuleResponse, error) {
+func (f *facade) CreateModule(ctx context.Context, req versource.CreateModuleRequest) (*versource.CreateModuleResponse, error) {
 	return f.createModule.Exec(ctx, req)
 }
 
-func (f *facade) UpdateModule(ctx context.Context, req UpdateModuleRequest) (*UpdateModuleResponse, error) {
+func (f *facade) UpdateModule(ctx context.Context, req versource.UpdateModuleRequest) (*versource.UpdateModuleResponse, error) {
 	return f.updateModule.Exec(ctx, req)
 }
 
-func (f *facade) DeleteModule(ctx context.Context, req DeleteModuleRequest) (*DeleteModuleResponse, error) {
+func (f *facade) DeleteModule(ctx context.Context, req versource.DeleteModuleRequest) (*versource.DeleteModuleResponse, error) {
 	return f.deleteModule.Exec(ctx, req)
 }
 
-func (f *facade) GetModuleVersion(ctx context.Context, req GetModuleVersionRequest) (*GetModuleVersionResponse, error) {
+func (f *facade) GetModuleVersion(ctx context.Context, req versource.GetModuleVersionRequest) (*versource.GetModuleVersionResponse, error) {
 	return f.getModuleVersion.Exec(ctx, req)
 }
 
-func (f *facade) ListModuleVersions(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error) {
+func (f *facade) ListModuleVersions(ctx context.Context, req versource.ListModuleVersionsRequest) (*versource.ListModuleVersionsResponse, error) {
 	return f.listModuleVersions.Exec(ctx, req)
 }
 
-func (f *facade) ListChangesets(ctx context.Context, req ListChangesetsRequest) (*ListChangesetsResponse, error) {
+func (f *facade) ListChangesets(ctx context.Context, req versource.ListChangesetsRequest) (*versource.ListChangesetsResponse, error) {
 	return f.listChangesets.Exec(ctx, req)
 }
 
-func (f *facade) CreateChangeset(ctx context.Context, req CreateChangesetRequest) (*CreateChangesetResponse, error) {
+func (f *facade) CreateChangeset(ctx context.Context, req versource.CreateChangesetRequest) (*versource.CreateChangesetResponse, error) {
 	return f.createChangeset.Exec(ctx, req)
 }
 
-func (f *facade) DeleteChangeset(ctx context.Context, req DeleteChangesetRequest) (*DeleteChangesetResponse, error) {
+func (f *facade) DeleteChangeset(ctx context.Context, req versource.DeleteChangesetRequest) (*versource.DeleteChangesetResponse, error) {
 	return f.deleteChangeset.Exec(ctx, req)
 }
 
-func (f *facade) EnsureChangeset(ctx context.Context, req EnsureChangesetRequest) (*EnsureChangesetResponse, error) {
+func (f *facade) EnsureChangeset(ctx context.Context, req versource.EnsureChangesetRequest) (*versource.EnsureChangesetResponse, error) {
 	return f.ensureChangeset.Exec(ctx, req)
 }
 
-func (f *facade) GetMerge(ctx context.Context, req GetMergeRequest) (*GetMergeResponse, error) {
+func (f *facade) GetMerge(ctx context.Context, req versource.GetMergeRequest) (*versource.GetMergeResponse, error) {
 	return f.getMerge.Exec(ctx, req)
 }
 
-func (f *facade) ListMerges(ctx context.Context, req ListMergesRequest) (*ListMergesResponse, error) {
+func (f *facade) ListMerges(ctx context.Context, req versource.ListMergesRequest) (*versource.ListMergesResponse, error) {
 	return f.listMerges.Exec(ctx, req)
 }
 
-func (f *facade) CreateMerge(ctx context.Context, req CreateMergeRequest) (*CreateMergeResponse, error) {
+func (f *facade) CreateMerge(ctx context.Context, req versource.CreateMergeRequest) (*versource.CreateMergeResponse, error) {
 	return f.createMerge.Exec(ctx, req)
 }
 
-func (f *facade) GetRebase(ctx context.Context, req GetRebaseRequest) (*GetRebaseResponse, error) {
+func (f *facade) GetRebase(ctx context.Context, req versource.GetRebaseRequest) (*versource.GetRebaseResponse, error) {
 	return f.getRebase.Exec(ctx, req)
 }
 
-func (f *facade) ListRebases(ctx context.Context, req ListRebasesRequest) (*ListRebasesResponse, error) {
+func (f *facade) ListRebases(ctx context.Context, req versource.ListRebasesRequest) (*versource.ListRebasesResponse, error) {
 	return f.listRebases.Exec(ctx, req)
 }
 
-func (f *facade) CreateRebase(ctx context.Context, req CreateRebaseRequest) (*CreateRebaseResponse, error) {
+func (f *facade) CreateRebase(ctx context.Context, req versource.CreateRebaseRequest) (*versource.CreateRebaseResponse, error) {
 	return f.createRebase.Exec(ctx, req)
 }
 
-func (f *facade) GetComponent(ctx context.Context, req GetComponentRequest) (*GetComponentResponse, error) {
+func (f *facade) GetComponent(ctx context.Context, req versource.GetComponentRequest) (*versource.GetComponentResponse, error) {
 	return f.getComponent.Exec(ctx, req)
 }
 
-func (f *facade) ListComponents(ctx context.Context, req ListComponentsRequest) (*ListComponentsResponse, error) {
+func (f *facade) ListComponents(ctx context.Context, req versource.ListComponentsRequest) (*versource.ListComponentsResponse, error) {
 	return f.listComponents.Exec(ctx, req)
 }
 
-func (f *facade) GetComponentChange(ctx context.Context, req GetComponentChangeRequest) (*GetComponentChangeResponse, error) {
+func (f *facade) GetComponentChange(ctx context.Context, req versource.GetComponentChangeRequest) (*versource.GetComponentChangeResponse, error) {
 	return f.getComponentChange.Exec(ctx, req)
 }
 
-func (f *facade) ListComponentChanges(ctx context.Context, req ListComponentChangesRequest) (*ListComponentChangesResponse, error) {
+func (f *facade) ListComponentChanges(ctx context.Context, req versource.ListComponentChangesRequest) (*versource.ListComponentChangesResponse, error) {
 	return f.listComponentChanges.Exec(ctx, req)
 }
 
-func (f *facade) CreateComponent(ctx context.Context, req CreateComponentRequest) (*CreateComponentResponse, error) {
+func (f *facade) CreateComponent(ctx context.Context, req versource.CreateComponentRequest) (*versource.CreateComponentResponse, error) {
 	return f.createComponent.Exec(ctx, req)
 }
 
-func (f *facade) UpdateComponent(ctx context.Context, req UpdateComponentRequest) (*UpdateComponentResponse, error) {
+func (f *facade) UpdateComponent(ctx context.Context, req versource.UpdateComponentRequest) (*versource.UpdateComponentResponse, error) {
 	return f.updateComponent.Exec(ctx, req)
 }
 
-func (f *facade) DeleteComponent(ctx context.Context, req DeleteComponentRequest) (*DeleteComponentResponse, error) {
+func (f *facade) DeleteComponent(ctx context.Context, req versource.DeleteComponentRequest) (*versource.DeleteComponentResponse, error) {
 	return f.deleteComponent.Exec(ctx, req)
 }
 
-func (f *facade) RestoreComponent(ctx context.Context, req RestoreComponentRequest) (*RestoreComponentResponse, error) {
+func (f *facade) RestoreComponent(ctx context.Context, req versource.RestoreComponentRequest) (*versource.RestoreComponentResponse, error) {
 	return f.restoreComponent.Exec(ctx, req)
 }
 
-func (f *facade) GetPlan(ctx context.Context, req GetPlanRequest) (*GetPlanResponse, error) {
+func (f *facade) GetPlan(ctx context.Context, req versource.GetPlanRequest) (*versource.GetPlanResponse, error) {
 	return f.getPlan.Exec(ctx, req)
 }
 
-func (f *facade) GetPlanLog(ctx context.Context, req GetPlanLogRequest) (*GetPlanLogResponse, error) {
+func (f *facade) GetPlanLog(ctx context.Context, req versource.GetPlanLogRequest) (*versource.GetPlanLogResponse, error) {
 	return f.getPlanLog.Exec(ctx, req)
 }
 
-func (f *facade) ListPlans(ctx context.Context, req ListPlansRequest) (*ListPlansResponse, error) {
+func (f *facade) ListPlans(ctx context.Context, req versource.ListPlansRequest) (*versource.ListPlansResponse, error) {
 	return f.listPlans.Exec(ctx, req)
 }
 
-func (f *facade) CreatePlan(ctx context.Context, req CreatePlanRequest) (*CreatePlanResponse, error) {
+func (f *facade) CreatePlan(ctx context.Context, req versource.CreatePlanRequest) (*versource.CreatePlanResponse, error) {
 	return f.createPlan.Exec(ctx, req)
 }
 
@@ -321,15 +271,15 @@ func (f *facade) RunPlan(ctx context.Context, planID uint) error {
 	return f.runPlan.Exec(ctx, planID)
 }
 
-func (f *facade) GetApply(ctx context.Context, req GetApplyRequest) (*GetApplyResponse, error) {
+func (f *facade) GetApply(ctx context.Context, req versource.GetApplyRequest) (*versource.GetApplyResponse, error) {
 	return f.getApply.Exec(ctx, req)
 }
 
-func (f *facade) GetApplyLog(ctx context.Context, req GetApplyLogRequest) (*GetApplyLogResponse, error) {
+func (f *facade) GetApplyLog(ctx context.Context, req versource.GetApplyLogRequest) (*versource.GetApplyLogResponse, error) {
 	return f.getApplyLog.Exec(ctx, req)
 }
 
-func (f *facade) ListApplies(ctx context.Context, req ListAppliesRequest) (*ListAppliesResponse, error) {
+func (f *facade) ListApplies(ctx context.Context, req versource.ListAppliesRequest) (*versource.ListAppliesResponse, error) {
 	return f.listApplies.Exec(ctx, req)
 }
 
@@ -337,23 +287,23 @@ func (f *facade) RunApply(ctx context.Context, applyID uint) error {
 	return f.runApply.Exec(ctx, applyID)
 }
 
-func (f *facade) ListResources(ctx context.Context, req ListResourcesRequest) (*ListResourcesResponse, error) {
+func (f *facade) ListResources(ctx context.Context, req versource.ListResourcesRequest) (*versource.ListResourcesResponse, error) {
 	return f.listResources.Exec(ctx, req)
 }
 
-func (f *facade) GetViewResource(ctx context.Context, req GetViewResourceRequest) (*GetViewResourceResponse, error) {
+func (f *facade) GetViewResource(ctx context.Context, req versource.GetViewResourceRequest) (*versource.GetViewResourceResponse, error) {
 	return f.getViewResource.Exec(ctx, req)
 }
 
-func (f *facade) ListViewResources(ctx context.Context, req ListViewResourcesRequest) (*ListViewResourcesResponse, error) {
+func (f *facade) ListViewResources(ctx context.Context, req versource.ListViewResourcesRequest) (*versource.ListViewResourcesResponse, error) {
 	return f.listViewResources.Exec(ctx, req)
 }
 
-func (f *facade) SaveViewResource(ctx context.Context, req SaveViewResourceRequest) (*SaveViewResourceResponse, error) {
+func (f *facade) SaveViewResource(ctx context.Context, req versource.SaveViewResourceRequest) (*versource.SaveViewResourceResponse, error) {
 	return f.saveViewResource.Exec(ctx, req)
 }
 
-func (f *facade) DeleteViewResource(ctx context.Context, req DeleteViewResourceRequest) (*DeleteViewResourceResponse, error) {
+func (f *facade) DeleteViewResource(ctx context.Context, req versource.DeleteViewResourceRequest) (*versource.DeleteViewResourceResponse, error) {
 	return f.deleteViewResource.Exec(ctx, req)
 }
 

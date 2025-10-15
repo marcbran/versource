@@ -7,6 +7,7 @@ import (
 	"github.com/marcbran/versource/internal"
 	tfjsonnet "github.com/marcbran/versource/internal/infra/terraform-jsonnet"
 	tfmodule "github.com/marcbran/versource/internal/infra/terraform-module"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 	ExecutorTypeTerraformJsonnet = "terraform-jsonnet"
 )
 
-func NewExecutor(component *internal.Component, workdir string, logs io.Writer) (internal.Executor, error) {
+func NewExecutor(component *versource.Component, workdir string, logs io.Writer) (internal.Executor, error) {
 	executorType := component.ModuleVersion.Module.ExecutorType
 
 	switch executorType {

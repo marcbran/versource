@@ -3,40 +3,24 @@ package internal
 import (
 	"context"
 
-	"gorm.io/datatypes"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
-type Module struct {
-	ID           uint   `gorm:"primarykey" json:"id" yaml:"id"`
-	Name         string `gorm:"uniqueIndex;not null" json:"name" yaml:"name"`
-	Source       string `json:"source" yaml:"source"`
-	ExecutorType string `gorm:"not null;default:'terraform-module'" json:"executorType" yaml:"executorType"`
-}
-
-type ModuleVersion struct {
-	ID        uint           `gorm:"primarykey" json:"id" yaml:"id"`
-	Module    Module         `gorm:"foreignKey:ModuleID" json:"module" yaml:"module"`
-	ModuleID  uint           `json:"moduleId" yaml:"moduleId"`
-	Version   string         `json:"version" yaml:"version"`
-	Variables datatypes.JSON `gorm:"type:jsonb" json:"variables" yaml:"variables"`
-	Outputs   datatypes.JSON `gorm:"type:jsonb" json:"outputs" yaml:"outputs"`
-}
-
 type ModuleRepo interface {
-	GetModule(ctx context.Context, moduleID uint) (*Module, error)
-	GetModuleByName(ctx context.Context, name string) (*Module, error)
-	GetModuleBySource(ctx context.Context, source string) (*Module, error)
-	ListModules(ctx context.Context) ([]Module, error)
-	CreateModule(ctx context.Context, module *Module) error
+	GetModule(ctx context.Context, moduleID uint) (*versource.Module, error)
+	GetModuleByName(ctx context.Context, name string) (*versource.Module, error)
+	GetModuleBySource(ctx context.Context, source string) (*versource.Module, error)
+	ListModules(ctx context.Context) ([]versource.Module, error)
+	CreateModule(ctx context.Context, module *versource.Module) error
 	DeleteModule(ctx context.Context, moduleID uint) error
 }
 
 type ModuleVersionRepo interface {
-	GetModuleVersion(ctx context.Context, moduleVersionID uint) (*ModuleVersion, error)
-	GetLatestModuleVersion(ctx context.Context, moduleID uint) (*ModuleVersion, error)
-	ListModuleVersions(ctx context.Context) ([]ModuleVersion, error)
-	ListModuleVersionsForModule(ctx context.Context, moduleID uint) ([]ModuleVersion, error)
-	CreateModuleVersion(ctx context.Context, moduleVersion *ModuleVersion) error
+	GetModuleVersion(ctx context.Context, moduleVersionID uint) (*versource.ModuleVersion, error)
+	GetLatestModuleVersion(ctx context.Context, moduleID uint) (*versource.ModuleVersion, error)
+	ListModuleVersions(ctx context.Context) ([]versource.ModuleVersion, error)
+	ListModuleVersionsForModule(ctx context.Context, moduleID uint) ([]versource.ModuleVersion, error)
+	CreateModuleVersion(ctx context.Context, moduleVersion *versource.ModuleVersion) error
 }
 
 type GetModule struct {
@@ -53,18 +37,9 @@ func NewGetModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo, tx
 	}
 }
 
-type GetModuleRequest struct {
-	ModuleID uint `json:"moduleId" yaml:"moduleId"`
-}
-
-type GetModuleResponse struct {
-	Module        Module         `json:"module" yaml:"module"`
-	LatestVersion *ModuleVersion `json:"latestVersion,omitempty" yaml:"latestVersion,omitempty"`
-}
-
-func (g *GetModule) Exec(ctx context.Context, req GetModuleRequest) (*GetModuleResponse, error) {
-	var module *Module
-	var latestVersion *ModuleVersion
+func (g *GetModule) Exec(ctx context.Context, req versource.GetModuleRequest) (*versource.GetModuleResponse, error) {
+	var module *versource.Module
+	var latestVersion *versource.ModuleVersion
 	err := g.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
 		module, err = g.moduleRepo.GetModule(ctx, req.ModuleID)
@@ -76,14 +51,14 @@ func (g *GetModule) Exec(ctx context.Context, req GetModuleRequest) (*GetModuleR
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to get module", err)
+		return nil, versource.InternalErrE("failed to get module", err)
 	}
 
 	if module == nil {
-		return nil, UserErr("module not found")
+		return nil, versource.UserErr("module not found")
 	}
 
-	return &GetModuleResponse{
+	return &versource.GetModuleResponse{
 		Module:        *module,
 		LatestVersion: latestVersion,
 	}, nil
@@ -101,24 +76,18 @@ func NewListModules(moduleRepo ModuleRepo, tx TransactionManager) *ListModules {
 	}
 }
 
-type ListModulesRequest struct{}
-
-type ListModulesResponse struct {
-	Modules []Module `json:"modules" yaml:"modules"`
-}
-
-func (l *ListModules) Exec(ctx context.Context, req ListModulesRequest) (*ListModulesResponse, error) {
-	var modules []Module
+func (l *ListModules) Exec(ctx context.Context, req versource.ListModulesRequest) (*versource.ListModulesResponse, error) {
+	var modules []versource.Module
 	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
 		modules, err = l.moduleRepo.ListModules(ctx)
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to list modules", err)
+		return nil, versource.InternalErrE("failed to list modules", err)
 	}
 
-	return &ListModulesResponse{
+	return &versource.ListModulesResponse{
 		Modules: modules,
 	}, nil
 }
@@ -137,59 +106,44 @@ func NewCreateModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo,
 	}
 }
 
-type CreateModuleRequest struct {
-	Name         string `json:"name" yaml:"name"`
-	Source       string `json:"source" yaml:"source"`
-	Version      string `json:"version" yaml:"version"`
-	ExecutorType string `json:"executorType,omitempty" yaml:"executorType,omitempty"`
-}
-
-type CreateModuleResponse struct {
-	ID        uint   `json:"id" yaml:"id"`
-	Name      string `json:"name" yaml:"name"`
-	Source    string `json:"source" yaml:"source"`
-	VersionID uint   `json:"versionId" yaml:"versionId"`
-	Version   string `json:"version" yaml:"version"`
-}
-
-func (c *CreateModule) Exec(ctx context.Context, req CreateModuleRequest) (*CreateModuleResponse, error) {
+func (c *CreateModule) Exec(ctx context.Context, req versource.CreateModuleRequest) (*versource.CreateModuleResponse, error) {
 	if req.Name == "" {
-		return nil, UserErr("name is required")
+		return nil, versource.UserErr("name is required")
 	}
 
 	if req.Source == "" {
-		return nil, UserErr("source is required")
+		return nil, versource.UserErr("source is required")
 	}
 
 	if req.ExecutorType == "" {
-		return nil, UserErr("executor type is required")
+		return nil, versource.UserErr("executor type is required")
 	}
 
-	module := &Module{
+	module := &versource.Module{
 		Name:         req.Name,
 		Source:       req.Source,
 		ExecutorType: req.ExecutorType,
 	}
 
-	moduleVersion := &ModuleVersion{
+	moduleVersion := &versource.ModuleVersion{
 		Version: req.Version,
 	}
 
-	var response *CreateModuleResponse
+	var response *versource.CreateModuleResponse
 	err := c.tx.Do(ctx, MainBranch, "create module", func(ctx context.Context) error {
 		err := c.moduleRepo.CreateModule(ctx, module)
 		if err != nil {
-			return InternalErrE("failed to create module", err)
+			return versource.InternalErrE("failed to create module", err)
 		}
 
 		moduleVersion.ModuleID = module.ID
 
 		err = c.moduleVersionRepo.CreateModuleVersion(ctx, moduleVersion)
 		if err != nil {
-			return InternalErrE("failed to create module version", err)
+			return versource.InternalErrE("failed to create module version", err)
 		}
 
-		response = &CreateModuleResponse{
+		response = &versource.CreateModuleResponse{
 			ID:        module.ID,
 			Name:      module.Name,
 			Source:    module.Source,
@@ -219,55 +173,44 @@ func NewUpdateModule(moduleRepo ModuleRepo, moduleVersionRepo ModuleVersionRepo,
 	}
 }
 
-type UpdateModuleRequest struct {
-	ModuleID uint   `json:"moduleId" yaml:"moduleId"`
-	Version  string `json:"version" yaml:"version"`
-}
-
-type UpdateModuleResponse struct {
-	ModuleID  uint   `json:"moduleId" yaml:"moduleId"`
-	VersionID uint   `json:"versionId" yaml:"versionId"`
-	Version   string `json:"version" yaml:"version"`
-}
-
-func (u *UpdateModule) Exec(ctx context.Context, req UpdateModuleRequest) (*UpdateModuleResponse, error) {
+func (u *UpdateModule) Exec(ctx context.Context, req versource.UpdateModuleRequest) (*versource.UpdateModuleResponse, error) {
 	if req.Version == "" {
-		return nil, UserErr("version is required")
+		return nil, versource.UserErr("version is required")
 	}
 
-	var response *UpdateModuleResponse
+	var response *versource.UpdateModuleResponse
 	err := u.tx.Do(ctx, MainBranch, "update module", func(ctx context.Context) error {
 		module, err := u.moduleRepo.GetModule(ctx, req.ModuleID)
 		if err != nil {
-			return InternalErrE("failed to get module", err)
+			return versource.InternalErrE("failed to get module", err)
 		}
 		if module == nil {
-			return UserErr("module not found")
+			return versource.UserErr("module not found")
 		}
 
 		currentVersion, err := u.moduleVersionRepo.GetLatestModuleVersion(ctx, req.ModuleID)
 		if err != nil {
-			return InternalErrE("failed to get current module version", err)
+			return versource.InternalErrE("failed to get current module version", err)
 		}
 		if currentVersion == nil {
-			return UserErr("module has no versions")
+			return versource.UserErr("module has no versions")
 		}
 
 		if currentVersion.Version == "" {
-			return UserErr("cannot update module with empty version")
+			return versource.UserErr("cannot update module with empty version")
 		}
 
-		moduleVersion := &ModuleVersion{
+		moduleVersion := &versource.ModuleVersion{
 			ModuleID: req.ModuleID,
 			Version:  req.Version,
 		}
 
 		err = u.moduleVersionRepo.CreateModuleVersion(ctx, moduleVersion)
 		if err != nil {
-			return InternalErrE("failed to create module version", err)
+			return versource.InternalErrE("failed to create module version", err)
 		}
 
-		response = &UpdateModuleResponse{
+		response = &versource.UpdateModuleResponse{
 			ModuleID:  req.ModuleID,
 			VersionID: moduleVersion.ID,
 			Version:   moduleVersion.Version,
@@ -295,44 +238,36 @@ func NewDeleteModule(moduleRepo ModuleRepo, componentRepo ComponentRepo, tx Tran
 	}
 }
 
-type DeleteModuleRequest struct {
-	ModuleID uint `json:"moduleId" yaml:"moduleId"`
-}
-
-type DeleteModuleResponse struct {
-	ModuleID uint `json:"moduleId" yaml:"moduleId"`
-}
-
-func (d *DeleteModule) Exec(ctx context.Context, req DeleteModuleRequest) (*DeleteModuleResponse, error) {
+func (d *DeleteModule) Exec(ctx context.Context, req versource.DeleteModuleRequest) (*versource.DeleteModuleResponse, error) {
 	if req.ModuleID == 0 {
-		return nil, UserErr("module_id is required")
+		return nil, versource.UserErr("module_id is required")
 	}
 
-	var response *DeleteModuleResponse
+	var response *versource.DeleteModuleResponse
 	err := d.tx.Do(ctx, MainBranch, "delete module", func(ctx context.Context) error {
 		module, err := d.moduleRepo.GetModule(ctx, req.ModuleID)
 		if err != nil {
-			return InternalErrE("failed to get module", err)
+			return versource.InternalErrE("failed to get module", err)
 		}
 		if module == nil {
-			return UserErr("module not found")
+			return versource.UserErr("module not found")
 		}
 
 		components, err := d.componentRepo.ListComponentsByModule(ctx, req.ModuleID)
 		if err != nil {
-			return InternalErrE("failed to check module references", err)
+			return versource.InternalErrE("failed to check module references", err)
 		}
 
 		if len(components) > 0 {
-			return UserErr("cannot delete module that is referenced by components")
+			return versource.UserErr("cannot delete module that is referenced by components")
 		}
 
 		err = d.moduleRepo.DeleteModule(ctx, req.ModuleID)
 		if err != nil {
-			return InternalErrE("failed to delete module", err)
+			return versource.InternalErrE("failed to delete module", err)
 		}
 
-		response = &DeleteModuleResponse{
+		response = &versource.DeleteModuleResponse{
 			ModuleID: req.ModuleID,
 		}
 		return nil
@@ -356,30 +291,22 @@ func NewGetModuleVersion(moduleVersionRepo ModuleVersionRepo, tx TransactionMana
 	}
 }
 
-type GetModuleVersionRequest struct {
-	ModuleVersionID uint `json:"moduleVersionId" yaml:"moduleVersionId"`
-}
-
-type GetModuleVersionResponse struct {
-	ModuleVersion ModuleVersion `json:"moduleVersion" yaml:"moduleVersion"`
-}
-
-func (g *GetModuleVersion) Exec(ctx context.Context, req GetModuleVersionRequest) (*GetModuleVersionResponse, error) {
-	var moduleVersion *ModuleVersion
+func (g *GetModuleVersion) Exec(ctx context.Context, req versource.GetModuleVersionRequest) (*versource.GetModuleVersionResponse, error) {
+	var moduleVersion *versource.ModuleVersion
 	err := g.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
 		moduleVersion, err = g.moduleVersionRepo.GetModuleVersion(ctx, req.ModuleVersionID)
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to get module version", err)
+		return nil, versource.InternalErrE("failed to get module version", err)
 	}
 
 	if moduleVersion == nil {
-		return nil, UserErr("module version not found")
+		return nil, versource.UserErr("module version not found")
 	}
 
-	return &GetModuleVersionResponse{
+	return &versource.GetModuleVersionResponse{
 		ModuleVersion: *moduleVersion,
 	}, nil
 }
@@ -396,16 +323,8 @@ func NewListModuleVersions(moduleVersionRepo ModuleVersionRepo, tx TransactionMa
 	}
 }
 
-type ListModuleVersionsRequest struct {
-	ModuleID *uint `json:"moduleId,omitempty" yaml:"moduleId,omitempty"`
-}
-
-type ListModuleVersionsResponse struct {
-	ModuleVersions []ModuleVersion `json:"moduleVersions" yaml:"moduleVersions"`
-}
-
-func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsRequest) (*ListModuleVersionsResponse, error) {
-	var moduleVersions []ModuleVersion
+func (l *ListModuleVersions) Exec(ctx context.Context, req versource.ListModuleVersionsRequest) (*versource.ListModuleVersionsResponse, error) {
+	var moduleVersions []versource.ModuleVersion
 	err := l.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		var err error
 		if req.ModuleID != nil {
@@ -416,10 +335,10 @@ func (l *ListModuleVersions) Exec(ctx context.Context, req ListModuleVersionsReq
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to list module versions", err)
+		return nil, versource.InternalErrE("failed to list module versions", err)
 	}
 
-	return &ListModuleVersionsResponse{
+	return &versource.ListModuleVersionsResponse{
 		ModuleVersions: moduleVersions,
 	}, nil
 }

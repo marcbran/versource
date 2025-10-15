@@ -4,11 +4,11 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type Commandable struct {
-	facade internal.Facade
+	facade versource.Facade
 	router *Router
 
 	input     textinput.Model
@@ -31,7 +31,7 @@ func (c *Commandable) contentSize() Size {
 
 func NewCommandable(
 	router *Router,
-	facade internal.Facade,
+	facade versource.Facade,
 ) *Commandable {
 	input := textinput.New()
 	input.CharLimit = 100

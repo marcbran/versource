@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type RebaseChangesetData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	changesetName string
 }
 
-func NewRebaseChangeset(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewRebaseChangeset(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewConfirmationPage(&RebaseChangesetData{facade: facade, changesetName: params["changesetName"]})
 	}
@@ -29,7 +29,7 @@ func (r *RebaseChangesetData) GetConfirmationDialog() platform.ConfirmationDialo
 }
 
 func (r *RebaseChangesetData) OnConfirm(ctx context.Context) (string, error) {
-	_, err := r.facade.CreateRebase(ctx, internal.CreateRebaseRequest{ChangesetName: r.changesetName})
+	_, err := r.facade.CreateRebase(ctx, versource.CreateRebaseRequest{ChangesetName: r.changesetName})
 	if err != nil {
 		return "", err
 	}

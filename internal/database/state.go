@@ -5,9 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/marcbran/versource/pkg/versource"
 	"gorm.io/gorm"
-
-	"github.com/marcbran/versource/internal"
 )
 
 type GormStateRepo struct {
@@ -18,9 +17,9 @@ func NewGormStateRepo(db *gorm.DB) *GormStateRepo {
 	return &GormStateRepo{db: db}
 }
 
-func (r *GormStateRepo) UpsertState(ctx context.Context, state *internal.State) error {
+func (r *GormStateRepo) UpsertState(ctx context.Context, state *versource.State) error {
 	db := getTxOrDb(ctx, r.db)
-	var existingState internal.State
+	var existingState versource.State
 	err := db.WithContext(ctx).Where("component_id = ?", state.ComponentID).First(&existingState).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("failed to get existing component output: %w", err)
@@ -48,9 +47,9 @@ func NewGormStateResourceRepo(db *gorm.DB) *GormStateResourceRepo {
 	return &GormStateResourceRepo{db: db}
 }
 
-func (r *GormStateResourceRepo) ListStateResourcesByStateID(ctx context.Context, stateID uint) ([]internal.StateResource, error) {
+func (r *GormStateResourceRepo) ListStateResourcesByStateID(ctx context.Context, stateID uint) ([]versource.StateResource, error) {
 	db := getTxOrDb(ctx, r.db)
-	var resources []internal.StateResource
+	var resources []versource.StateResource
 	err := db.WithContext(ctx).Where("state_id = ?", stateID).Find(&resources).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to list state resources: %w", err)
@@ -58,7 +57,7 @@ func (r *GormStateResourceRepo) ListStateResourcesByStateID(ctx context.Context,
 	return resources, nil
 }
 
-func (r *GormStateResourceRepo) InsertStateResources(ctx context.Context, resources []internal.StateResource) error {
+func (r *GormStateResourceRepo) InsertStateResources(ctx context.Context, resources []versource.StateResource) error {
 	if len(resources) == 0 {
 		return nil
 	}
@@ -71,14 +70,14 @@ func (r *GormStateResourceRepo) InsertStateResources(ctx context.Context, resour
 	return nil
 }
 
-func (r *GormStateResourceRepo) UpdateStateResources(ctx context.Context, resources []internal.StateResource) error {
+func (r *GormStateResourceRepo) UpdateStateResources(ctx context.Context, resources []versource.StateResource) error {
 	if len(resources) == 0 {
 		return nil
 	}
 
 	db := getTxOrDb(ctx, r.db)
 	for _, resource := range resources {
-		err := db.WithContext(ctx).Model(&internal.StateResource{}).Where("id = ?", resource.ID).Updates(&resource).Error
+		err := db.WithContext(ctx).Model(&versource.StateResource{}).Where("id = ?", resource.ID).Updates(&resource).Error
 		if err != nil {
 			return fmt.Errorf("failed to update state resource %d: %w", resource.ID, err)
 		}
@@ -92,7 +91,7 @@ func (r *GormStateResourceRepo) DeleteStateResources(ctx context.Context, stateR
 	}
 
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Where("id IN ?", stateResourceIDs).Delete(&internal.StateResource{}).Error
+	err := db.WithContext(ctx).Where("id IN ?", stateResourceIDs).Delete(&versource.StateResource{}).Error
 	if err != nil {
 		return fmt.Errorf("failed to delete state resources: %w", err)
 	}

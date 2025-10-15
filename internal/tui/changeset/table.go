@@ -6,34 +6,34 @@ import (
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type TableData struct {
-	facade internal.Facade
+	facade versource.Facade
 }
 
-func NewTable(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewTable(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewDataTable(NewTableData(facade))
 	}
 }
 
-func NewTableData(facade internal.Facade) *TableData {
+func NewTableData(facade versource.Facade) *TableData {
 	return &TableData{facade: facade}
 }
 
-func (p *TableData) LoadData() ([]internal.Changeset, error) {
+func (p *TableData) LoadData() ([]versource.Changeset, error) {
 	ctx := context.Background()
-	resp, err := p.facade.ListChangesets(ctx, internal.ListChangesetsRequest{})
+	resp, err := p.facade.ListChangesets(ctx, versource.ListChangesetsRequest{})
 	if err != nil {
 		return nil, err
 	}
 	return resp.Changesets, nil
 }
 
-func (p *TableData) ResolveData(data []internal.Changeset) ([]table.Column, []table.Row, []internal.Changeset) {
+func (p *TableData) ResolveData(data []versource.Changeset) ([]table.Column, []table.Row, []versource.Changeset) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Name", Width: 7},
@@ -42,7 +42,7 @@ func (p *TableData) ResolveData(data []internal.Changeset) ([]table.Column, []ta
 	}
 
 	var rows []table.Row
-	var elems []internal.Changeset
+	var elems []versource.Changeset
 	for _, changeset := range data {
 		rows = append(rows, table.Row{
 			strconv.FormatUint(uint64(changeset.ID), 10),
@@ -60,7 +60,7 @@ func (p *TableData) KeyBindings() platform.KeyBindings {
 	return platform.KeyBindings{}
 }
 
-func (p *TableData) ElemKeyBindings(elem internal.Changeset) platform.KeyBindings {
+func (p *TableData) ElemKeyBindings(elem versource.Changeset) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "enter", Help: "View changes", Command: fmt.Sprintf("changesets/%s/changes", elem.Name)},
 		{Key: "M", Help: "Merge changeset", Command: fmt.Sprintf("changesets/%s/merge", elem.Name)},

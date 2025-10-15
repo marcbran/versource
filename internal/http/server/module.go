@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 func (s *Server) handleGetModule(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +18,7 @@ func (s *Server) handleGetModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.GetModuleRequest{
+	req := versource.GetModuleRequest{
 		ModuleID: uint(moduleID),
 	}
 
@@ -32,7 +32,7 @@ func (s *Server) handleGetModule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListModules(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.facade.ListModules(r.Context(), internal.ListModulesRequest{})
+	resp, err := s.facade.ListModules(r.Context(), versource.ListModulesRequest{})
 	if err != nil {
 		returnError(w, err)
 		return
@@ -42,7 +42,7 @@ func (s *Server) handleListModules(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleCreateModule(w http.ResponseWriter, r *http.Request) {
-	var req internal.CreateModuleRequest
+	var req versource.CreateModuleRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		returnBadRequest(w, fmt.Errorf("invalid request body"))
@@ -66,7 +66,7 @@ func (s *Server) handleUpdateModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req internal.UpdateModuleRequest
+	var req versource.UpdateModuleRequest
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		returnBadRequest(w, fmt.Errorf("invalid request body"))
@@ -92,7 +92,7 @@ func (s *Server) handleDeleteModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := internal.DeleteModuleRequest{
+	req := versource.DeleteModuleRequest{
 		ModuleID: uint(moduleID),
 	}
 
@@ -113,7 +113,7 @@ func (s *Server) handleGetModuleVersion(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	req := internal.GetModuleVersionRequest{
+	req := versource.GetModuleVersionRequest{
 		ModuleVersionID: uint(moduleVersionID),
 	}
 
@@ -127,7 +127,7 @@ func (s *Server) handleGetModuleVersion(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleListModuleVersions(w http.ResponseWriter, r *http.Request) {
-	resp, err := s.facade.ListModuleVersions(r.Context(), internal.ListModuleVersionsRequest{})
+	resp, err := s.facade.ListModuleVersions(r.Context(), versource.ListModuleVersionsRequest{})
 	if err != nil {
 		returnError(w, err)
 		return
@@ -145,7 +145,7 @@ func (s *Server) handleListModuleVersionsForModule(w http.ResponseWriter, r *htt
 	}
 
 	moduleIDUint := uint(moduleID)
-	req := internal.ListModuleVersionsRequest{ModuleID: &moduleIDUint}
+	req := versource.ListModuleVersionsRequest{ModuleID: &moduleIDUint}
 
 	resp, err := s.facade.ListModuleVersions(r.Context(), req)
 	if err != nil {

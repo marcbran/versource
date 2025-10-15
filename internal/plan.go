@@ -6,30 +6,18 @@ import (
 	"io"
 	"time"
 
+	"github.com/marcbran/versource/pkg/versource"
 	log "github.com/sirupsen/logrus"
 )
 
-type Plan struct {
-	ID          uint      `gorm:"primarykey" json:"id" yaml:"id"`
-	Changeset   Changeset `gorm:"foreignKey:ChangesetID" json:"changeset" yaml:"changeset"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	ComponentID uint      `json:"componentId" yaml:"componentId"`
-	From        string    `gorm:"column:from" json:"from" yaml:"from"`
-	To          string    `gorm:"column:to" json:"to" yaml:"to"`
-	State       TaskState `gorm:"default:Queued" json:"state" yaml:"state"`
-	Add         *int      `gorm:"column:add" json:"add" yaml:"add"`
-	Change      *int      `gorm:"column:change" json:"change" yaml:"change"`
-	Destroy     *int      `gorm:"column:destroy" json:"destroy" yaml:"destroy"`
-}
-
 type PlanRepo interface {
-	GetPlan(ctx context.Context, planID uint) (*Plan, error)
+	GetPlan(ctx context.Context, planID uint) (*versource.Plan, error)
 	GetQueuedPlans(ctx context.Context) ([]uint, error)
-	ListPlans(ctx context.Context) ([]Plan, error)
-	ListPlansByChangeset(ctx context.Context, changesetID uint) ([]Plan, error)
-	ListPlansByChangesetName(ctx context.Context, changesetName string) ([]Plan, error)
-	CreatePlan(ctx context.Context, plan *Plan) error
-	UpdatePlanState(ctx context.Context, planID uint, state TaskState) error
+	ListPlans(ctx context.Context) ([]versource.Plan, error)
+	ListPlansByChangeset(ctx context.Context, changesetID uint) ([]versource.Plan, error)
+	ListPlansByChangesetName(ctx context.Context, changesetName string) ([]versource.Plan, error)
+	CreatePlan(ctx context.Context, plan *versource.Plan) error
+	UpdatePlanState(ctx context.Context, planID uint, state versource.TaskState) error
 	UpdatePlanResourceCounts(ctx context.Context, planID uint, counts PlanResourceCounts) error
 	DeletePlan(ctx context.Context, planID uint) error
 }
@@ -54,43 +42,24 @@ func NewGetPlan(planRepo PlanRepo, componentRepo ComponentRepo, tx TransactionMa
 	}
 }
 
-type GetPlanRequest struct {
-	ChangesetName *string `json:"changesetName" yaml:"changesetName"`
-	PlanID        uint    `json:"planId" yaml:"planId"`
-}
-
-type GetPlanResponse struct {
-	ID          uint      `json:"id" yaml:"id"`
-	ComponentID uint      `json:"componentId" yaml:"componentId"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	From        string    `json:"from" yaml:"from"`
-	To          string    `json:"to" yaml:"to"`
-	State       TaskState `json:"state" yaml:"state"`
-	Add         *int      `json:"add" yaml:"add"`
-	Change      *int      `json:"change" yaml:"change"`
-	Destroy     *int      `json:"destroy" yaml:"destroy"`
-	Component   Component `json:"component" yaml:"component"`
-	Changeset   Changeset `json:"changeset" yaml:"changeset"`
-}
-
-func (g *GetPlan) Exec(ctx context.Context, req GetPlanRequest) (*GetPlanResponse, error) {
+func (g *GetPlan) Exec(ctx context.Context, req versource.GetPlanRequest) (*versource.GetPlanResponse, error) {
 	if req.PlanID == 0 {
-		return nil, UserErr("plan ID is required")
+		return nil, versource.UserErr("plan ID is required")
 	}
 
-	var plan *Plan
+	var plan *versource.Plan
 	err := g.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
 		plan, err = g.planRepo.GetPlan(ctx, req.PlanID)
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to list plans", err)
+		return nil, versource.InternalErrE("failed to list plans", err)
 	}
 
-	var component *Component
+	var component *versource.Component
 	branch := plan.Changeset.Name
-	if plan.Changeset.State == ChangesetStateMerged {
+	if plan.Changeset.State == versource.ChangesetStateMerged {
 		branch = MainBranch
 	}
 
@@ -100,10 +69,10 @@ func (g *GetPlan) Exec(ctx context.Context, req GetPlanRequest) (*GetPlanRespons
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to get component at commit", err)
+		return nil, versource.InternalErrE("failed to get component at commit", err)
 	}
 
-	return &GetPlanResponse{
+	return &versource.GetPlanResponse{
 		ID:          plan.ID,
 		ComponentID: plan.ComponentID,
 		ChangesetID: plan.ChangesetID,
@@ -130,18 +99,9 @@ func NewGetPlanLog(logStore LogStore, tx TransactionManager) *GetPlanLog {
 	}
 }
 
-type GetPlanLogRequest struct {
-	ChangesetName *string `json:"changesetName" yaml:"changesetName"`
-	PlanID        uint    `json:"planId" yaml:"planId"`
-}
-
-type GetPlanLogResponse struct {
-	Content io.ReadCloser `json:"content" yaml:"content"`
-}
-
-func (g *GetPlanLog) Exec(ctx context.Context, req GetPlanLogRequest) (*GetPlanLogResponse, error) {
+func (g *GetPlanLog) Exec(ctx context.Context, req versource.GetPlanLogRequest) (*versource.GetPlanLogResponse, error) {
 	if req.PlanID == 0 {
-		return nil, UserErr("plan ID is required")
+		return nil, versource.UserErr("plan ID is required")
 	}
 
 	var reader io.ReadCloser
@@ -151,10 +111,10 @@ func (g *GetPlanLog) Exec(ctx context.Context, req GetPlanLogRequest) (*GetPlanL
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to load plan log", err)
+		return nil, versource.InternalErrE("failed to load plan log", err)
 	}
 
-	return &GetPlanLogResponse{
+	return &versource.GetPlanLogResponse{
 		Content: reader,
 	}, nil
 }
@@ -171,16 +131,8 @@ func NewListPlans(planRepo PlanRepo, tx TransactionManager) *ListPlans {
 	}
 }
 
-type ListPlansRequest struct {
-	ChangesetName string `json:"changesetName" yaml:"changesetName"`
-}
-
-type ListPlansResponse struct {
-	Plans []Plan `json:"plans" yaml:"plans"`
-}
-
-func (l *ListPlans) Exec(ctx context.Context, req ListPlansRequest) (*ListPlansResponse, error) {
-	var plans []Plan
+func (l *ListPlans) Exec(ctx context.Context, req versource.ListPlansRequest) (*versource.ListPlansResponse, error) {
+	var plans []versource.Plan
 
 	err := l.tx.Checkout(ctx, AdminBranch, func(ctx context.Context) error {
 		var err error
@@ -192,10 +144,10 @@ func (l *ListPlans) Exec(ctx context.Context, req ListPlansRequest) (*ListPlansR
 		return err
 	})
 	if err != nil {
-		return nil, InternalErrE("failed to list plans", err)
+		return nil, versource.InternalErrE("failed to list plans", err)
 	}
 
-	return &ListPlansResponse{
+	return &versource.ListPlansResponse{
 		Plans: plans,
 	}, nil
 }
@@ -220,23 +172,9 @@ func NewCreatePlan(componentRepo ComponentRepo, componentChangeRepo ComponentCha
 	}
 }
 
-type CreatePlanRequest struct {
-	ComponentID   uint   `json:"componentId" yaml:"componentId"`
-	ChangesetName string `json:"changesetName" yaml:"changesetName"`
-}
-
-type CreatePlanResponse struct {
-	ID          uint      `json:"id" yaml:"id"`
-	ComponentID uint      `json:"componentId" yaml:"componentId"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	From        string    `json:"from" yaml:"from"`
-	To          string    `json:"to" yaml:"to"`
-	State       TaskState `json:"state" yaml:"state"`
-}
-
-func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePlanResponse, error) {
+func (c *CreatePlan) Exec(ctx context.Context, req versource.CreatePlanRequest) (*versource.CreatePlanResponse, error) {
 	if req.ChangesetName == "" {
-		return nil, UserErr("changeset is required")
+		return nil, versource.UserErr("changeset is required")
 	}
 
 	var from string
@@ -245,7 +183,7 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 	err := c.tx.Checkout(ctx, MainBranch, func(ctx context.Context) error {
 		commit, err := c.componentRepo.GetLastCommitOfComponent(ctx, req.ComponentID)
 		if err != nil {
-			return InternalErrE("failed to get last commit of component from main", err)
+			return versource.InternalErrE("failed to get last commit of component from main", err)
 		}
 
 		from = commit
@@ -258,11 +196,11 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 	err = c.tx.Checkout(ctx, req.ChangesetName, func(ctx context.Context) error {
 		change, err := c.componentChangeRepo.GetComponentChange(ctx, req.ComponentID)
 		if err != nil {
-			return InternalErrE("failed to get component change from changeset", err)
+			return versource.InternalErrE("failed to get component change from changeset", err)
 		}
 
 		if change.ToComponent == nil {
-			return UserErr("cannot create plan for component with no changes")
+			return versource.UserErr("cannot create plan for component with no changes")
 		}
 
 		to = change.ToCommit
@@ -272,14 +210,14 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 		return nil, err
 	}
 
-	var response *CreatePlanResponse
+	var response *versource.CreatePlanResponse
 	err = c.tx.Do(ctx, AdminBranch, "create plan", func(ctx context.Context) error {
 		changeset, err := c.changesetRepo.GetChangesetByName(ctx, req.ChangesetName)
 		if err != nil {
-			return UserErrE("changeset not found", err)
+			return versource.UserErrE("changeset not found", err)
 		}
 
-		plan := &Plan{
+		plan := &versource.Plan{
 			ComponentID: req.ComponentID,
 			ChangesetID: changeset.ID,
 			From:        from,
@@ -288,10 +226,10 @@ func (c *CreatePlan) Exec(ctx context.Context, req CreatePlanRequest) (*CreatePl
 
 		err = c.planRepo.CreatePlan(ctx, plan)
 		if err != nil {
-			return InternalErrE("failed to create plan", err)
+			return versource.InternalErrE("failed to create plan", err)
 		}
 
-		response = &CreatePlanResponse{
+		response = &versource.CreatePlanResponse{
 			ID:          plan.ID,
 			ComponentID: plan.ComponentID,
 			ChangesetID: plan.ChangesetID,
@@ -366,7 +304,7 @@ func (pw *PlanWorker) runPlanInBackground(ctx context.Context, planID uint) {
 		err := pw.runPlan.Exec(workerCtx, planID)
 		if err != nil {
 			stateErr := pw.tx.Do(ctx, AdminBranch, "fail plan", func(ctx context.Context) error {
-				return pw.planRepo.UpdatePlanState(ctx, planID, TaskStateFailed)
+				return pw.planRepo.UpdatePlanState(ctx, planID, versource.TaskStateFailed)
 			})
 			if stateErr != nil {
 				log.WithError(err).
@@ -401,7 +339,7 @@ func (pw *PlanWorker) processQueuedPlans(ctx context.Context) {
 }
 
 type RunPlan struct {
-	config        *Config
+	config        *versource.Config
 	planRepo      PlanRepo
 	planStore     PlanStore
 	logStore      LogStore
@@ -410,7 +348,7 @@ type RunPlan struct {
 	componentRepo ComponentRepo
 }
 
-func NewRunPlan(config *Config, planRepo PlanRepo, planStore PlanStore, logStore LogStore, tx TransactionManager, newExecutor NewExecutor, componentRepo ComponentRepo) *RunPlan {
+func NewRunPlan(config *versource.Config, planRepo PlanRepo, planStore PlanStore, logStore LogStore, tx TransactionManager, newExecutor NewExecutor, componentRepo ComponentRepo) *RunPlan {
 	return &RunPlan{
 		config:        config,
 		planRepo:      planRepo,
@@ -423,7 +361,7 @@ func NewRunPlan(config *Config, planRepo PlanRepo, planStore PlanStore, logStore
 }
 
 func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
-	var plan *Plan
+	var plan *versource.Plan
 
 	err := r.tx.Do(ctx, AdminBranch, "start plan", func(ctx context.Context) error {
 		var err error
@@ -436,7 +374,7 @@ func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
 			return fmt.Errorf("plan ID mismatch")
 		}
 
-		err = r.planRepo.UpdatePlanState(ctx, planID, TaskStateStarted)
+		err = r.planRepo.UpdatePlanState(ctx, planID, versource.TaskStateStarted)
 		if err != nil {
 			return fmt.Errorf("failed to update plan state: %w", err)
 		}
@@ -447,7 +385,7 @@ func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
 		return err
 	}
 
-	var component *Component
+	var component *versource.Component
 	err = r.tx.Checkout(ctx, plan.Changeset.Name, func(ctx context.Context) error {
 		var err error
 		component, err = r.componentRepo.GetComponentAtCommit(ctx, plan.ComponentID, plan.To)
@@ -494,7 +432,7 @@ func (r *RunPlan) Exec(ctx context.Context, planID uint) error {
 			return fmt.Errorf("failed to update plan resource counts: %w", updateErr)
 		}
 
-		err := r.planRepo.UpdatePlanState(ctx, planID, TaskStateSucceeded)
+		err := r.planRepo.UpdatePlanState(ctx, planID, versource.TaskStateSucceeded)
 		if err != nil {
 			return fmt.Errorf("failed to update plan state: %w", err)
 		}

@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/marcbran/versource/internal"
 	http2 "github.com/marcbran/versource/internal/http/server"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
-func (c *Client) ListResources(ctx context.Context, req internal.ListResourcesRequest) (*internal.ListResourcesResponse, error) {
+func (c *Client) ListResources(ctx context.Context, req versource.ListResourcesRequest) (*versource.ListResourcesResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/resources", c.baseURL)
 	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -32,7 +32,7 @@ func (c *Client) ListResources(ctx context.Context, req internal.ListResourcesRe
 		return nil, fmt.Errorf("server error: %s", errorResp.Message)
 	}
 
-	var resourcesResp internal.ListResourcesResponse
+	var resourcesResp versource.ListResourcesResponse
 	err = json.NewDecoder(resp.Body).Decode(&resourcesResp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)

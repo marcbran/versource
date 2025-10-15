@@ -6,18 +6,18 @@ import (
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type TableData struct {
-	facade          internal.Facade
+	facade          versource.Facade
 	moduleID        string
 	moduleVersionID string
 	changesetName   string
 }
 
-func NewTable(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewTable(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		var moduleId string
 		if moduleIdParam, ok := params["module-id"]; ok {
@@ -35,7 +35,7 @@ func NewTable(facade internal.Facade) func(params map[string]string) platform.Pa
 	}
 }
 
-func NewTableData(facade internal.Facade, moduleID, moduleVersionID, changesetName string) *TableData {
+func NewTableData(facade versource.Facade, moduleID, moduleVersionID, changesetName string) *TableData {
 	return &TableData{
 		facade:          facade,
 		moduleID:        moduleID,
@@ -44,10 +44,10 @@ func NewTableData(facade internal.Facade, moduleID, moduleVersionID, changesetNa
 	}
 }
 
-func (p *TableData) LoadData() ([]internal.Component, error) {
+func (p *TableData) LoadData() ([]versource.Component, error) {
 	ctx := context.Background()
 
-	req := internal.ListComponentsRequest{}
+	req := versource.ListComponentsRequest{}
 
 	if p.moduleID != "" {
 		moduleID, err := strconv.ParseUint(p.moduleID, 10, 32)
@@ -77,7 +77,7 @@ func (p *TableData) LoadData() ([]internal.Component, error) {
 	return resp.Components, nil
 }
 
-func (p *TableData) ResolveData(data []internal.Component) ([]table.Column, []table.Row, []internal.Component) {
+func (p *TableData) ResolveData(data []versource.Component) ([]table.Column, []table.Row, []versource.Component) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Name", Width: 3},
@@ -87,7 +87,7 @@ func (p *TableData) ResolveData(data []internal.Component) ([]table.Column, []ta
 	}
 
 	var rows []table.Row
-	var elems []internal.Component
+	var elems []versource.Component
 	for _, component := range data {
 		module := ""
 		version := ""
@@ -120,7 +120,7 @@ func (p *TableData) KeyBindings() platform.KeyBindings {
 	}
 }
 
-func (p *TableData) ElemKeyBindings(elem internal.Component) platform.KeyBindings {
+func (p *TableData) ElemKeyBindings(elem versource.Component) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "enter", Help: "View component detail", Command: fmt.Sprintf("components/%d", elem.ID)},
 		{Key: "E", Help: "Edit component", Command: fmt.Sprintf("components/%d/edit", elem.ID)},

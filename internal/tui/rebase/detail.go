@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type DetailData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	changesetName string
 	rebaseID      string
 }
@@ -23,13 +23,13 @@ type DetailViewModel struct {
 	Head        string `yaml:"head"`
 }
 
-func NewDetail(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewDetail(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewViewDataViewport(NewDetailData(facade, params["changesetName"], params["rebaseID"]))
 	}
 }
 
-func NewDetailData(facade internal.Facade, changesetName, rebaseID string) *DetailData {
+func NewDetailData(facade versource.Facade, changesetName, rebaseID string) *DetailData {
 	return &DetailData{
 		facade:        facade,
 		changesetName: changesetName,
@@ -37,14 +37,14 @@ func NewDetailData(facade internal.Facade, changesetName, rebaseID string) *Deta
 	}
 }
 
-func (p *DetailData) LoadData() (*internal.GetRebaseResponse, error) {
+func (p *DetailData) LoadData() (*versource.GetRebaseResponse, error) {
 	ctx := context.Background()
 	rebaseID, err := strconv.ParseUint(p.rebaseID, 10, 32)
 	if err != nil {
 		return nil, fmt.Errorf("invalid rebase ID: %w", err)
 	}
 
-	req := internal.GetRebaseRequest{
+	req := versource.GetRebaseRequest{
 		RebaseID:      uint(rebaseID),
 		ChangesetName: p.changesetName,
 	}
@@ -57,7 +57,7 @@ func (p *DetailData) LoadData() (*internal.GetRebaseResponse, error) {
 	return resp, nil
 }
 
-func (p *DetailData) ResolveData(data internal.GetRebaseResponse) DetailViewModel {
+func (p *DetailData) ResolveData(data versource.GetRebaseResponse) DetailViewModel {
 	return DetailViewModel{
 		ID:          data.ID,
 		ChangesetID: data.ChangesetID,
@@ -67,7 +67,7 @@ func (p *DetailData) ResolveData(data internal.GetRebaseResponse) DetailViewMode
 	}
 }
 
-func (p *DetailData) KeyBindings(elem internal.GetRebaseResponse) platform.KeyBindings {
+func (p *DetailData) KeyBindings(elem versource.GetRebaseResponse) platform.KeyBindings {
 	return platform.KeyBindings{
 		{Key: "esc", Help: "View rebases", Command: fmt.Sprintf("changesets/%s/rebases", p.changesetName)},
 	}

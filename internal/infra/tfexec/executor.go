@@ -12,15 +12,16 @@ import (
 	"github.com/hashicorp/terraform-exec/tfexec"
 	tfjson "github.com/hashicorp/terraform-json"
 	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 	"gorm.io/datatypes"
 )
 
 type Executor struct {
-	component *internal.Component
+	component *versource.Component
 	tf        *tfexec.Terraform
 }
 
-func NewExecutor(component *internal.Component, workdir string, logs io.Writer) (internal.Executor, error) {
+func NewExecutor(component *versource.Component, workdir string, logs io.Writer) (internal.Executor, error) {
 	tf, err := tfexec.NewTerraform(workdir, "terraform")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create terraform instance: %w", err)
@@ -53,7 +54,7 @@ func (t *Executor) Plan(ctx context.Context) (internal.PlanPath, internal.PlanRe
 	var planOptions []tfexec.PlanOption
 	planOptions = append(planOptions, tfexec.Out(planPath))
 
-	if t.component.Status == internal.ComponentStatusDeleted {
+	if t.component.Status == versource.ComponentStatusDeleted {
 		planOptions = append(planOptions, tfexec.Destroy(true))
 	}
 
@@ -72,27 +73,27 @@ func (t *Executor) Plan(ctx context.Context) (internal.PlanPath, internal.PlanRe
 	return internal.PlanPath(planPath), resourceCounts, nil
 }
 
-func (t *Executor) Apply(ctx context.Context, planPath internal.PlanPath) (internal.State, []internal.StateResource, error) {
+func (t *Executor) Apply(ctx context.Context, planPath internal.PlanPath) (versource.State, []versource.StateResource, error) {
 	err := t.tf.Apply(ctx, tfexec.DirOrPlan(string(planPath)))
 	if err != nil {
-		return internal.State{}, nil, fmt.Errorf("failed to apply terraform: %w", err)
+		return versource.State{}, nil, fmt.Errorf("failed to apply terraform: %w", err)
 	}
 
 	tfState, err := t.tf.Show(ctx)
 	if err != nil {
-		return internal.State{}, nil, fmt.Errorf("failed to get terraform state: %w", err)
+		return versource.State{}, nil, fmt.Errorf("failed to get terraform state: %w", err)
 	}
 
 	state, err := extractState(tfState)
 	if err != nil {
-		return internal.State{}, nil, fmt.Errorf("failed to extract state: %w", err)
+		return versource.State{}, nil, fmt.Errorf("failed to extract state: %w", err)
 	}
 
-	var stateResources []internal.StateResource
+	var stateResources []versource.StateResource
 	if tfState.Values != nil && tfState.Values.RootModule != nil {
 		stateResources, err = extractResources(tfState.Values.RootModule)
 		if err != nil {
-			return internal.State{}, nil, fmt.Errorf("failed to extract resources: %w", err)
+			return versource.State{}, nil, fmt.Errorf("failed to extract resources: %w", err)
 		}
 	}
 
@@ -103,7 +104,7 @@ func (t *Executor) Close() error {
 	return nil
 }
 
-func extractState(tfState *tfjson.State) (internal.State, error) {
+func extractState(tfState *tfjson.State) (versource.State, error) {
 	output := make(map[string]any)
 	for name, out := range tfState.Values.Outputs {
 		if out == nil {
@@ -117,18 +118,18 @@ func extractState(tfState *tfjson.State) (internal.State, error) {
 
 	jsonOutput, err := json.Marshal(output)
 	if err != nil {
-		return internal.State{}, fmt.Errorf("failed to marshal output: %w", err)
+		return versource.State{}, fmt.Errorf("failed to marshal output: %w", err)
 	}
 
-	state := internal.State{
+	state := versource.State{
 		Output: datatypes.JSON(jsonOutput),
 	}
 
 	return state, nil
 }
 
-func extractResources(module *tfjson.StateModule) ([]internal.StateResource, error) {
-	var stateResources []internal.StateResource
+func extractResources(module *tfjson.StateModule) ([]versource.StateResource, error) {
+	var stateResources []versource.StateResource
 
 	for _, tfResource := range module.Resources {
 		var count *int
@@ -149,7 +150,7 @@ func extractResources(module *tfjson.StateModule) ([]internal.StateResource, err
 
 		resourceType := extractResourceType(tfResource.Type, providerInfo.Name)
 
-		resource := internal.Resource{
+		resource := versource.Resource{
 			Provider:      providerInfo.Name,
 			ProviderAlias: providerInfo.Alias,
 			ResourceType:  resourceType,
@@ -158,9 +159,9 @@ func extractResources(module *tfjson.StateModule) ([]internal.StateResource, err
 			Attributes:    datatypes.JSON(jsonAttributes),
 		}
 
-		stateResource := internal.StateResource{
+		stateResource := versource.StateResource{
 			Address:      tfResource.Address,
-			Mode:         internal.ResourceMode(tfResource.Mode),
+			Mode:         versource.ResourceMode(tfResource.Mode),
 			ProviderName: tfResource.ProviderName,
 			Count:        count,
 			ForEach:      forEach,

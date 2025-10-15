@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/marcbran/versource/pkg/versource"
 	"gorm.io/gorm"
-
-	"github.com/marcbran/versource/internal"
 )
 
 type GormChangesetRepo struct {
@@ -17,9 +16,9 @@ func NewGormChangesetRepo(db *gorm.DB) *GormChangesetRepo {
 	return &GormChangesetRepo{db: db}
 }
 
-func (r *GormChangesetRepo) GetChangeset(ctx context.Context, changesetID uint) (*internal.Changeset, error) {
+func (r *GormChangesetRepo) GetChangeset(ctx context.Context, changesetID uint) (*versource.Changeset, error) {
 	db := getTxOrDb(ctx, r.db)
-	var changeset internal.Changeset
+	var changeset versource.Changeset
 	err := db.WithContext(ctx).Where("id = ?", changesetID).First(&changeset).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get changeset: %w", err)
@@ -27,9 +26,9 @@ func (r *GormChangesetRepo) GetChangeset(ctx context.Context, changesetID uint) 
 	return &changeset, nil
 }
 
-func (r *GormChangesetRepo) GetChangesetByName(ctx context.Context, name string) (*internal.Changeset, error) {
+func (r *GormChangesetRepo) GetChangesetByName(ctx context.Context, name string) (*versource.Changeset, error) {
 	db := getTxOrDb(ctx, r.db)
-	var changeset internal.Changeset
+	var changeset versource.Changeset
 	err := db.WithContext(ctx).Where("name = ?", name).First(&changeset).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -40,10 +39,10 @@ func (r *GormChangesetRepo) GetChangesetByName(ctx context.Context, name string)
 	return &changeset, nil
 }
 
-func (r *GormChangesetRepo) GetOpenChangesetByName(ctx context.Context, name string) (*internal.Changeset, error) {
+func (r *GormChangesetRepo) GetOpenChangesetByName(ctx context.Context, name string) (*versource.Changeset, error) {
 	db := getTxOrDb(ctx, r.db)
-	var changeset internal.Changeset
-	err := db.WithContext(ctx).Where("state = ? AND name = ?", internal.ChangesetStateOpen, name).First(&changeset).Error
+	var changeset versource.Changeset
+	err := db.WithContext(ctx).Where("state = ? AND name = ?", versource.ChangesetStateOpen, name).First(&changeset).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -53,9 +52,9 @@ func (r *GormChangesetRepo) GetOpenChangesetByName(ctx context.Context, name str
 	return &changeset, nil
 }
 
-func (r *GormChangesetRepo) ListChangesets(ctx context.Context) ([]internal.Changeset, error) {
+func (r *GormChangesetRepo) ListChangesets(ctx context.Context) ([]versource.Changeset, error) {
 	db := getTxOrDb(ctx, r.db)
-	var changesets []internal.Changeset
+	var changesets []versource.Changeset
 	err := db.WithContext(ctx).Find(&changesets).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to list changesets: %w", err)
@@ -66,7 +65,7 @@ func (r *GormChangesetRepo) ListChangesets(ctx context.Context) ([]internal.Chan
 func (r *GormChangesetRepo) HasOpenChangesetWithName(ctx context.Context, name string) (bool, error) {
 	db := getTxOrDb(ctx, r.db)
 	var count int64
-	err := db.WithContext(ctx).Model(&internal.Changeset{}).Where("state = ? AND name = ?", internal.ChangesetStateOpen, name).Count(&count).Error
+	err := db.WithContext(ctx).Model(&versource.Changeset{}).Where("state = ? AND name = ?", versource.ChangesetStateOpen, name).Count(&count).Error
 	if err != nil {
 		return false, fmt.Errorf("failed to check for open changesets: %w", err)
 	}
@@ -76,14 +75,14 @@ func (r *GormChangesetRepo) HasOpenChangesetWithName(ctx context.Context, name s
 func (r *GormChangesetRepo) HasChangesetWithName(ctx context.Context, name string) (bool, error) {
 	db := getTxOrDb(ctx, r.db)
 	var count int64
-	err := db.WithContext(ctx).Model(&internal.Changeset{}).Where("name = ?", name).Count(&count).Error
+	err := db.WithContext(ctx).Model(&versource.Changeset{}).Where("name = ?", name).Count(&count).Error
 	if err != nil {
 		return false, fmt.Errorf("failed to check for changesets: %w", err)
 	}
 	return count > 0, nil
 }
 
-func (r *GormChangesetRepo) CreateChangeset(ctx context.Context, changeset *internal.Changeset) error {
+func (r *GormChangesetRepo) CreateChangeset(ctx context.Context, changeset *versource.Changeset) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(changeset).Error
 	if err != nil {
@@ -92,18 +91,18 @@ func (r *GormChangesetRepo) CreateChangeset(ctx context.Context, changeset *inte
 	return nil
 }
 
-func (r *GormChangesetRepo) UpdateChangesetState(ctx context.Context, changesetID uint, state internal.ChangesetState) error {
+func (r *GormChangesetRepo) UpdateChangesetState(ctx context.Context, changesetID uint, state versource.ChangesetState) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Model(&internal.Changeset{}).Where("id = ?", changesetID).Update("state", state).Error
+	err := db.WithContext(ctx).Model(&versource.Changeset{}).Where("id = ?", changesetID).Update("state", state).Error
 	if err != nil {
 		return fmt.Errorf("failed to update changeset state: %w", err)
 	}
 	return nil
 }
 
-func (r *GormChangesetRepo) UpdateChangesetReviewState(ctx context.Context, changesetID uint, reviewState internal.ChangesetReviewState) error {
+func (r *GormChangesetRepo) UpdateChangesetReviewState(ctx context.Context, changesetID uint, reviewState versource.ChangesetReviewState) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Model(&internal.Changeset{}).Where("id = ?", changesetID).Update("review_state", reviewState).Error
+	err := db.WithContext(ctx).Model(&versource.Changeset{}).Where("id = ?", changesetID).Update("review_state", reviewState).Error
 	if err != nil {
 		return fmt.Errorf("failed to update changeset review state: %w", err)
 	}
@@ -112,7 +111,7 @@ func (r *GormChangesetRepo) UpdateChangesetReviewState(ctx context.Context, chan
 
 func (r *GormChangesetRepo) DeleteChangeset(ctx context.Context, changesetID uint) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Delete(&internal.Changeset{}, changesetID).Error
+	err := db.WithContext(ctx).Delete(&versource.Changeset{}, changesetID).Error
 	if err != nil {
 		return fmt.Errorf("failed to delete changeset: %w", err)
 	}

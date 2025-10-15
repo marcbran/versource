@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/marcbran/versource/pkg/versource"
 	"gorm.io/gorm"
-
-	"github.com/marcbran/versource/internal"
 )
 
 type GormModuleRepo struct {
@@ -17,9 +16,9 @@ func NewGormModuleRepo(db *gorm.DB) *GormModuleRepo {
 	return &GormModuleRepo{db: db}
 }
 
-func (r *GormModuleRepo) GetModule(ctx context.Context, moduleID uint) (*internal.Module, error) {
+func (r *GormModuleRepo) GetModule(ctx context.Context, moduleID uint) (*versource.Module, error) {
 	db := getTxOrDb(ctx, r.db)
-	var module internal.Module
+	var module versource.Module
 	err := db.WithContext(ctx).Where("id = ?", moduleID).First(&module).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get module: %w", err)
@@ -27,9 +26,9 @@ func (r *GormModuleRepo) GetModule(ctx context.Context, moduleID uint) (*interna
 	return &module, nil
 }
 
-func (r *GormModuleRepo) GetModuleByName(ctx context.Context, name string) (*internal.Module, error) {
+func (r *GormModuleRepo) GetModuleByName(ctx context.Context, name string) (*versource.Module, error) {
 	db := getTxOrDb(ctx, r.db)
-	var module internal.Module
+	var module versource.Module
 	err := db.WithContext(ctx).Where("name = ?", name).First(&module).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get module by name: %w", err)
@@ -37,9 +36,9 @@ func (r *GormModuleRepo) GetModuleByName(ctx context.Context, name string) (*int
 	return &module, nil
 }
 
-func (r *GormModuleRepo) GetModuleBySource(ctx context.Context, source string) (*internal.Module, error) {
+func (r *GormModuleRepo) GetModuleBySource(ctx context.Context, source string) (*versource.Module, error) {
 	db := getTxOrDb(ctx, r.db)
-	var module internal.Module
+	var module versource.Module
 	err := db.WithContext(ctx).Where("source = ?", source).First(&module).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get module by source: %w", err)
@@ -47,9 +46,9 @@ func (r *GormModuleRepo) GetModuleBySource(ctx context.Context, source string) (
 	return &module, nil
 }
 
-func (r *GormModuleRepo) ListModules(ctx context.Context) ([]internal.Module, error) {
+func (r *GormModuleRepo) ListModules(ctx context.Context) ([]versource.Module, error) {
 	db := getTxOrDb(ctx, r.db)
-	var modules []internal.Module
+	var modules []versource.Module
 	err := db.WithContext(ctx).Find(&modules).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to list modules: %w", err)
@@ -57,7 +56,7 @@ func (r *GormModuleRepo) ListModules(ctx context.Context) ([]internal.Module, er
 	return modules, nil
 }
 
-func (r *GormModuleRepo) CreateModule(ctx context.Context, module *internal.Module) error {
+func (r *GormModuleRepo) CreateModule(ctx context.Context, module *versource.Module) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(module).Error
 	if err != nil {
@@ -68,7 +67,7 @@ func (r *GormModuleRepo) CreateModule(ctx context.Context, module *internal.Modu
 
 func (r *GormModuleRepo) DeleteModule(ctx context.Context, moduleID uint) error {
 	db := getTxOrDb(ctx, r.db)
-	err := db.WithContext(ctx).Where("id = ?", moduleID).Delete(&internal.Module{}).Error
+	err := db.WithContext(ctx).Where("id = ?", moduleID).Delete(&versource.Module{}).Error
 	if err != nil {
 		return fmt.Errorf("failed to delete module: %w", err)
 	}
@@ -83,9 +82,9 @@ func NewGormModuleVersionRepo(db *gorm.DB) *GormModuleVersionRepo {
 	return &GormModuleVersionRepo{db: db}
 }
 
-func (r *GormModuleVersionRepo) GetModuleVersion(ctx context.Context, moduleVersionID uint) (*internal.ModuleVersion, error) {
+func (r *GormModuleVersionRepo) GetModuleVersion(ctx context.Context, moduleVersionID uint) (*versource.ModuleVersion, error) {
 	db := getTxOrDb(ctx, r.db)
-	var moduleVersion internal.ModuleVersion
+	var moduleVersion versource.ModuleVersion
 	err := db.WithContext(ctx).Preload("Module").Where("id = ?", moduleVersionID).First(&moduleVersion).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get module version: %w", err)
@@ -93,9 +92,9 @@ func (r *GormModuleVersionRepo) GetModuleVersion(ctx context.Context, moduleVers
 	return &moduleVersion, nil
 }
 
-func (r *GormModuleVersionRepo) GetLatestModuleVersion(ctx context.Context, moduleID uint) (*internal.ModuleVersion, error) {
+func (r *GormModuleVersionRepo) GetLatestModuleVersion(ctx context.Context, moduleID uint) (*versource.ModuleVersion, error) {
 	db := getTxOrDb(ctx, r.db)
-	var moduleVersion internal.ModuleVersion
+	var moduleVersion versource.ModuleVersion
 	err := db.WithContext(ctx).Preload("Module").Where("module_id = ?", moduleID).Order("id DESC").First(&moduleVersion).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -106,9 +105,9 @@ func (r *GormModuleVersionRepo) GetLatestModuleVersion(ctx context.Context, modu
 	return &moduleVersion, nil
 }
 
-func (r *GormModuleVersionRepo) ListModuleVersions(ctx context.Context) ([]internal.ModuleVersion, error) {
+func (r *GormModuleVersionRepo) ListModuleVersions(ctx context.Context) ([]versource.ModuleVersion, error) {
 	db := getTxOrDb(ctx, r.db)
-	var moduleVersions []internal.ModuleVersion
+	var moduleVersions []versource.ModuleVersion
 	err := db.WithContext(ctx).Preload("Module").Find(&moduleVersions).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to list module versions: %w", err)
@@ -116,9 +115,9 @@ func (r *GormModuleVersionRepo) ListModuleVersions(ctx context.Context) ([]inter
 	return moduleVersions, nil
 }
 
-func (r *GormModuleVersionRepo) ListModuleVersionsForModule(ctx context.Context, moduleID uint) ([]internal.ModuleVersion, error) {
+func (r *GormModuleVersionRepo) ListModuleVersionsForModule(ctx context.Context, moduleID uint) ([]versource.ModuleVersion, error) {
 	db := getTxOrDb(ctx, r.db)
-	var moduleVersions []internal.ModuleVersion
+	var moduleVersions []versource.ModuleVersion
 	err := db.WithContext(ctx).Preload("Module").Where("module_id = ?", moduleID).Find(&moduleVersions).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to list module versions for module: %w", err)
@@ -126,7 +125,7 @@ func (r *GormModuleVersionRepo) ListModuleVersionsForModule(ctx context.Context,
 	return moduleVersions, nil
 }
 
-func (r *GormModuleVersionRepo) CreateModuleVersion(ctx context.Context, moduleVersion *internal.ModuleVersion) error {
+func (r *GormModuleVersionRepo) CreateModuleVersion(ctx context.Context, moduleVersion *versource.ModuleVersion) error {
 	db := getTxOrDb(ctx, r.db)
 	err := db.WithContext(ctx).Create(moduleVersion).Error
 	if err != nil {

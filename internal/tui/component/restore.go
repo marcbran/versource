@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type RestoreData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	componentID   string
 	changesetName string
 }
 
-func NewRestore(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewRestore(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewConfirmationPage(NewRestoreData(
 			facade,
@@ -25,7 +25,7 @@ func NewRestore(facade internal.Facade) func(params map[string]string) platform.
 	}
 }
 
-func NewRestoreData(facade internal.Facade, componentID, changesetName string) *RestoreData {
+func NewRestoreData(facade versource.Facade, componentID, changesetName string) *RestoreData {
 	return &RestoreData{
 		facade:        facade,
 		componentID:   componentID,
@@ -48,7 +48,7 @@ func (r *RestoreData) OnConfirm(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("invalid component ID: %w", err)
 	}
 
-	req := internal.RestoreComponentRequest{
+	req := versource.RestoreComponentRequest{
 		ComponentID:   uint(componentID),
 		ChangesetName: r.changesetName,
 	}

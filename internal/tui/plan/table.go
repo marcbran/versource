@@ -6,31 +6,31 @@ import (
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/marcbran/versource/internal"
 	"github.com/marcbran/versource/internal/tui/platform"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 type TableData struct {
-	facade        internal.Facade
+	facade        versource.Facade
 	changesetName string
 }
 
-func NewTable(facade internal.Facade) func(params map[string]string) platform.Page {
+func NewTable(facade versource.Facade) func(params map[string]string) platform.Page {
 	return func(params map[string]string) platform.Page {
 		return platform.NewDataTable(NewTableData(facade, params["changesetName"]))
 	}
 }
 
-func NewTableData(facade internal.Facade, changesetName string) *TableData {
+func NewTableData(facade versource.Facade, changesetName string) *TableData {
 	return &TableData{
 		facade:        facade,
 		changesetName: changesetName,
 	}
 }
 
-func (p *TableData) LoadData() ([]internal.Plan, error) {
+func (p *TableData) LoadData() ([]versource.Plan, error) {
 	ctx := context.Background()
-	req := internal.ListPlansRequest{
+	req := versource.ListPlansRequest{
 		ChangesetName: p.changesetName,
 	}
 	resp, err := p.facade.ListPlans(ctx, req)
@@ -40,7 +40,7 @@ func (p *TableData) LoadData() ([]internal.Plan, error) {
 	return resp.Plans, nil
 }
 
-func (p *TableData) ResolveData(data []internal.Plan) ([]table.Column, []table.Row, []internal.Plan) {
+func (p *TableData) ResolveData(data []versource.Plan) ([]table.Column, []table.Row, []versource.Plan) {
 	columns := []table.Column{
 		{Title: "ID", Width: 1},
 		{Title: "Component", Width: 4},
@@ -52,7 +52,7 @@ func (p *TableData) ResolveData(data []internal.Plan) ([]table.Column, []table.R
 	}
 
 	var rows []table.Row
-	var elems []internal.Plan
+	var elems []versource.Plan
 	for _, plan := range data {
 		addStr := "-"
 		if plan.Add != nil {
@@ -86,7 +86,7 @@ func (p *TableData) KeyBindings() platform.KeyBindings {
 	return platform.KeyBindings{}
 }
 
-func (p *TableData) ElemKeyBindings(elem internal.Plan) platform.KeyBindings {
+func (p *TableData) ElemKeyBindings(elem versource.Plan) platform.KeyBindings {
 	changesetPrefix := ""
 	if p.changesetName != "" {
 		changesetPrefix = fmt.Sprintf("changesets/%s", p.changesetName)

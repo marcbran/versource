@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/xwb1989/sqlparser"
 )
 
@@ -14,7 +14,7 @@ func NewSQLViewQueryParser() *SQLViewQueryParser {
 	return &SQLViewQueryParser{}
 }
 
-func (p *SQLViewQueryParser) Parse(query string) (*internal.ViewResource, error) {
+func (p *SQLViewQueryParser) Parse(query string) (*versource.ViewResource, error) {
 	stmt, err := sqlparser.Parse(query)
 	if err != nil {
 		return nil, fmt.Errorf("invalid SQL query: %w", err)
@@ -134,7 +134,7 @@ func (p *SQLViewQueryParser) Parse(query string) (*internal.ViewResource, error)
 
 	name := fmt.Sprintf("%s_%s_%s_%s_%s", providerValue, resourceTypeValue, parentProviderValue, parentResourceTypeValue, nameValue)
 
-	return &internal.ViewResource{
+	return &versource.ViewResource{
 		Name:  name,
 		Query: query,
 	}, nil

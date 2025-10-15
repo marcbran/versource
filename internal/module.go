@@ -144,11 +144,8 @@ func (c *CreateModule) Exec(ctx context.Context, req versource.CreateModuleReque
 		}
 
 		response = &versource.CreateModuleResponse{
-			ID:        module.ID,
-			Name:      module.Name,
-			Source:    module.Source,
-			VersionID: moduleVersion.ID,
-			Version:   moduleVersion.Version,
+			Module:        *module,
+			LatestVersion: moduleVersion,
 		}
 		return nil
 	})
@@ -211,9 +208,8 @@ func (u *UpdateModule) Exec(ctx context.Context, req versource.UpdateModuleReque
 		}
 
 		response = &versource.UpdateModuleResponse{
-			ModuleID:  req.ModuleID,
-			VersionID: moduleVersion.ID,
-			Version:   moduleVersion.Version,
+			Module:        *module,
+			LatestVersion: moduleVersion,
 		}
 		return nil
 	})

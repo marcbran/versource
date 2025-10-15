@@ -43,11 +43,8 @@ type CreateModuleRequest struct {
 }
 
 type CreateModuleResponse struct {
-	ID        uint   `json:"id" yaml:"id"`
-	Name      string `json:"name" yaml:"name"`
-	Source    string `json:"source" yaml:"source"`
-	VersionID uint   `json:"versionId" yaml:"versionId"`
-	Version   string `json:"version" yaml:"version"`
+	Module        Module         `json:"module" yaml:"module"`
+	LatestVersion *ModuleVersion `json:"latestVersion,omitempty" yaml:"latestVersion,omitempty"`
 }
 
 type UpdateModuleRequest struct {
@@ -56,9 +53,8 @@ type UpdateModuleRequest struct {
 }
 
 type UpdateModuleResponse struct {
-	ModuleID  uint   `json:"moduleId" yaml:"moduleId"`
-	VersionID uint   `json:"versionId" yaml:"versionId"`
-	Version   string `json:"version" yaml:"version"`
+	Module        Module         `json:"module" yaml:"module"`
+	LatestVersion *ModuleVersion `json:"latestVersion,omitempty" yaml:"latestVersion,omitempty"`
 }
 
 type DeleteModuleRequest struct {

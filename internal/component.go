@@ -235,11 +235,7 @@ func (c *CreateComponent) Exec(ctx context.Context, req versource.CreateComponen
 		}
 
 		response = &versource.CreateComponentResponse{
-			ID:        component.ID,
-			Name:      component.Name,
-			Source:    latestVersion.Module.Source,
-			Version:   latestVersion.Version,
-			Variables: variables,
+			Component: *component,
 		}
 		return nil
 	})
@@ -248,7 +244,7 @@ func (c *CreateComponent) Exec(ctx context.Context, req versource.CreateComponen
 	}
 
 	planReq := versource.CreatePlanRequest{
-		ComponentID:   response.ID,
+		ComponentID:   response.Component.ID,
 		ChangesetName: req.ChangesetName,
 	}
 
@@ -257,7 +253,7 @@ func (c *CreateComponent) Exec(ctx context.Context, req versource.CreateComponen
 		return nil, versource.InternalErrE("failed to create plan after component creation", err)
 	}
 
-	response.PlanID = planResp.ID
+	response.Plan = planResp.Plan
 
 	return response, nil
 }
@@ -371,11 +367,7 @@ func (u *UpdateComponent) Exec(ctx context.Context, req versource.UpdateComponen
 		}
 
 		response = &versource.UpdateComponentResponse{
-			ID:        component.ID,
-			Name:      component.Name,
-			Source:    component.ModuleVersion.Module.Source,
-			Version:   component.ModuleVersion.Version,
-			Variables: variables,
+			Component: *component,
 		}
 
 		return nil
@@ -385,7 +377,7 @@ func (u *UpdateComponent) Exec(ctx context.Context, req versource.UpdateComponen
 	}
 
 	planReq := versource.CreatePlanRequest{
-		ComponentID:   response.ID,
+		ComponentID:   response.Component.ID,
 		ChangesetName: req.ChangesetName,
 	}
 
@@ -394,7 +386,7 @@ func (u *UpdateComponent) Exec(ctx context.Context, req versource.UpdateComponen
 		return nil, versource.InternalErrE("failed to create plan after component creation", err)
 	}
 
-	response.PlanID = planResp.ID
+	response.Plan = planResp.Plan
 
 	return response, nil
 }
@@ -506,12 +498,7 @@ func (d *DeleteComponent) Exec(ctx context.Context, req versource.DeleteComponen
 		}
 
 		response = &versource.DeleteComponentResponse{
-			ID:        component.ID,
-			Name:      component.Name,
-			Source:    component.ModuleVersion.Module.Source,
-			Version:   component.ModuleVersion.Version,
-			Variables: variables,
-			Status:    component.Status,
+			Component: *component,
 		}
 
 		return nil
@@ -521,7 +508,7 @@ func (d *DeleteComponent) Exec(ctx context.Context, req versource.DeleteComponen
 	}
 
 	planReq := versource.CreatePlanRequest{
-		ComponentID:   response.ID,
+		ComponentID:   response.Component.ID,
 		ChangesetName: req.ChangesetName,
 	}
 
@@ -530,7 +517,7 @@ func (d *DeleteComponent) Exec(ctx context.Context, req versource.DeleteComponen
 		return nil, versource.InternalErrE("failed to create plan after component deletion", err)
 	}
 
-	response.PlanID = planResp.ID
+	response.Plan = planResp.Plan
 
 	return response, nil
 }
@@ -642,12 +629,7 @@ func (r *RestoreComponent) Exec(ctx context.Context, req versource.RestoreCompon
 		}
 
 		response = &versource.RestoreComponentResponse{
-			ID:        component.ID,
-			Name:      component.Name,
-			Source:    component.ModuleVersion.Module.Source,
-			Version:   component.ModuleVersion.Version,
-			Variables: variables,
-			Status:    component.Status,
+			Component: *component,
 		}
 
 		return nil
@@ -657,7 +639,7 @@ func (r *RestoreComponent) Exec(ctx context.Context, req versource.RestoreCompon
 	}
 
 	planReq := versource.CreatePlanRequest{
-		ComponentID:   response.ID,
+		ComponentID:   response.Component.ID,
 		ChangesetName: req.ChangesetName,
 	}
 
@@ -666,7 +648,7 @@ func (r *RestoreComponent) Exec(ctx context.Context, req versource.RestoreCompon
 		return nil, versource.InternalErrE("failed to create plan after component restoration", err)
 	}
 
-	response.PlanID = planResp.ID
+	response.Plan = planResp.Plan
 
 	return response, nil
 }

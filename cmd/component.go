@@ -131,7 +131,7 @@ var componentCreateCmd = &cobra.Command{
 			return err
 		}
 
-		return formatOutput(component, "Component created successfully with ID: %d\n", component.ID)
+		return formatOutput(component, "Component created successfully with ID: %d\n", component.Component.ID)
 	},
 }
 
@@ -202,7 +202,7 @@ var componentUpdateCmd = &cobra.Command{
 			return err
 		}
 
-		return formatOutput(component, "Component updated successfully with ID: %d\n", component.ID)
+		return formatOutput(component, "Component updated successfully with ID: %d\n", component.Component.ID)
 	},
 }
 
@@ -244,7 +244,7 @@ var componentDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		return formatOutput(component, "Component deleted successfully with ID: %d\n", component.ID)
+		return formatOutput(component, "Component deleted successfully with ID: %d\n", component.Component.ID)
 	},
 }
 
@@ -286,7 +286,7 @@ var componentPlanCmd = &cobra.Command{
 			return err
 		}
 
-		return formatOutput(plan, "Plan created successfully with ID: %d\n", plan.ID)
+		return formatOutput(plan, "Plan created successfully with ID: %d\n", plan.Plan.ID)
 	},
 }
 
@@ -328,7 +328,7 @@ var componentRestoreCmd = &cobra.Command{
 			return err
 		}
 
-		return formatOutput(component, "Component restored successfully with ID: %d\n", component.ID)
+		return formatOutput(component, "Component restored successfully with ID: %d\n", component.Component.ID)
 	},
 }
 

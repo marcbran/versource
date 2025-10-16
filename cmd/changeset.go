@@ -46,7 +46,7 @@ var changesetCreateCmd = &cobra.Command{
 			return err
 		}
 
-		return formatOutput(changeset, "Changeset created successfully with ID: %d\n", changeset.ID)
+		return formatOutput(changeset, "Changeset created successfully with ID: %d\n", changeset.Changeset.ID)
 	},
 }
 
@@ -92,7 +92,7 @@ var changesetMergeCmd = &cobra.Command{
 			return err
 		}
 
-		return formatOutput(merge, "Merge operation created for changeset %s (ID: %d)\n", changesetName, merge.ID)
+		return formatOutput(merge, "Merge operation created for changeset %s (ID: %d)\n", changesetName, merge.Merge.ID)
 	},
 }
 
@@ -123,7 +123,7 @@ var changesetRebaseCmd = &cobra.Command{
 			return err
 		}
 
-		return formatOutput(rebase, "Rebase operation created for changeset %s (ID: %d)\n", changesetName, rebase.ID)
+		return formatOutput(rebase, "Rebase operation created for changeset %s (ID: %d)\n", changesetName, rebase.Rebase.ID)
 	},
 }
 

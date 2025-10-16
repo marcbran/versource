@@ -41,7 +41,7 @@ var mergeGetCmd = &cobra.Command{
 			waitForCompletion,
 			detailData,
 			func(resp versource.GetMergeResponse) bool {
-				return versource.IsTaskCompleted(resp.State)
+				return versource.IsTaskCompleted(resp.Merge.State)
 			},
 		)
 	},

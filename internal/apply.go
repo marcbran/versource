@@ -66,60 +66,8 @@ func (g *GetApply) Exec(ctx context.Context, req versource.GetApplyRequest) (*ve
 	}
 
 	response := &versource.GetApplyResponse{
-		ID:          apply.ID,
-		PlanID:      apply.PlanID,
-		ChangesetID: apply.ChangesetID,
-		State:       apply.State,
-		Plan: struct {
-			ID          uint                `json:"id" yaml:"id"`
-			State       versource.TaskState `json:"state" yaml:"state"`
-			From        string              `json:"from" yaml:"from"`
-			To          string              `json:"to" yaml:"to"`
-			Add         *int                `json:"add,omitempty" yaml:"add,omitempty"`
-			Change      *int                `json:"change,omitempty" yaml:"change,omitempty"`
-			Destroy     *int                `json:"destroy,omitempty" yaml:"destroy,omitempty"`
-			ComponentID uint                `json:"componentId" yaml:"componentId"`
-			Component   struct {
-				ID   uint   `json:"id" yaml:"id"`
-				Name string `json:"name" yaml:"name"`
-			} `json:"component" yaml:"component"`
-			ChangesetID uint `json:"changesetId" yaml:"changesetId"`
-			Changeset   struct {
-				ID   uint   `json:"id" yaml:"id"`
-				Name string `json:"name" yaml:"name"`
-			} `json:"changeset" yaml:"changeset"`
-		}{
-			ID:          apply.Plan.ID,
-			State:       apply.Plan.State,
-			From:        apply.Plan.From,
-			To:          apply.Plan.To,
-			Add:         apply.Plan.Add,
-			Change:      apply.Plan.Change,
-			Destroy:     apply.Plan.Destroy,
-			ComponentID: apply.Plan.ComponentID,
-			Component: struct {
-				ID   uint   `json:"id" yaml:"id"`
-				Name string `json:"name" yaml:"name"`
-			}{
-				ID:   component.ID,
-				Name: component.Name,
-			},
-			ChangesetID: apply.Plan.ChangesetID,
-			Changeset: struct {
-				ID   uint   `json:"id" yaml:"id"`
-				Name string `json:"name" yaml:"name"`
-			}{
-				ID:   apply.Plan.Changeset.ID,
-				Name: apply.Plan.Changeset.Name,
-			},
-		},
-		Changeset: struct {
-			ID   uint   `json:"id" yaml:"id"`
-			Name string `json:"name" yaml:"name"`
-		}{
-			ID:   apply.Changeset.ID,
-			Name: apply.Changeset.Name,
-		},
+		Apply:     *apply,
+		Component: *component,
 	}
 
 	return response, nil

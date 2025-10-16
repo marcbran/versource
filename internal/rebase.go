@@ -51,11 +51,7 @@ func (g *GetRebase) Exec(ctx context.Context, req versource.GetRebaseRequest) (*
 	}
 
 	return &versource.GetRebaseResponse{
-		ID:          rebase.ID,
-		ChangesetID: rebase.ChangesetID,
-		MergeBase:   rebase.MergeBase,
-		Head:        rebase.Head,
-		State:       rebase.State,
+		Rebase: *rebase,
 	}, nil
 }
 
@@ -153,11 +149,7 @@ func (c *CreateRebase) Exec(ctx context.Context, req versource.CreateRebaseReque
 		}
 
 		response = &versource.CreateRebaseResponse{
-			ID:          rebase.ID,
-			ChangesetID: rebase.ChangesetID,
-			MergeBase:   rebase.MergeBase,
-			Head:        rebase.Head,
-			State:       rebase.State,
+			Rebase: *rebase,
 		}
 
 		return nil
@@ -167,7 +159,7 @@ func (c *CreateRebase) Exec(ctx context.Context, req versource.CreateRebaseReque
 	}
 
 	if c.rebaseWorker != nil {
-		c.rebaseWorker.QueueRebase(response.ID)
+		c.rebaseWorker.QueueRebase(response.Rebase.ID)
 	}
 
 	return response, nil

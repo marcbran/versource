@@ -3,6 +3,7 @@
 package tests
 
 import (
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/stretchr/testify/require"
 )
 
@@ -51,15 +52,11 @@ func (s *Stage) the_plan_has_completed(expectedState string) *Stage {
 	require.NotEqual(s.t, "", s.PlanID, "No plan id")
 	require.NotEqual(s.t, "", s.ChangesetName, "No changeset name")
 	s.a_client_command_is_executed("plan", "get", s.PlanID, "--changeset", s.ChangesetName, "--wait-for-completion")
-	require.NotNil(s.t, s.LastOutputMap, "No command output to check")
+	require.NotEqual(s.t, "", s.LastOutput, "No command output to check")
 
-	state, ok := s.LastOutputMap["state"]
-	require.True(s.t, ok, "No state field in command output")
+	response := unmarshalResponse[versource.GetPlanResponse](s.t, s.LastOutput)
 
-	stateStr, ok := state.(string)
-	require.True(s.t, ok, "Plan state is not a string")
-
-	require.Equal(s.t, expectedState, stateStr, "Plan state mismatch")
+	require.Equal(s.t, expectedState, string(response.Plan.State), "Plan state mismatch")
 
 	return s
 }

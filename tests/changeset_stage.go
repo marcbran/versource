@@ -46,13 +46,8 @@ func (s *Stage) a_changeset_has_been_merged(changesetName string) *Stage {
 func (s *Stage) a_changeset_is_merged(changesetName string) *Stage {
 	s.ChangesetName = changesetName
 	s.a_client_command_is_executed("changeset", "merge", changesetName)
-	if s.LastOutputMap != nil {
-		if id, ok := s.LastOutputMap["id"]; ok {
-			if idFloat, ok := id.(float64); ok {
-				s.MergeID = fmt.Sprintf("%.0f", idFloat)
-			}
-		}
-	}
+	response := unmarshalResponse[versource.CreateMergeResponse](s.t, s.LastOutput)
+	s.MergeID = fmt.Sprintf("%d", response.Merge.ID)
 	return s
 }
 
@@ -76,15 +71,11 @@ func (s *Stage) the_changeset_merge_has_completed(expectedState string) *Stage {
 	require.NotEqual(s.t, "", s.MergeID, "No merge id")
 	require.NotEqual(s.t, "", s.ChangesetName, "No changeset name")
 	s.a_client_command_is_executed("merge", "get", s.MergeID, "--changeset", s.ChangesetName, "--output", "json", "--wait-for-completion")
-	require.NotNil(s.t, s.LastOutputMap, "No command output to check")
+	require.NotEqual(s.t, "", s.LastOutput, "No command output to check")
 
-	state, ok := s.LastOutputMap["state"]
-	require.True(s.t, ok, "No state field in command output")
+	response := unmarshalResponse[versource.GetMergeResponse](s.t, s.LastOutput)
 
-	stateStr, ok := state.(string)
-	require.True(s.t, ok, "Merge state is not a string")
-
-	require.Equal(s.t, expectedState, stateStr, "Merge state mismatch")
+	require.Equal(s.t, expectedState, string(response.Merge.State), "Merge state mismatch")
 
 	return s
 }
@@ -108,13 +99,8 @@ func (s *Stage) a_changeset_has_been_rebased(changesetName string) *Stage {
 func (s *Stage) a_changeset_is_rebased(changesetName string) *Stage {
 	s.ChangesetName = changesetName
 	s.a_client_command_is_executed("changeset", "rebase", changesetName)
-	if s.LastOutputMap != nil {
-		if id, ok := s.LastOutputMap["id"]; ok {
-			if idFloat, ok := id.(float64); ok {
-				s.RebaseID = fmt.Sprintf("%.0f", idFloat)
-			}
-		}
-	}
+	response := unmarshalResponse[versource.CreateRebaseResponse](s.t, s.LastOutput)
+	s.RebaseID = fmt.Sprintf("%d", response.Rebase.ID)
 	return s
 }
 
@@ -139,15 +125,11 @@ func (s *Stage) the_changeset_rebase_has_completed(expectedState string) *Stage 
 	require.NotEqual(s.t, "", s.ChangesetName, "No changeset name")
 	s.a_client_command_is_executed("rebase", "get", s.RebaseID, "--changeset", s.ChangesetName, "--output", "json", "--wait-for-completion")
 
-	require.NotNil(s.t, s.LastOutputMap, "No command output to check")
+	require.NotEqual(s.t, "", s.LastOutput, "No command output to check")
 
-	state, ok := s.LastOutputMap["state"]
-	require.True(s.t, ok, "No state field in command output")
+	response := unmarshalResponse[versource.GetRebaseResponse](s.t, s.LastOutput)
 
-	stateStr, ok := state.(string)
-	require.True(s.t, ok, "Rebase state is not a string")
-
-	require.Equal(s.t, expectedState, stateStr, "Rebase state mismatch")
+	require.Equal(s.t, expectedState, string(response.Rebase.State), "Rebase state mismatch")
 
 	return s
 }
@@ -174,28 +156,15 @@ func (s *Stage) the_changeset_changes_are_listed() *Stage {
 }
 
 func (s *Stage) there_are_changes(expectedCount int) *Stage {
-	require.NotNil(s.t, s.LastOutputArray, "No command output to check")
-
-	require.Equal(s.t, expectedCount, len(s.LastOutputArray), "Unexpected number of changes")
-
+	changes := unmarshalArray[versource.ComponentChange](s.t, s.LastOutput)
+	require.Equal(s.t, expectedCount, len(changes), "Unexpected number of changes")
 	return s
 }
 
 func (s *Stage) the_changeset_nth_change_is_set_to(index int, changeType versource.ChangeType) *Stage {
-	require.NotNil(s.t, s.LastOutputArray, "No command output to check")
-	require.True(s.t, index < len(s.LastOutputArray), "Index %d is out of bounds for changes array of length %d", index, len(s.LastOutputArray))
-
-	change, ok := s.LastOutputArray[index].(map[string]any)
-	require.True(s.t, ok, "Change at index %d is not a map", index)
-
-	actualType, ok := change["changeType"]
-	require.True(s.t, ok, "No type field in change at index %d", index)
-
-	actualTypeStr, ok := actualType.(string)
-	require.True(s.t, ok, "Type field is not a string in change at index %d", index)
-
-	require.Equal(s.t, string(changeType), actualTypeStr, "Change type mismatch at index %d", index)
-
+	changes := unmarshalArray[versource.ComponentChange](s.t, s.LastOutput)
+	require.True(s.t, index < len(changes), "Index %d is out of bounds for changes array of length %d", index, len(changes))
+	require.Equal(s.t, changeType, changes[index].ChangeType, "Change type mismatch at index %d", index)
 	return s
 }
 
@@ -211,33 +180,11 @@ func (s *Stage) all_changeset_plans_have_completed(expectedState string) *Stage 
 	require.NotEqual(s.t, "", s.ChangesetName, "No changeset name")
 	s.a_client_command_is_executed("changeset", "change", "list", "--changeset", s.ChangesetName, "--wait-for-completion", "--output", "json")
 
-	require.NotNil(s.t, s.LastOutputArray, "No command output to check")
+	changes := unmarshalArray[versource.ComponentChange](s.t, s.LastOutput)
 
-	for i, change := range s.LastOutputArray {
-		changeMap, ok := change.(map[string]any)
-		require.True(s.t, ok, "Change at index %d is not a map", i)
-
-		plan, ok := changeMap["plan"]
-		if !ok {
-			require.Fail(s.t, "No plan field in change at index %d", i)
-			continue
-		}
-
-		if plan == nil {
-			require.Fail(s.t, "Plan is nil in change at index %d", i)
-			continue
-		}
-
-		planMap, ok := plan.(map[string]any)
-		require.True(s.t, ok, "Plan at index %d is not a map", i)
-
-		state, ok := planMap["state"]
-		require.True(s.t, ok, "No state field in plan at index %d", i)
-
-		stateStr, ok := state.(string)
-		require.True(s.t, ok, "Plan state is not a string at index %d", i)
-
-		require.Equal(s.t, expectedState, stateStr, "Plan state mismatch at index %d", i)
+	for i, change := range changes {
+		require.NotNil(s.t, change.Plan, "Plan is nil in change at index %d", i)
+		require.Equal(s.t, expectedState, string(change.Plan.State), "Plan state mismatch at index %d", i)
 	}
 
 	return s

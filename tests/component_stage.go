@@ -4,6 +4,8 @@ package tests
 
 import (
 	"fmt"
+
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 func (s *Stage) a_component_has_been_created_for_the_module_and_changeset(name, variables string) *Stage {
@@ -28,18 +30,9 @@ func (s *Stage) a_component_is_created(changeset, moduleID, name, variables stri
 	args := []string{"component", "create", "--name", name, "--changeset", changeset, "--module-id", moduleID}
 	args = append(args, parseVariablesToArgs(variables)...)
 	s.a_client_command_is_executed(args...)
-	if s.LastOutputMap != nil {
-		if id, ok := s.LastOutputMap["id"]; ok {
-			if idFloat, ok := id.(float64); ok {
-				s.ComponentID = fmt.Sprintf("%.0f", idFloat)
-			}
-		}
-		if id, ok := s.LastOutputMap["planId"]; ok {
-			if idFloat, ok := id.(float64); ok {
-				s.PlanID = fmt.Sprintf("%.0f", idFloat)
-			}
-		}
-	}
+	response := unmarshalResponse[versource.CreateComponentResponse](s.t, s.LastOutput)
+	s.ComponentID = fmt.Sprintf("%d", response.Component.ID)
+	s.PlanID = fmt.Sprintf("%d", response.Plan.ID)
 	return s
 }
 
@@ -95,18 +88,9 @@ func (s *Stage) a_component_is_updated(componentID, changeset, variables string)
 	args := []string{"component", "update", componentID, "--changeset", changeset}
 	args = append(args, parseVariablesToArgs(variables)...)
 	s.a_client_command_is_executed(args...)
-	if s.LastOutputMap != nil {
-		if id, ok := s.LastOutputMap["id"]; ok {
-			if idFloat, ok := id.(float64); ok {
-				s.ComponentID = fmt.Sprintf("%.0f", idFloat)
-			}
-		}
-		if id, ok := s.LastOutputMap["planId"]; ok {
-			if idFloat, ok := id.(float64); ok {
-				s.PlanID = fmt.Sprintf("%.0f", idFloat)
-			}
-		}
-	}
+	response := unmarshalResponse[versource.UpdateComponentResponse](s.t, s.LastOutput)
+	s.ComponentID = fmt.Sprintf("%d", response.Component.ID)
+	s.PlanID = fmt.Sprintf("%d", response.Plan.ID)
 	return s
 }
 
@@ -160,18 +144,9 @@ func (s *Stage) a_component_is_deleted_from_the_changeset(componentID string) *S
 
 func (s *Stage) a_component_is_deleted(componentID, changeset string) *Stage {
 	s.a_client_command_is_executed("component", "delete", componentID, "--changeset", changeset)
-	if s.LastOutputMap != nil {
-		if id, ok := s.LastOutputMap["id"]; ok {
-			if idFloat, ok := id.(float64); ok {
-				s.ComponentID = fmt.Sprintf("%.0f", idFloat)
-			}
-		}
-		if id, ok := s.LastOutputMap["planId"]; ok {
-			if idFloat, ok := id.(float64); ok {
-				s.PlanID = fmt.Sprintf("%.0f", idFloat)
-			}
-		}
-	}
+	response := unmarshalResponse[versource.DeleteComponentResponse](s.t, s.LastOutput)
+	s.ComponentID = fmt.Sprintf("%d", response.Component.ID)
+	s.PlanID = fmt.Sprintf("%d", response.Plan.ID)
 	return s
 }
 
@@ -221,18 +196,9 @@ func (s *Stage) a_component_is_restored_in_the_changeset(componentID string) *St
 
 func (s *Stage) a_component_is_restored(componentID, changeset string) *Stage {
 	s.a_client_command_is_executed("component", "restore", componentID, "--changeset", changeset)
-	if s.LastOutputMap != nil {
-		if id, ok := s.LastOutputMap["id"]; ok {
-			if idFloat, ok := id.(float64); ok {
-				s.ComponentID = fmt.Sprintf("%.0f", idFloat)
-			}
-		}
-		if id, ok := s.LastOutputMap["planId"]; ok {
-			if idFloat, ok := id.(float64); ok {
-				s.PlanID = fmt.Sprintf("%.0f", idFloat)
-			}
-		}
-	}
+	response := unmarshalResponse[versource.RestoreComponentResponse](s.t, s.LastOutput)
+	s.ComponentID = fmt.Sprintf("%d", response.Component.ID)
+	s.PlanID = fmt.Sprintf("%d", response.Plan.ID)
 	return s
 }
 

@@ -15,11 +15,7 @@ type GetMergeRequest struct {
 }
 
 type GetMergeResponse struct {
-	ID          uint      `json:"id" yaml:"id"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	MergeBase   string    `json:"mergeBase" yaml:"mergeBase"`
-	Head        string    `json:"head" yaml:"head"`
-	State       TaskState `json:"state" yaml:"state"`
+	Merge Merge `json:"merge" yaml:"merge"`
 }
 
 type ListMergesRequest struct {
@@ -35,9 +31,5 @@ type CreateMergeRequest struct {
 }
 
 type CreateMergeResponse struct {
-	ID          uint      `json:"id" yaml:"id"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	MergeBase   string    `json:"mergeBase" yaml:"mergeBase"`
-	Head        string    `json:"head" yaml:"head"`
-	State       TaskState `json:"state" yaml:"state"`
+	Merge Merge `json:"merge" yaml:"merge"`
 }

@@ -41,7 +41,7 @@ var planGetCmd = &cobra.Command{
 			waitForCompletion,
 			detailData,
 			func(resp versource.GetPlanResponse) bool {
-				return versource.IsTaskCompleted(resp.State)
+				return versource.IsTaskCompleted(resp.Plan.State)
 			},
 		)
 	},

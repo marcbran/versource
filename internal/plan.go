@@ -73,17 +73,8 @@ func (g *GetPlan) Exec(ctx context.Context, req versource.GetPlanRequest) (*vers
 	}
 
 	return &versource.GetPlanResponse{
-		ID:          plan.ID,
-		ComponentID: plan.ComponentID,
-		ChangesetID: plan.ChangesetID,
-		From:        plan.From,
-		To:          plan.To,
-		State:       plan.State,
-		Add:         plan.Add,
-		Change:      plan.Change,
-		Destroy:     plan.Destroy,
-		Component:   *component,
-		Changeset:   plan.Changeset,
+		Plan:      *plan,
+		Component: *component,
 	}, nil
 }
 
@@ -230,12 +221,7 @@ func (c *CreatePlan) Exec(ctx context.Context, req versource.CreatePlanRequest) 
 		}
 
 		response = &versource.CreatePlanResponse{
-			ID:          plan.ID,
-			ComponentID: plan.ComponentID,
-			ChangesetID: plan.ChangesetID,
-			From:        plan.From,
-			To:          plan.To,
-			State:       plan.State,
+			Plan: *plan,
 		}
 
 		return nil
@@ -245,7 +231,7 @@ func (c *CreatePlan) Exec(ctx context.Context, req versource.CreatePlanRequest) 
 	}
 
 	if c.planWorker != nil {
-		c.planWorker.QueuePlan(response.ID)
+		c.planWorker.QueuePlan(response.Plan.ID)
 	}
 
 	return response, nil

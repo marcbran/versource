@@ -33,33 +33,8 @@ type GetApplyRequest struct {
 }
 
 type GetApplyResponse struct {
-	ID          uint      `json:"id" yaml:"id"`
-	PlanID      uint      `json:"planId" yaml:"planId"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	State       TaskState `json:"state" yaml:"state"`
-	Plan        struct {
-		ID          uint      `json:"id" yaml:"id"`
-		State       TaskState `json:"state" yaml:"state"`
-		From        string    `json:"from" yaml:"from"`
-		To          string    `json:"to" yaml:"to"`
-		Add         *int      `json:"add,omitempty" yaml:"add,omitempty"`
-		Change      *int      `json:"change,omitempty" yaml:"change,omitempty"`
-		Destroy     *int      `json:"destroy,omitempty" yaml:"destroy,omitempty"`
-		ComponentID uint      `json:"componentId" yaml:"componentId"`
-		Component   struct {
-			ID   uint   `json:"id" yaml:"id"`
-			Name string `json:"name" yaml:"name"`
-		} `json:"component" yaml:"component"`
-		ChangesetID uint `json:"changesetId" yaml:"changesetId"`
-		Changeset   struct {
-			ID   uint   `json:"id" yaml:"id"`
-			Name string `json:"name" yaml:"name"`
-		} `json:"changeset" yaml:"changeset"`
-	} `json:"plan" yaml:"plan"`
-	Changeset struct {
-		ID   uint   `json:"id" yaml:"id"`
-		Name string `json:"name" yaml:"name"`
-	} `json:"changeset" yaml:"changeset"`
+	Apply     Apply     `json:"apply" yaml:"apply"`
+	Component Component `json:"component" yaml:"component"`
 }
 
 type GetApplyLogRequest struct {

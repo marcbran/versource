@@ -41,7 +41,7 @@ var rebaseGetCmd = &cobra.Command{
 			waitForCompletion,
 			detailData,
 			func(resp versource.GetRebaseResponse) bool {
-				return versource.IsTaskCompleted(resp.State)
+				return versource.IsTaskCompleted(resp.Rebase.State)
 			},
 		)
 	},

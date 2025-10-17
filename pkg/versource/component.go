@@ -81,12 +81,8 @@ type CreateComponentRequest struct {
 }
 
 type CreateComponentResponse struct {
-	ID        uint           `json:"id" yaml:"id"`
-	Name      string         `json:"name" yaml:"name"`
-	Source    string         `json:"source" yaml:"source"`
-	Version   string         `json:"version" yaml:"version"`
-	Variables map[string]any `json:"variables" yaml:"variables"`
-	PlanID    uint           `json:"planId" yaml:"planId"`
+	Component Component `json:"component" yaml:"component"`
+	Plan      Plan      `json:"plan" yaml:"plan"`
 }
 
 type UpdateComponentRequest struct {
@@ -97,12 +93,8 @@ type UpdateComponentRequest struct {
 }
 
 type UpdateComponentResponse struct {
-	ID        uint           `json:"id" yaml:"id"`
-	Name      string         `json:"name" yaml:"name"`
-	Source    string         `json:"source" yaml:"source"`
-	Version   string         `json:"version" yaml:"version"`
-	Variables map[string]any `json:"variables" yaml:"variables"`
-	PlanID    uint           `json:"planId" yaml:"planId"`
+	Component Component `json:"component" yaml:"component"`
+	Plan      Plan      `json:"plan" yaml:"plan"`
 }
 
 type DeleteComponentRequest struct {
@@ -111,13 +103,8 @@ type DeleteComponentRequest struct {
 }
 
 type DeleteComponentResponse struct {
-	ID        uint            `json:"id" yaml:"id"`
-	Name      string          `json:"name" yaml:"name"`
-	Source    string          `json:"source" yaml:"source"`
-	Version   string          `json:"version" yaml:"version"`
-	Variables map[string]any  `json:"variables" yaml:"variables"`
-	Status    ComponentStatus `json:"status" yaml:"status"`
-	PlanID    uint            `json:"planId" yaml:"planId"`
+	Component Component `json:"component" yaml:"component"`
+	Plan      Plan      `json:"plan" yaml:"plan"`
 }
 
 type RestoreComponentRequest struct {
@@ -126,11 +113,6 @@ type RestoreComponentRequest struct {
 }
 
 type RestoreComponentResponse struct {
-	ID        uint            `json:"id" yaml:"id"`
-	Name      string          `json:"name" yaml:"name"`
-	Source    string          `json:"source" yaml:"source"`
-	Version   string          `json:"version" yaml:"version"`
-	Variables map[string]any  `json:"variables" yaml:"variables"`
-	Status    ComponentStatus `json:"status" yaml:"status"`
-	PlanID    uint            `json:"planId" yaml:"planId"`
+	Component Component `json:"component" yaml:"component"`
+	Plan      Plan      `json:"plan" yaml:"plan"`
 }

@@ -37,7 +37,7 @@ var applyGetCmd = &cobra.Command{
 			waitForCompletion,
 			detailData,
 			func(resp versource.GetApplyResponse) bool {
-				return versource.IsTaskCompleted(resp.State)
+				return versource.IsTaskCompleted(resp.Apply.State)
 			},
 		)
 	},

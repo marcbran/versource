@@ -23,17 +23,8 @@ type GetPlanRequest struct {
 }
 
 type GetPlanResponse struct {
-	ID          uint      `json:"id" yaml:"id"`
-	ComponentID uint      `json:"componentId" yaml:"componentId"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	From        string    `json:"from" yaml:"from"`
-	To          string    `json:"to" yaml:"to"`
-	State       TaskState `json:"state" yaml:"state"`
-	Add         *int      `json:"add" yaml:"add"`
-	Change      *int      `json:"change" yaml:"change"`
-	Destroy     *int      `json:"destroy" yaml:"destroy"`
-	Component   Component `json:"component" yaml:"component"`
-	Changeset   Changeset `json:"changeset" yaml:"changeset"`
+	Plan      Plan      `json:"plan" yaml:"plan"`
+	Component Component `json:"component" yaml:"component"`
 }
 
 type GetPlanLogRequest struct {
@@ -59,10 +50,5 @@ type CreatePlanRequest struct {
 }
 
 type CreatePlanResponse struct {
-	ID          uint      `json:"id" yaml:"id"`
-	ComponentID uint      `json:"componentId" yaml:"componentId"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	From        string    `json:"from" yaml:"from"`
-	To          string    `json:"to" yaml:"to"`
-	State       TaskState `json:"state" yaml:"state"`
+	Plan Plan `json:"plan" yaml:"plan"`
 }

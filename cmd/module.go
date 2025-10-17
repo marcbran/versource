@@ -99,7 +99,7 @@ var moduleCreateCmd = &cobra.Command{
 			return err
 		}
 
-		return formatOutput(module, "Module created successfully with ID: %d, Version ID: %d\n", module.ID, module.VersionID)
+		return formatOutput(module, "Module created successfully with ID: %d, Version ID: %d\n", module.Module.ID, module.LatestVersion.ID)
 	},
 }
 
@@ -144,7 +144,7 @@ var moduleUpdateCmd = &cobra.Command{
 			return err
 		}
 
-		return formatOutput(module, "Module updated successfully with Version ID: %d\n", module.VersionID)
+		return formatOutput(module, "Module updated successfully with Version ID: %d\n", module.LatestVersion.ID)
 	},
 }
 

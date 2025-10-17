@@ -15,11 +15,7 @@ type GetRebaseRequest struct {
 }
 
 type GetRebaseResponse struct {
-	ID          uint      `json:"id" yaml:"id"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	MergeBase   string    `json:"mergeBase" yaml:"mergeBase"`
-	Head        string    `json:"head" yaml:"head"`
-	State       TaskState `json:"state" yaml:"state"`
+	Rebase Rebase `json:"rebase" yaml:"rebase"`
 }
 
 type ListRebasesRequest struct {
@@ -35,9 +31,5 @@ type CreateRebaseRequest struct {
 }
 
 type CreateRebaseResponse struct {
-	ID          uint      `json:"id" yaml:"id"`
-	ChangesetID uint      `json:"changesetId" yaml:"changesetId"`
-	MergeBase   string    `json:"mergeBase" yaml:"mergeBase"`
-	Head        string    `json:"head" yaml:"head"`
-	State       TaskState `json:"state" yaml:"state"`
+	Rebase Rebase `json:"rebase" yaml:"rebase"`
 }

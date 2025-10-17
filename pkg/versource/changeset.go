@@ -35,9 +35,7 @@ type CreateChangesetRequest struct {
 }
 
 type CreateChangesetResponse struct {
-	ID    uint           `json:"id" yaml:"id"`
-	Name  string         `json:"name" yaml:"name"`
-	State ChangesetState `json:"state" yaml:"state"`
+	Changeset Changeset `json:"changeset" yaml:"changeset"`
 }
 
 type EnsureChangesetRequest struct {
@@ -45,9 +43,7 @@ type EnsureChangesetRequest struct {
 }
 
 type EnsureChangesetResponse struct {
-	ID    uint           `json:"id" yaml:"id"`
-	Name  string         `json:"name" yaml:"name"`
-	State ChangesetState `json:"state" yaml:"state"`
+	Changeset Changeset `json:"changeset" yaml:"changeset"`
 }
 
 type DeleteChangesetRequest struct {

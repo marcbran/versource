@@ -4,6 +4,8 @@ package tests
 
 import (
 	"fmt"
+
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 func (s *Stage) an_existing_module_has_been_created() *Stage {
@@ -49,13 +51,8 @@ func (s *Stage) a_module_is_created(name, source, version string) *Stage {
 		args = append(args, "--version", version)
 	}
 	s.a_client_command_is_executed(args...)
-	if s.LastOutputMap != nil {
-		if id, ok := s.LastOutputMap["id"]; ok {
-			if idFloat, ok := id.(float64); ok {
-				s.ModuleID = fmt.Sprintf("%.0f", idFloat)
-			}
-		}
-	}
+	response := unmarshalResponse[versource.CreateModuleResponse](s.t, s.LastOutput)
+	s.ModuleID = fmt.Sprintf("%d", response.Module.ID)
 	return s
 }
 

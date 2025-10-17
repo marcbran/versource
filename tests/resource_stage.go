@@ -3,6 +3,7 @@
 package tests
 
 import (
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/stretchr/testify/require"
 )
 
@@ -11,7 +12,7 @@ func (s *Stage) the_resources_are_listed() *Stage {
 }
 
 func (s *Stage) there_are_resources(expectedCount int) *Stage {
-	require.NotNil(s.t, s.LastOutputArray, "No command output to check")
-	require.Equal(s.t, expectedCount, len(s.LastOutputArray), "Unexpected number of resources")
+	resources := unmarshalArray[versource.Resource](s.t, s.LastOutput)
+	require.Equal(s.t, expectedCount, len(resources), "Unexpected number of resources")
 	return s
 }

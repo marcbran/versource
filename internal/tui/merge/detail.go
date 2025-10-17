@@ -59,11 +59,11 @@ func (p *DetailData) LoadData() (*versource.GetMergeResponse, error) {
 
 func (p *DetailData) ResolveData(data versource.GetMergeResponse) DetailViewModel {
 	return DetailViewModel{
-		ID:          data.ID,
-		ChangesetID: data.ChangesetID,
-		State:       string(data.State),
-		MergeBase:   data.MergeBase,
-		Head:        data.Head,
+		ID:          data.Merge.ID,
+		ChangesetID: data.Merge.ChangesetID,
+		State:       string(data.Merge.State),
+		MergeBase:   data.Merge.MergeBase,
+		Head:        data.Merge.Head,
 	}
 }
 

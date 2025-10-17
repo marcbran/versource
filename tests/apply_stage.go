@@ -3,6 +3,7 @@
 package tests
 
 import (
+	"github.com/marcbran/versource/pkg/versource"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,19 +18,10 @@ func (s *Stage) all_applies_have_failed() *Stage {
 func (s *Stage) all_applies_have_completed(expectedState string) *Stage {
 	s.a_client_command_is_executed("apply", "list", "--wait-for-completion", "--output", "json")
 
-	require.NotNil(s.t, s.LastOutputArray, "No command output to check")
+	applies := unmarshalArray[versource.Apply](s.t, s.LastOutput)
 
-	for i, apply := range s.LastOutputArray {
-		applyMap, ok := apply.(map[string]any)
-		require.True(s.t, ok, "Apply at index %d is not a map", i)
-
-		state, ok := applyMap["state"]
-		require.True(s.t, ok, "No state field in apply at index %d", i)
-
-		stateStr, ok := state.(string)
-		require.True(s.t, ok, "Apply state is not a string at index %d", i)
-
-		require.Equal(s.t, expectedState, stateStr, "Apply state mismatch at index %d", i)
+	for i, apply := range applies {
+		require.Equal(s.t, expectedState, string(apply.State), "Apply state mismatch at index %d", i)
 	}
 
 	return s

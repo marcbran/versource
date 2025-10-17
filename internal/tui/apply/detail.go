@@ -98,18 +98,18 @@ func (p *DetailData) ResolveData(data versource.GetApplyResponse) DetailViewMode
 			Name string `yaml:"name"`
 		} `yaml:"changeset,omitempty"`
 	}
-	if data.Plan.ID != 0 {
+	if data.Apply.Plan.ID != 0 {
 		var component *struct {
 			ID   uint   `yaml:"id"`
 			Name string `yaml:"name"`
 		}
-		if data.Plan.Component.ID != 0 {
+		if data.Component.ID != 0 {
 			component = &struct {
 				ID   uint   `yaml:"id"`
 				Name string `yaml:"name"`
 			}{
-				ID:   data.Plan.Component.ID,
-				Name: data.Plan.Component.Name,
+				ID:   data.Component.ID,
+				Name: data.Component.Name,
 			}
 		}
 
@@ -117,13 +117,13 @@ func (p *DetailData) ResolveData(data versource.GetApplyResponse) DetailViewMode
 			ID   uint   `yaml:"id"`
 			Name string `yaml:"name"`
 		}
-		if data.Plan.Changeset.ID != 0 {
+		if data.Apply.Plan.Changeset.ID != 0 {
 			changeset = &struct {
 				ID   uint   `yaml:"id"`
 				Name string `yaml:"name"`
 			}{
-				ID:   data.Plan.Changeset.ID,
-				Name: data.Plan.Changeset.Name,
+				ID:   data.Apply.Plan.Changeset.ID,
+				Name: data.Apply.Plan.Changeset.Name,
 			}
 		}
 
@@ -146,16 +146,16 @@ func (p *DetailData) ResolveData(data versource.GetApplyResponse) DetailViewMode
 				Name string `yaml:"name"`
 			} `yaml:"changeset,omitempty"`
 		}{
-			ID:          data.Plan.ID,
-			State:       string(data.Plan.State),
-			From:        data.Plan.From,
-			To:          data.Plan.To,
-			Add:         data.Plan.Add,
-			Change:      data.Plan.Change,
-			Destroy:     data.Plan.Destroy,
-			ComponentID: data.Plan.ComponentID,
+			ID:          data.Apply.Plan.ID,
+			State:       string(data.Apply.Plan.State),
+			From:        data.Apply.Plan.From,
+			To:          data.Apply.Plan.To,
+			Add:         data.Apply.Plan.Add,
+			Change:      data.Apply.Plan.Change,
+			Destroy:     data.Apply.Plan.Destroy,
+			ComponentID: data.Apply.Plan.ComponentID,
 			Component:   component,
-			ChangesetID: data.Plan.ChangesetID,
+			ChangesetID: data.Apply.Plan.ChangesetID,
 			Changeset:   changeset,
 		}
 	}
@@ -164,21 +164,21 @@ func (p *DetailData) ResolveData(data versource.GetApplyResponse) DetailViewMode
 		ID   uint   `yaml:"id"`
 		Name string `yaml:"name"`
 	}
-	if data.Changeset.ID != 0 {
+	if data.Apply.Changeset.ID != 0 {
 		changeset = &struct {
 			ID   uint   `yaml:"id"`
 			Name string `yaml:"name"`
 		}{
-			ID:   data.Changeset.ID,
-			Name: data.Changeset.Name,
+			ID:   data.Apply.Changeset.ID,
+			Name: data.Apply.Changeset.Name,
 		}
 	}
 
 	return DetailViewModel{
-		ID:          data.ID,
-		State:       string(data.State),
-		PlanID:      data.PlanID,
-		ChangesetID: data.ChangesetID,
+		ID:          data.Apply.ID,
+		State:       string(data.Apply.State),
+		PlanID:      data.Apply.PlanID,
+		ChangesetID: data.Apply.ChangesetID,
 		Plan:        plan,
 		Changeset:   changeset,
 	}
@@ -188,7 +188,7 @@ func (p *DetailData) KeyBindings(elem versource.GetApplyResponse) platform.KeyBi
 	return platform.KeyBindings{
 		{Key: "esc", Help: "View applies", Command: "applies"},
 		{Key: "l", Help: "View logs", Command: fmt.Sprintf("applies/%s/logs", p.applyID)},
-		{Key: "p", Help: "View plan", Command: fmt.Sprintf("plans/%d", elem.PlanID)},
-		{Key: "c", Help: "View component", Command: fmt.Sprintf("components/%d", elem.Plan.ComponentID)},
+		{Key: "p", Help: "View plan", Command: fmt.Sprintf("plans/%d", elem.Apply.PlanID)},
+		{Key: "c", Help: "View component", Command: fmt.Sprintf("components/%d", elem.Apply.Plan.ComponentID)},
 	}
 }

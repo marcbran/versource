@@ -91,24 +91,24 @@ func (p *DetailData) ResolveData(data versource.GetPlanResponse) DetailViewModel
 		ID   uint   `yaml:"id"`
 		Name string `yaml:"name"`
 	}
-	if data.Changeset.ID != 0 {
+	if data.Plan.Changeset.ID != 0 {
 		changeset = &struct {
 			ID   uint   `yaml:"id"`
 			Name string `yaml:"name"`
 		}{
-			ID:   data.Changeset.ID,
-			Name: data.Changeset.Name,
+			ID:   data.Plan.Changeset.ID,
+			Name: data.Plan.Changeset.Name,
 		}
 	}
 
 	return DetailViewModel{
-		ID:        data.ID,
-		State:     string(data.State),
-		From:      data.From,
-		To:        data.To,
-		Add:       data.Add,
-		Change:    data.Change,
-		Destroy:   data.Destroy,
+		ID:        data.Plan.ID,
+		State:     string(data.Plan.State),
+		From:      data.Plan.From,
+		To:        data.Plan.To,
+		Add:       data.Plan.Add,
+		Change:    data.Plan.Change,
+		Destroy:   data.Plan.Destroy,
 		Component: component,
 		Changeset: changeset,
 	}
@@ -122,6 +122,6 @@ func (p *DetailData) KeyBindings(elem versource.GetPlanResponse) platform.KeyBin
 	return platform.KeyBindings{
 		{Key: "esc", Help: "View plans", Command: fmt.Sprintf("%s/plans", changesetPrefix)},
 		{Key: "l", Help: "View logs", Command: fmt.Sprintf("%s/plans/%s/logs", changesetPrefix, p.planID)},
-		{Key: "c", Help: "View component", Command: fmt.Sprintf("%s/components/%d", changesetPrefix, elem.ComponentID)},
+		{Key: "c", Help: "View component", Command: fmt.Sprintf("%s/components/%d", changesetPrefix, elem.Plan.ComponentID)},
 	}
 }

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/marcbran/versource/internal"
+	"github.com/marcbran/versource/pkg/versource"
 )
 
 func TestTerraformStack_AddModule(t *testing.T) {

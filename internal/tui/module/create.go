@@ -49,5 +49,5 @@ func (c *CreateModuleData) SaveData(ctx context.Context, data versource.CreateMo
 		return "", err
 	}
 
-	return fmt.Sprintf("modules/%d", resp.ID), nil
+	return fmt.Sprintf("modules/%d", resp.Module.ID), nil
 }

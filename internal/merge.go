@@ -51,11 +51,7 @@ func (g *GetMerge) Exec(ctx context.Context, req versource.GetMergeRequest) (*ve
 	}
 
 	return &versource.GetMergeResponse{
-		ID:          merge.ID,
-		ChangesetID: merge.ChangesetID,
-		MergeBase:   merge.MergeBase,
-		Head:        merge.Head,
-		State:       merge.State,
+		Merge: *merge,
 	}, nil
 }
 
@@ -153,11 +149,7 @@ func (c *CreateMerge) Exec(ctx context.Context, req versource.CreateMergeRequest
 		}
 
 		response = &versource.CreateMergeResponse{
-			ID:          merge.ID,
-			ChangesetID: merge.ChangesetID,
-			MergeBase:   merge.MergeBase,
-			Head:        merge.Head,
-			State:       merge.State,
+			Merge: *merge,
 		}
 
 		return nil
@@ -167,7 +159,7 @@ func (c *CreateMerge) Exec(ctx context.Context, req versource.CreateMergeRequest
 	}
 
 	if c.mergeWorker != nil {
-		c.mergeWorker.QueueMerge(response.ID)
+		c.mergeWorker.QueueMerge(response.Merge.ID)
 	}
 
 	return response, nil

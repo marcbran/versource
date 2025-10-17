@@ -86,9 +86,7 @@ func (c *CreateChangeset) Exec(ctx context.Context, req versource.CreateChangese
 		}
 
 		response = &versource.CreateChangesetResponse{
-			ID:    changeset.ID,
-			Name:  changeset.Name,
-			State: changeset.State,
+			Changeset: *changeset,
 		}
 
 		return nil
@@ -144,9 +142,7 @@ func (e *EnsureChangeset) Exec(ctx context.Context, req versource.EnsureChangese
 	}
 	if existingChangeset != nil {
 		return &versource.EnsureChangesetResponse{
-			ID:    existingChangeset.ID,
-			Name:  existingChangeset.Name,
-			State: existingChangeset.State,
+			Changeset: *existingChangeset,
 		}, nil
 	}
 
@@ -156,9 +152,7 @@ func (e *EnsureChangeset) Exec(ctx context.Context, req versource.EnsureChangese
 	}
 
 	return &versource.EnsureChangesetResponse{
-		ID:    createResp.ID,
-		Name:  createResp.Name,
-		State: createResp.State,
+		Changeset: createResp.Changeset,
 	}, nil
 }
 

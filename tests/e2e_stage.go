@@ -28,10 +28,9 @@ type Stage struct {
 	MergeID       string
 	RebaseID      string
 
-	LastOutputArray []any
-	LastOutputMap   map[string]any
-	LastError       string
-	LastExitCode    int
+	LastOutput   string
+	LastError    string
+	LastExitCode int
 
 	LastQueryResult string
 }
@@ -50,7 +49,7 @@ func (s *Stage) the_stage_is_cleared() *Stage {
 	s.PlanID = ""
 	s.MergeID = ""
 	s.RebaseID = ""
-	s.LastOutputMap = nil
+	s.LastOutput = ""
 	s.LastError = ""
 	s.LastExitCode = 0
 	s.LastQueryResult = ""
@@ -243,16 +242,7 @@ func (s *Stage) a_command_is_executed(service string, args ...string) *Stage {
 			fmt.Println(output)
 		}
 		if output != "" {
-			var outputMap map[string]any
-			jsonErr := json.Unmarshal([]byte(output), &outputMap)
-			if jsonErr == nil {
-				s.LastOutputMap = outputMap
-			}
-			var outputArray []any
-			jsonErr = json.Unmarshal([]byte(output), &outputArray)
-			if jsonErr == nil {
-				s.LastOutputArray = outputArray
-			}
+			s.LastOutput = output
 		}
 	}
 
@@ -399,4 +389,26 @@ func parseVariablesToArgs(variables string) []string {
 	}
 
 	return args
+}
+
+func unmarshalResponse[T any](t require.TestingT, output string) *T {
+	if output == "" {
+		require.Fail(t, "No output to unmarshal")
+		return nil
+	}
+	var response T
+	json.Unmarshal([]byte(output), &response)
+	require.NotNil(t, &response)
+	return &response
+}
+
+func unmarshalArray[T any](t require.TestingT, output string) []T {
+	if output == "" {
+		require.Fail(t, "No output to unmarshal")
+		return nil
+	}
+	var response []T
+	json.Unmarshal([]byte(output), &response)
+	require.NotNil(t, response)
+	return response
 }

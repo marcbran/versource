@@ -14,7 +14,7 @@ require (
 	github.com/jsonnet-bundler/jsonnet-bundler v0.6.0
 	github.com/marcbran/jpoet v0.14.5
 	github.com/pressly/goose/v3 v3.26.0
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1

@@ -9,7 +9,7 @@ require (
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/google/uuid v1.6.0
-	github.com/hashicorp/terraform-exec v0.25.2
+	github.com/hashicorp/terraform-exec v0.25.3
 	github.com/hashicorp/terraform-json v0.28.0
 	github.com/jsonnet-bundler/jsonnet-bundler v0.6.0
 	github.com/marcbran/jpoet v0.19.0
